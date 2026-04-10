@@ -11,17 +11,34 @@ import json
 import logging
 import os
 from codecs import decode as _decode
+from pathlib import Path
 
 import httpx
+from dotenv import load_dotenv
 from langchain_openai.chat_models.azure import AzureChatOpenAI
 from pydantic_settings import BaseSettings
 
 logger = logging.getLogger(__name__)
 
-# ── SSL cert (same lookup order as reference chatbot) ─────────────────────────
-CERT_PATH = os.path.join(os.path.dirname(__file__), "cacert.pem")
-if not os.path.exists(CERT_PATH):
-    CERT_PATH = os.path.expanduser("~/.ssh/cacert.pem")
+# Load .env into os.environ so get_api_key() can read from it via os.getenv()
+_env_path = Path(__file__).parent.parent / ".env"
+load_dotenv(_env_path, override=False)  # override=False: OS env takes priority
+
+# ── SSL cert ──────────────────────────────────────────────────────────────────
+# Lookup order: local cacert.pem → ~/.ssh/cacert.pem → SSL_CERT_FILE env var → True (default)
+def _resolve_cert() -> str | bool:
+    local = os.path.join(os.path.dirname(__file__), "cacert.pem")
+    if os.path.exists(local):
+        return local
+    ssh = os.path.expanduser("~/.ssh/cacert.pem")
+    if os.path.exists(ssh):
+        return ssh
+    system = os.getenv("SSL_CERT_FILE") or os.getenv("REQUESTS_CA_BUNDLE")
+    if system and os.path.exists(system):
+        return system
+    return True  # use system default cert store
+
+CERT_PATH = _resolve_cert()
 
 
 class Settings(BaseSettings):

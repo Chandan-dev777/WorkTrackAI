@@ -60,8 +60,11 @@ Return ONLY valid JSON matching this schema — no explanation, no markdown fenc
    (e.g. "Fixed bug X (2h) and attended standup (0.5h)" → 2 items).
 2. Today's date is {today}. Resolve relative phrases like "yesterday" or \
    "last Monday" to an absolute date. Set work_date to that resolved date.
-3. If hours_spent or status cannot be inferred from the text, set \
-   clarification_needed=true and explain in clarification_reason.
+3. Set clarification_needed=true ONLY when BOTH of these are true: \
+   (a) hours_spent cannot be inferred at all from the text, AND/OR \
+   (b) status cannot be inferred at all from the text. \
+   Do NOT set clarification_needed=true for missing optional fields like \
+   ticket_id, project_name, priority, tags, or links — those are always optional.
 4. Use ONLY the allowed enum values — never free-form strings for \
    work_category or status.
 5. Normalise status variants: "ongoing"/"in progress" → "in_progress", \

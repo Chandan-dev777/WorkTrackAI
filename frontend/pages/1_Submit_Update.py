@@ -19,8 +19,13 @@ def _auth_headers():
     return {"Authorization": f"Bearer {st.session_state['token']}"}
 
 
-def _api(method, path, **kwargs):
-    return httpx.request(method, f"{API_BASE}{path}", headers=_auth_headers(), **kwargs)
+def _api(method, path, timeout: float = 120.0, **kwargs):
+    return httpx.request(
+        method, f"{API_BASE}{path}",
+        headers=_auth_headers(),
+        timeout=timeout,
+        **kwargs,
+    )
 
 
 # ── Page header ───────────────────────────────────────────────────────────────

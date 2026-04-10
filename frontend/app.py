@@ -19,10 +19,10 @@ st.set_page_config(
 )
 
 
-def _api(method: str, path: str, **kwargs):
+def _api(method: str, path: str, timeout: float = 30.0, **kwargs):
     """Simple API helper with error passthrough."""
     url = f"{API_BASE}{path}"
-    resp = httpx.request(method, url, **kwargs)
+    resp = httpx.request(method, url, timeout=timeout, **kwargs)
     return resp
 
 
