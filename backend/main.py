@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.database import create_tables
-from backend.routers import auth, updates
+from backend.routers import auth, dashboard, updates, worklogs
 
 logging.basicConfig(
     level=logging.INFO,
@@ -44,6 +44,8 @@ app.add_middleware(
 # ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(auth.router)
 app.include_router(updates.router)
+app.include_router(worklogs.router)
+app.include_router(dashboard.router)
 
 
 @app.get("/health")
