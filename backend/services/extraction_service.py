@@ -20,14 +20,19 @@ logger = logging.getLogger(__name__)
 PARSE_VERSION = "1.0"
 
 
-def build_extraction_chain(model: str | None = None):
+def build_extraction_chain(model: str | None = None, fixing_model: str | None = None):
     """
     Builds and returns the LangChain extraction chain.
     Chain: prompt | llm | OutputFixingParser(PydanticOutputParser)
+
+    Uses two separate models:
+    - llm: primary extraction model (default: LLM_MODEL_EXTRACTION — Sonnet for accuracy)
+    - fixing_llm: OutputFixingParser retry model (default: LLM_MODEL_FIXING — Haiku for speed)
     """
-    llm = get_llm(model)
+    llm = get_llm(model or settings.LLM_MODEL_EXTRACTION)
+    fixing_llm = get_llm(fixing_model or settings.LLM_MODEL_FIXING)
     base_parser = PydanticOutputParser(pydantic_object=ExtractionResult)
-    fixing_parser = OutputFixingParser.from_llm(parser=base_parser, llm=llm)
+    fixing_parser = OutputFixingParser.from_llm(parser=base_parser, llm=fixing_llm)
 
     chain = EXTRACTION_PROMPT | llm | fixing_parser
     return chain, llm
@@ -48,12 +53,12 @@ def run_extraction(
         - model_name: the LLM model used
     """
     today = work_date or date.today()
-    model_name = model or settings.LLM_MODEL
+    model_name = model or settings.LLM_MODEL_EXTRACTION
 
     logger.info("Starting extraction | model=%s | message_len=%d", model_name, len(raw_message))
 
     try:
-        chain, llm = build_extraction_chain(model_name)
+        chain, llm = build_extraction_chain(model=model_name)
         result: ExtractionResult = chain.invoke({
             "today": today.isoformat(),
             "raw_message": raw_message,

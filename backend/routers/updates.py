@@ -196,6 +196,76 @@ def get_update(
     return WorkLogResponse.model_validate(log)
 
 
+@router.put("/{work_log_id}", response_model=SubmitUpdateResponse)
+def resubmit_update(
+    work_log_id: str,
+    payload: SubmitUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> SubmitUpdateResponse:
+    """
+    Re-submit an existing work log with new text.
+    Soft-deletes the old log (raw_message preserved) and creates a fresh one.
+    Returns a new work_log_id and extraction preview for the user to confirm.
+    """
+    old_log = db.query(WorkLog).filter(
+        WorkLog.id == work_log_id,
+        WorkLog.user_id == current_user.id,
+        WorkLog.is_deleted == False,  # noqa: E712
+    ).first()
+
+    if old_log is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Work log not found")
+
+    work_date = payload.work_date or old_log.work_date
+
+    # Soft-delete the old log (raw_message stays immutable on the old record)
+    old_log.is_deleted = True
+    db.commit()
+
+    # Remove old items from ChromaDB if it was confirmed
+    try:
+        delete_work_log(work_log_id)
+    except Exception as exc:
+        logging.getLogger(__name__).error("ChromaDB delete on resubmit failed: %s", exc)
+
+    # Create a new pending WorkLog
+    new_log = WorkLog(
+        id=str(uuid.uuid4()),
+        user_id=current_user.id,
+        work_date=work_date,
+        raw_message=payload.raw_message,
+        extraction_status="pending",
+    )
+    db.add(new_log)
+    db.commit()
+    db.refresh(new_log)
+
+    # Run extraction
+    result, extraction_status, model_name = run_extraction(
+        raw_message=payload.raw_message,
+        work_date=work_date,
+    )
+
+    if result is None:
+        result = fallback_extraction(payload.raw_message, work_date)
+        extraction_status = "needs_review"
+
+    new_log.extraction_status = extraction_status
+    new_log.model_name = model_name
+    new_log.parse_version = PARSE_VERSION
+    db.commit()
+
+    return SubmitUpdateResponse(
+        work_log_id=new_log.id,
+        work_date=result.work_date,
+        extraction_status=extraction_status,
+        items=result.items,
+        total_hours_warning=result.total_hours_warning,
+        has_clarification_needed=any(i.clarification_needed for i in result.items),
+    )
+
+
 @router.delete("/{work_log_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_update(
     work_log_id: str,

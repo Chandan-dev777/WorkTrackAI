@@ -116,6 +116,81 @@ class TestGetUpdate:
         assert resp.status_code == 404
 
 
+class TestResubmitUpdate:
+    def test_resubmit_returns_new_work_log_id(self, client, monkeypatch):
+        """PUT /updates/{id} creates a new log and returns a different work_log_id."""
+        _mock_extraction(monkeypatch)
+        token = register_user(client)
+        old_id = _submit_and_confirm(client, token, monkeypatch)
+
+        resp = client.put(
+            f"/updates/{old_id}",
+            json={"raw_message": "Updated work description"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert "work_log_id" in body
+        assert body["work_log_id"] != old_id
+
+    def test_resubmit_soft_deletes_old_log(self, client, monkeypatch):
+        """After resubmit the old log no longer appears in GET /updates/."""
+        _mock_extraction(monkeypatch)
+        token = register_user(client)
+        old_id = _submit_and_confirm(client, token, monkeypatch)
+
+        client.put(
+            f"/updates/{old_id}",
+            json={"raw_message": "New message"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+        resp = client.get(f"/updates/{old_id}", headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 404
+
+    def test_resubmit_new_log_appears_in_list(self, client, monkeypatch):
+        """The new log from resubmit is visible in GET /updates/."""
+        _mock_extraction(monkeypatch)
+        token = register_user(client)
+        old_id = _submit_and_confirm(client, token, monkeypatch)
+
+        resubmit_resp = client.put(
+            f"/updates/{old_id}",
+            json={"raw_message": "New message"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        new_id = resubmit_resp.json()["work_log_id"]
+
+        list_resp = client.get("/updates/", headers={"Authorization": f"Bearer {token}"})
+        ids = [log["id"] for log in list_resp.json()]
+        assert new_id in ids
+        assert old_id not in ids
+
+    def test_resubmit_unknown_log_returns_404(self, client, monkeypatch):
+        _mock_extraction(monkeypatch)
+        token = register_user(client)
+
+        resp = client.put(
+            "/updates/nonexistent-id",
+            json={"raw_message": "Anything"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert resp.status_code == 404
+
+    def test_resubmit_other_users_log_returns_404(self, client, monkeypatch):
+        _mock_extraction(monkeypatch)
+        token_a = register_user(client, employee_id="EMP-001", email="a@x.com")
+        token_b = register_user(client, employee_id="EMP-002", email="b@x.com")
+        old_id = _submit_and_confirm(client, token_a, monkeypatch)
+
+        resp = client.put(
+            f"/updates/{old_id}",
+            json={"raw_message": "Trying to steal"},
+            headers={"Authorization": f"Bearer {token_b}"},
+        )
+        assert resp.status_code == 404
+
+
 class TestDoubleConfirmBlocked:
     def test_second_confirm_returns_409(self, client, monkeypatch):
         _mock_extraction(monkeypatch)

@@ -1,6 +1,10 @@
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+addopts = "-m 'not integration'"   # integration tests run only with: pytest -m integration
+markers = [
+    "integration: real LLM calls — requires API keys (deselected by default)",
+]
 
 [tool.ruff]
 line-length = 100

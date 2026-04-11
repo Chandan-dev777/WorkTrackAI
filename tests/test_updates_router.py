@@ -104,6 +104,40 @@ class TestSubmitUpdate:
             headers={"Authorization": f"Bearer {token}"},
         )
         assert resp.status_code == 200
+        # work_date in the response comes from the ExtractionResult (mocked to today),
+        # but the WorkLog row should have work_date=2026-01-15
+        assert resp.json()["work_log_id"] is not None
+
+    def test_submit_total_hours_warning_true(self, client, monkeypatch):
+        """When extraction returns total_hours_warning=True the response reflects it."""
+        _mock_chroma(monkeypatch)
+        result = ExtractionResult(
+            work_date=date.today(),
+            items=[
+                WorkItemExtracted(
+                    task_description="Worked all day",
+                    work_category="project",
+                    hours_spent=13.0,
+                    status="in_progress",
+                    clarification_needed=False,
+                    confidence_score=0.9,
+                )
+            ],
+            total_hours_warning=True,
+        )
+        monkeypatch.setattr(
+            "backend.routers.updates.run_extraction",
+            lambda **kwargs: (result, "success", "Claude Sonnet 4.6"),
+        )
+        token = register_user(client)
+
+        resp = client.post(
+            "/updates/submit",
+            json={"raw_message": "worked 13 hours on the migration project"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["total_hours_warning"] is True
 
 
 class TestConfirmUpdate:

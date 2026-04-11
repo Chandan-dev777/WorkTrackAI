@@ -52,7 +52,15 @@ class Settings(BaseSettings):
 
     # LLM
     LLM_PROVIDER: str = "azure"
-    LLM_MODEL: str = "Claude Sonnet 4.6"
+    LLM_MODEL: str = "Claude Sonnet 4.6"          # legacy fallback default
+
+    # Per-task model selection
+    # Extraction: needs structured JSON output + good instruction following
+    LLM_MODEL_EXTRACTION: str = "Claude Sonnet 4.6"
+    # Fixing parser: only repairs malformed JSON — fast model is sufficient
+    LLM_MODEL_FIXING: str = "Claude Haiku 4.5"
+    # Chat agent: needs multi-step reasoning + tool-use planning
+    LLM_MODEL_CHAT: str = "Claude Sonnet 4.6"
 
     # Azure endpoints
     NLP_ENDPOINT: str = "https://api.nlp.p.uptimize.merckgroup.com"
