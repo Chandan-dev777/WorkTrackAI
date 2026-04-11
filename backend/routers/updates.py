@@ -9,6 +9,7 @@ PUT  /updates/{id}    — re-submit / replace a work log
 DELETE /updates/{id}  — soft-delete a work log
 """
 
+import logging
 import uuid
 from datetime import date
 
@@ -63,19 +64,17 @@ def submit_update(
         work_date=work_date,
     )
 
-    # Update WorkLog with extraction outcome
-    work_log.extraction_status = extraction_status
-    work_log.model_name = model_name
-    work_log.parse_version = PARSE_VERSION
-    db.commit()
-
     if result is None:
         # LLM unavailable — fall back to manual entry rather than blocking the user.
         # Raw message is preserved; user completes fields in the preview step.
         result = fallback_extraction(payload.raw_message, work_date)
         extraction_status = "needs_review"
-        work_log.extraction_status = "needs_review"
-        db.commit()
+
+    # Update WorkLog with final extraction outcome (single commit)
+    work_log.extraction_status = extraction_status
+    work_log.model_name = model_name
+    work_log.parse_version = PARSE_VERSION
+    db.commit()
 
     return SubmitUpdateResponse(
         work_log_id=work_log.id,
@@ -98,7 +97,7 @@ def confirm_update(
     Persist confirmed (and possibly user-edited) work items.
     Writes to SQLite first, then upserts into ChromaDB.
     """
-    work_log = db.query(WorkLog).filter(
+    work_log = db.query(WorkLog).options(selectinload(WorkLog.work_items)).filter(
         WorkLog.id == work_log_id,
         WorkLog.user_id == current_user.id,
         WorkLog.is_deleted == False,  # noqa: E712
@@ -157,7 +156,6 @@ def confirm_update(
         upsert_work_items(orm_items, current_user.id)
     except Exception as exc:
         # ChromaDB failure is non-fatal — log and continue
-        import logging
         logging.getLogger(__name__).error("ChromaDB upsert failed: %s", exc)
 
     return WorkLogResponse.model_validate(work_log)
@@ -218,5 +216,4 @@ def delete_update(
     try:
         delete_work_log(work_log_id)
     except Exception as exc:
-        import logging
         logging.getLogger(__name__).error("ChromaDB delete failed: %s", exc)

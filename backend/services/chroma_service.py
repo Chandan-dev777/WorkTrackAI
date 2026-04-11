@@ -14,6 +14,7 @@ from typing import Any
 
 import chromadb
 from chromadb.config import Settings as ChromaSettings
+from sqlalchemy.orm import selectinload
 
 from backend.config import settings
 
@@ -170,6 +171,7 @@ def reindex_from_sqlite(db) -> int:
         db.query(WorkItem)
         .join(WorkLog, WorkItem.work_log_id == WorkLog.id)
         .filter(WorkLog.is_deleted == False)  # noqa: E712
+        .options(selectinload(WorkItem.work_log))
         .all()
     )
 
@@ -177,13 +179,12 @@ def reindex_from_sqlite(db) -> int:
         logger.info("reindex: no work items found in SQLite")
         return 0
 
-    # Group by user_id via work_log join
-    user_map: dict[str, str] = {}
-    for item in work_items:
-        if item.work_log_id not in user_map:
-            log = db.query(WorkLog).filter(WorkLog.id == item.work_log_id).first()
-            if log:
-                user_map[item.work_log_id] = log.user_id
+    # Build user_map from already-loaded work_log relationships (no extra queries)
+    user_map: dict[str, str] = {
+        item.work_log_id: item.work_log.user_id
+        for item in work_items
+        if item.work_log
+    }
 
     # Upsert in batches of 100
     batch_size = 100

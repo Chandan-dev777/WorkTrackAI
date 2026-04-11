@@ -45,10 +45,7 @@ def db():
 def client(db):
     """FastAPI TestClient with the test DB injected."""
     def override_get_db():
-        try:
-            yield db
-        finally:
-            pass
+        yield db
 
     app.dependency_overrides[get_db] = override_get_db
     with TestClient(app) as c:

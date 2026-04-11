@@ -30,7 +30,7 @@ def build_extraction_chain(model: str | None = None):
     fixing_parser = OutputFixingParser.from_llm(parser=base_parser, llm=llm)
 
     chain = EXTRACTION_PROMPT | llm | fixing_parser
-    return chain, llm, base_parser
+    return chain, llm
 
 
 def run_extraction(
@@ -53,7 +53,7 @@ def run_extraction(
     logger.info("Starting extraction | model=%s | message_len=%d", model_name, len(raw_message))
 
     try:
-        chain, llm, _ = build_extraction_chain(model_name)
+        chain, llm = build_extraction_chain(model_name)
         result: ExtractionResult = chain.invoke({
             "today": today.isoformat(),
             "raw_message": raw_message,

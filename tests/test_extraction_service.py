@@ -53,7 +53,7 @@ class TestRunExtractionSuccess:
         with patch("backend.services.extraction_service.build_extraction_chain") as mock_build:
             chain = MagicMock()
             chain.invoke.return_value = ExtractionResult.model_validate(VALID_EXTRACTION_DATA)
-            mock_build.return_value = (chain, MagicMock(), MagicMock())
+            mock_build.return_value = (chain, MagicMock())
 
             result, status, model = run_extraction("Fixed login bug (2h) and standup (0.5h)")
 
@@ -65,7 +65,7 @@ class TestRunExtractionSuccess:
         with patch("backend.services.extraction_service.build_extraction_chain") as mock_build:
             chain = MagicMock()
             chain.invoke.return_value = ExtractionResult.model_validate(VALID_EXTRACTION_DATA)
-            mock_build.return_value = (chain, MagicMock(), MagicMock())
+            mock_build.return_value = (chain, MagicMock())
 
             result, _, _ = run_extraction("compound update")
 
@@ -90,7 +90,7 @@ class TestRunExtractionSuccess:
         with patch("backend.services.extraction_service.build_extraction_chain") as mock_build:
             chain = MagicMock()
             chain.invoke.return_value = ExtractionResult.model_validate(data)
-            mock_build.return_value = (chain, MagicMock(), MagicMock())
+            mock_build.return_value = (chain, MagicMock())
 
             result, _, _ = run_extraction("Worked 13 hours on project")
 
@@ -101,7 +101,7 @@ class TestRunExtractionSuccess:
         with patch("backend.services.extraction_service.build_extraction_chain") as mock_build:
             chain = MagicMock()
             chain.invoke.return_value = ExtractionResult.model_validate(VALID_EXTRACTION_DATA)
-            mock_build.return_value = (chain, MagicMock(), MagicMock())
+            mock_build.return_value = (chain, MagicMock())
 
             result, _, _ = run_extraction("some update", work_date=override_date)
 
@@ -128,7 +128,7 @@ class TestRunExtractionClarification:
         with patch("backend.services.extraction_service.build_extraction_chain") as mock_build:
             chain = MagicMock()
             chain.invoke.return_value = ExtractionResult.model_validate(data)
-            mock_build.return_value = (chain, MagicMock(), MagicMock())
+            mock_build.return_value = (chain, MagicMock())
 
             result, status, _ = run_extraction("Worked on Polaris stuff")
 
@@ -141,7 +141,7 @@ class TestRunExtractionFailure:
         with patch("backend.services.extraction_service.build_extraction_chain") as mock_build:
             chain = MagicMock()
             chain.invoke.side_effect = Exception("LLM timeout")
-            mock_build.return_value = (chain, MagicMock(), MagicMock())
+            mock_build.return_value = (chain, MagicMock())
 
             result, status, _ = run_extraction("some text")
 
