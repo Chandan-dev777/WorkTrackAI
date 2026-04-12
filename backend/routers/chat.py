@@ -36,6 +36,8 @@ def chat_query(
         db=db,
         session_id=payload.session_id,
         team_name=current_user.team_name,
+        full_name=current_user.full_name,
+        employee_id=current_user.employee_id,
     )
     return ChatResponse(
         answer=answer,

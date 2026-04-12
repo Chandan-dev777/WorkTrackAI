@@ -319,6 +319,8 @@ def _build_system_prompt(
     user_role: str,
     today: date,
     user_team_name: Optional[str] = None,
+    full_name: Optional[str] = None,
+    employee_id: Optional[str] = None,
 ) -> str:
     if user_role == "employee":
         role_context = "You can only see your own work data."
@@ -330,34 +332,44 @@ def _build_system_prompt(
         )
     else:
         role_context = (
-            "As a manager/admin, you can query data for all team members using the "
-            "team_summary metric or target_employee_id."
+            "As a manager/admin, you can query data for all team members. "
+            "Use sql_query with metric=team_summary (no team_name filter) to list all employees."
         )
 
-    team_line = f"- Team: {user_team_name}" if user_team_name else ""
+    # Build optional context lines cleanly to avoid f-string nesting issues
+    extra_lines = ""
+    if full_name:
+        extra_lines += f"\n- Name: {full_name}"
+    if employee_id:
+        extra_lines += f"\n- Employee ID: {employee_id}"
+    if user_team_name:
+        extra_lines += f"\n- Team: {user_team_name}"
 
     return f"""You are WorkTrack AI, a helpful assistant that answers questions about work logs and progress tracking.
 
 User context:
 - User ID: {user_id}
-- Role: {user_role}
-{team_line + chr(10) if team_line else ""}- Today: {today.isoformat()}
+- Role: {user_role}{extra_lines}
+- Today: {today.isoformat()}
 - {role_context}
 
 You have three tools:
 1. date_resolver — Use FIRST for any query involving relative dates ("last week", "yesterday", "this month").
-2. sql_query — Use for counts, totals, breakdowns. Metrics: total_hours_summary, hours_by_category, status_distribution, daily_trend, team_summary.
-3. vector_search — Use for open-ended recall ("what was I working on", "find tasks about X").
+2. sql_query — Use for counts, totals, breakdowns, and employee directory queries.
+   Metrics: total_hours_summary, hours_by_category, status_distribution, daily_trend, list_items, team_summary.
+3. vector_search — Use for open-ended semantic recall ("what was I working on", "find tasks about X").
 
 Guidelines:
 - Always resolve relative dates with date_resolver before calling other tools.
 - For "how many hours" or "how many tasks" → use sql_query with total_hours_summary.
-- For "show me the task", "what task?", "task details", "describe it", "what did I work on" → use sql_query with metric=list_items. This retrieves actual task descriptions from the database. Prefer this over vector_search when the user simply wants to see their tasks.
-- For vague follow-ups in a conversation (e.g. "ticket", "description", "that task"), use the date range from the prior turn and call sql_query with metric=list_items immediately — do not ask for clarification.
+- For "show me the task", "what task?", "task details", "describe it", "what did I work on" → use sql_query with metric=list_items.
+- For vague follow-ups (e.g. "ticket", "description", "that task"), use the date range from the prior turn and call sql_query with metric=list_items immediately — do not ask for clarification.
 - For semantic recall ("find tasks about X", "anything related to deployment") → use vector_search.
-- For complex questions, combine both sql_query and vector_search.
+- For "list all employees", "show me the team", "how many employees", "who works here", or any question about finding a person by name → use sql_query with metric=team_summary (broad date range like last 30 days). The result includes employee_id and full_name for every person. Search/filter the result to answer name-based questions.
+- For "tell me about myself" or "who am I" → answer from the User context above (name, role, employee ID). No tool call needed.
+- For questions about user roles, permissions, or who is an admin → explain that role/permission management is in the Admin Panel and is not accessible via work log tools.
 - Cite specific dates and task descriptions when possible.
-- If no data found for a requested date range, try a broader range (e.g. this week or last 30 days) and tell the user what range you searched instead.
+- If no data found for a requested date range, try a broader range (e.g. last 30 days) and tell the user what range you searched.
 - Keep answers concise and factual."""
 
 
@@ -371,6 +383,8 @@ def run_chat_query(
     session_id: Optional[str] = None,
     model: Optional[str] = None,
     team_name: Optional[str] = None,
+    full_name: Optional[str] = None,
+    employee_id: Optional[str] = None,
 ) -> tuple[str, str, list[SourceReference], str]:
     """
     Run the chat agent on a question.
@@ -390,7 +404,12 @@ def run_chat_query(
     llm = get_llm(model or settings.LLM_MODEL_CHAT)
     agent = create_react_agent(llm, tools)
 
-    system_prompt = _build_system_prompt(user_id, user_role, today, user_team_name=team_name)
+    system_prompt = _build_system_prompt(
+        user_id, user_role, today,
+        user_team_name=team_name,
+        full_name=full_name,
+        employee_id=employee_id,
+    )
 
     # Load recent session history so the agent has conversation context (last 10 turns)
     recent_history = get_chat_history(db, user_id, session_id=session_id, limit=10)

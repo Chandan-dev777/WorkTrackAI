@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.database import create_tables
-from backend.routers import auth, chat, dashboard, updates, worklogs
+from backend.routers import admin, auth, chat, dashboard, updates, worklogs
 
 logging.basicConfig(
     level=logging.INFO,
@@ -47,6 +47,7 @@ app.include_router(updates.router)
 app.include_router(worklogs.router)
 app.include_router(dashboard.router)
 app.include_router(chat.router)
+app.include_router(admin.router)
 
 
 @app.get("/health")
