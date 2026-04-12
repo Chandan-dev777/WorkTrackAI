@@ -27,6 +27,7 @@ from backend.config import get_llm, settings
 from backend.models.chat_history import ChatHistory
 from backend.schemas.chat import SourceReference
 from backend.services.chroma_service import search_work_items
+from backend.models.user import User
 from backend.services.dashboard_service import (
     get_daily_trend,
     get_hours_by_category,
@@ -146,7 +147,8 @@ def make_tools(user_id: str, user_role: str, db: Session, user_team_name: Option
             end_date: End date in YYYY-MM-DD format.
             category: Optional — filter by work category (e.g. "ticket", "meeting").
             status: Optional — filter by item status (e.g. "done", "blocked").
-            target_employee_id: Optional — manager only, filter to one employee's user_id.
+            target_employee_id: Optional — manager only, filter to one employee.
+                       Pass the employee_id from team_summary (e.g. "EMP-CB-001").
             team_name: Optional — manager only, filter team_summary to a specific team name.
                        When the user says "my team", pass the manager's own team name here.
 
@@ -159,10 +161,21 @@ def make_tools(user_id: str, user_role: str, db: Session, user_team_name: Option
         except ValueError:
             return json.dumps({"error": f"Invalid dates: {start_date}, {end_date}"})
 
-        # For manager queries: allow target_employee_id; else enforce own user_id
+        # For manager queries: resolve target_employee_id (e.g. "EMP-CB-001") to the
+        # internal user UUID that WorkLog.user_id references.
         query_uid = user_id
         if target_employee_id and user_role in ("manager", "admin"):
-            query_uid = target_employee_id
+            target_user = (
+                db.query(User)
+                .filter(
+                    (User.employee_id == target_employee_id) | (User.id == target_employee_id)
+                )
+                .first()
+            )
+            if target_user:
+                query_uid = target_user.id
+            else:
+                return json.dumps({"error": f"Employee not found: {target_employee_id}"})
 
         try:
             if metric == "list_items":
@@ -253,20 +266,27 @@ def make_tools(user_id: str, user_role: str, db: Session, user_team_name: Option
         # Employees are always scoped to their own data
         search_uid = user_id if user_role == "employee" else None
 
-        where: dict = {}
+        # ChromaDB $gte/$lte require numeric values — use work_date_num (YYYYMMDD int).
+        # Multiple conditions on the same field require $and.
+        where_clauses = []
         if start_date:
-            where["work_date"] = {"$gte": start_date}
+            where_clauses.append({"work_date_num": {"$gte": int(start_date.replace("-", ""))}})
         if end_date:
-            existing = where.get("work_date", {})
-            existing["$lte"] = end_date
-            where["work_date"] = existing
+            where_clauses.append({"work_date_num": {"$lte": int(end_date.replace("-", ""))}})
+
+        if not where_clauses:
+            where_filter = None
+        elif len(where_clauses) == 1:
+            where_filter = where_clauses[0]
+        else:
+            where_filter = {"$and": where_clauses}
 
         try:
             results = search_work_items(
                 query=query,
                 user_id=search_uid,
                 n_results=min(int(n_results), 20),
-                where=where or None,
+                where=where_filter,
             )
             # Shape for LLM consumption
             output = [

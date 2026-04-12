@@ -164,6 +164,67 @@ class TestSqlQueryTool:
         assert statuses["done"] == 2
         assert statuses["in_progress"] == 1
 
+    def test_manager_can_query_employee_by_employee_id_string(self, db):
+        """Regression: target_employee_id='EMP-CB-001' must resolve to user UUID.
+        Previously the string was passed directly to WorkLog.user_id, returning nothing."""
+        mgr = User(
+            employee_id="MGR-001", full_name="Manager", email="mgr@x.com",
+            hashed_password="h", role="manager",
+        )
+        emp = User(
+            employee_id="EMP-CB-001", full_name="Priya Sharma", email="priya@x.com",
+            hashed_password="h", role="employee",
+        )
+        db.add(mgr)
+        db.add(emp)
+        db.flush()
+
+        log = WorkLog(
+            id=str(uuid.uuid4()), user_id=emp.id, work_date=TODAY,
+            raw_message="test", extraction_status="success",
+        )
+        db.add(log)
+        db.flush()
+        db.add(WorkItem(
+            id=str(uuid.uuid4()), work_log_id=log.id, employee_id=emp.employee_id,
+            work_date=TODAY, task_description="Priya's task", work_category="ticket",
+            hours_spent=3.0, status="done",
+        ))
+        db.commit()
+
+        tools = make_tools(mgr.id, "manager", db)
+        sql_tool = next(t for t in tools if t.name == "sql_query")
+
+        result = json.loads(sql_tool.invoke({
+            "metric": "list_items",
+            "start_date": (TODAY - timedelta(days=7)).isoformat(),
+            "end_date": TODAY.isoformat(),
+            "target_employee_id": "EMP-CB-001",
+        }))
+
+        assert isinstance(result, list)
+        assert len(result) == 1
+        assert result[0]["task_description"] == "Priya's task"
+
+    def test_manager_unknown_employee_id_returns_error(self, db):
+        mgr = User(
+            employee_id="MGR-002", full_name="Manager2", email="mgr2@x.com",
+            hashed_password="h", role="manager",
+        )
+        db.add(mgr)
+        db.commit()
+
+        tools = make_tools(mgr.id, "manager", db)
+        sql_tool = next(t for t in tools if t.name == "sql_query")
+
+        result = json.loads(sql_tool.invoke({
+            "metric": "list_items",
+            "start_date": TODAY.isoformat(),
+            "end_date": TODAY.isoformat(),
+            "target_employee_id": "EMP-DOES-NOT-EXIST",
+        }))
+        assert "error" in result
+
     def test_employee_cannot_query_others(self, db):
         user_a = _setup_user_with_items(db)
 
@@ -328,6 +389,27 @@ class TestVectorSearchTool:
         # ChromaDB is empty in tests — should return empty list, not error
         result = json.loads(vs_tool.invoke({"query": "API work last week"}))
         assert isinstance(result, list)
+
+    def test_date_range_filter_does_not_raise(self, db):
+        """Regression: passing both start_date and end_date must not crash ChromaDB
+        with 'Expected operator expression to have exactly one operator'."""
+        user = User(
+            employee_id="EMP-VDR", full_name="VS Date", email="vsdr@x.com",
+            hashed_password="h", role="employee",
+        )
+        db.add(user)
+        db.commit()
+
+        tools = make_tools(user.id, "employee", db)
+        vs_tool = next(t for t in tools if t.name == "vector_search")
+
+        # Both dates provided — previously crashed with ChromaDB operator error
+        result = json.loads(vs_tool.invoke({
+            "query": "deployment work",
+            "start_date": (TODAY - timedelta(days=30)).isoformat(),
+            "end_date": TODAY.isoformat(),
+        }))
+        assert isinstance(result, list)  # empty is fine; must not raise
 
     def test_manager_search_not_restricted_by_user_id(self, db):
         """Manager role should call vector_search without user_id restriction."""

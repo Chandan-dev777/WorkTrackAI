@@ -54,12 +54,21 @@ def _build_document(item) -> str:
 
 
 def _build_metadata(item, user_id: str) -> dict[str, Any]:
-    """Build ChromaDB metadata dict — all values must be str/int/float/bool."""
+    """Build ChromaDB metadata dict — all values must be str/int/float/bool.
+
+    work_date is stored as both:
+      - work_date     (str, ISO format) — for display in results
+      - work_date_num (int, YYYYMMDD)   — for $gte/$lte range filtering
+        ChromaDB only supports numeric comparisons; string comparisons raise ValueError.
+    """
+    work_date_str = item.work_date.isoformat() if isinstance(item.work_date, date) else str(item.work_date)
+    work_date_num = int(work_date_str.replace("-", ""))
     return {
         "user_id": user_id,
         "employee_id": item.employee_id,
         "work_log_id": item.work_log_id,
-        "work_date": item.work_date.isoformat() if isinstance(item.work_date, date) else str(item.work_date),
+        "work_date": work_date_str,
+        "work_date_num": work_date_num,
         "work_category": item.work_category,
         "status": item.status or "",
         "priority": item.priority or "",
@@ -120,20 +129,29 @@ def search_work_items(
     client = _get_client()
     collection = _get_collection(client)
 
-    # Build where clause — user_id filter enforces per-employee access control
-    filters: dict = {}
+    # Build where clause — user_id enforces per-employee access control.
+    # ChromaDB requires $and to combine multiple conditions; never merge dicts directly
+    # because a where expression may already contain $and/$or operator keys.
+    conditions = []
     if user_id:
-        filters["user_id"] = {"$eq": user_id}
+        conditions.append({"user_id": {"$eq": user_id}})
     if where:
-        filters.update(where)
+        conditions.append(where)
+
+    if not conditions:
+        combined_filter = None
+    elif len(conditions) == 1:
+        combined_filter = conditions[0]
+    else:
+        combined_filter = {"$and": conditions}
 
     query_kwargs: dict[str, Any] = {
         "query_texts": [query],
         "n_results": min(n_results, max(1, collection.count())),
         "include": ["documents", "metadatas", "distances"],
     }
-    if filters:
-        query_kwargs["where"] = filters
+    if combined_filter:
+        query_kwargs["where"] = combined_filter
 
     results = collection.query(**query_kwargs)
 

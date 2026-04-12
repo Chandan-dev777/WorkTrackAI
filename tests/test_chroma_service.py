@@ -179,3 +179,37 @@ class TestSearchWorkItems:
         results = search_work_items("code review", user_id="user-123")
         assert len(results) >= 1
         assert {"id", "document", "metadata", "distance"} == set(results[0].keys())
+
+    def test_search_with_date_range_filter_does_not_raise(self, patch_chroma):
+        """Regression: combined start+end date filter must use work_date_num (int) with $and.
+        ChromaDB $gte/$lte only accept numeric values — ISO strings cause ValueError."""
+        from datetime import date, timedelta
+        today = date.today()
+        item = _make_work_item(
+            task_description="Deployment pipeline work",
+            work_date=today,
+        )
+        upsert_work_items([item], user_id="user-123")
+
+        today_num = int(today.isoformat().replace("-", ""))
+        week_ago_num = int((today - timedelta(days=7)).isoformat().replace("-", ""))
+        where = {"$and": [
+            {"work_date_num": {"$gte": week_ago_num}},
+            {"work_date_num": {"$lte": today_num}},
+        ]}
+        results = search_work_items("deployment", user_id="user-123", where=where)
+        assert isinstance(results, list)
+
+    def test_search_user_id_and_date_filter_combined(self, patch_chroma):
+        """user_id + work_date_num where-filter must combine correctly via $and."""
+        from datetime import date, timedelta
+        today = date.today()
+        item_a = _make_work_item(task_description="User A deployment work", work_date=today)
+        item_b = _make_work_item(task_description="User B deployment work", work_date=today)
+        upsert_work_items([item_a], user_id="user-aaa")
+        upsert_work_items([item_b], user_id="user-bbb")
+
+        today_num = int(today.isoformat().replace("-", ""))
+        where = {"work_date_num": {"$gte": today_num - 1}}
+        results = search_work_items("deployment", user_id="user-aaa", where=where)
+        assert all(r["metadata"]["user_id"] == "user-aaa" for r in results)
