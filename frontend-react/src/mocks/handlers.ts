@@ -55,13 +55,17 @@ export const handlers = [
 
   // ── Dashboard stubs (used from Phase 5 onward) ────────────────────────────
   http.get(`${BASE}/dashboard/summary`, () =>
-    HttpResponse.json({ total_hours: 42.5, total_items: 18, done: 12, in_progress: 4, blocked: 2 })
+    HttpResponse.json({
+      total_hours: 42.5, total_items: 18,
+      done_count: 12, in_progress_count: 4, blocked_count: 2, planned_count: 0,
+      start_date: '2026-03-15', end_date: '2026-04-14',
+    })
   ),
   http.get(`${BASE}/dashboard/categories`, () =>
     HttpResponse.json([
-      { category: 'Development', total_hours: 20 },
-      { category: 'Testing', total_hours: 8 },
-      { category: 'Meeting', total_hours: 6 },
+      { category: 'Development', hours: 20, item_count: 8 },
+      { category: 'Testing', hours: 8, item_count: 3 },
+      { category: 'Meeting', hours: 6, item_count: 4 },
     ])
   ),
   http.get(`${BASE}/dashboard/status`, () =>
@@ -73,9 +77,55 @@ export const handlers = [
   ),
   http.get(`${BASE}/dashboard/trend`, () =>
     HttpResponse.json([
-      { date: '2026-04-07', total_hours: 6 },
-      { date: '2026-04-08', total_hours: 7.5 },
-      { date: '2026-04-09', total_hours: 5 },
+      { date: '2026-04-07', hours: 6, item_count: 3 },
+      { date: '2026-04-08', hours: 7.5, item_count: 4 },
+      { date: '2026-04-09', hours: 5, item_count: 2 },
     ])
   ),
+
+  // ── Work Logs (Phase 5) ───────────────────────────────────────────────────
+  http.get(`${BASE}/worklogs/my`, () =>
+    HttpResponse.json([
+      {
+        id: 'wi-001', work_log_id: 'wl-001', employee_id: 'EMP-001',
+        work_date: '2026-04-13', task_description: 'Fixed auth bug',
+        work_category: 'project', hours_spent: 3, status: 'done',
+        priority: null, blockers: null, next_steps: null, tags: null,
+        project_name: null, ticket_id: null, confidence_score: null,
+        needs_review: false, clarification_needed: false, clarification_reason: null,
+        is_user_corrected: false, created_at: '2026-04-13T09:00:00', updated_at: '2026-04-13T09:00:00',
+      },
+      {
+        id: 'wi-002', work_log_id: 'wl-001', employee_id: 'EMP-001',
+        work_date: '2026-04-13', task_description: 'Sprint planning meeting',
+        work_category: 'meeting', hours_spent: 1, status: 'done',
+        priority: null, blockers: null, next_steps: null, tags: null,
+        project_name: null, ticket_id: null, confidence_score: null,
+        needs_review: false, clarification_needed: false, clarification_reason: null,
+        is_user_corrected: false, created_at: '2026-04-13T10:00:00', updated_at: '2026-04-13T10:00:00',
+      },
+      {
+        id: 'wi-003', work_log_id: 'wl-002', employee_id: 'EMP-001',
+        work_date: '2026-04-12', task_description: 'Code review session',
+        work_category: 'review', hours_spent: 2, status: 'in_progress',
+        priority: null, blockers: null, next_steps: null, tags: null,
+        project_name: null, ticket_id: null, confidence_score: null,
+        needs_review: true, clarification_needed: false, clarification_reason: null,
+        is_user_corrected: false, created_at: '2026-04-12T14:00:00', updated_at: '2026-04-12T14:00:00',
+      },
+    ])
+  ),
+
+  http.put(`${BASE}/worklogs/:id`, async ({ request, params }) => {
+    const body = await request.json() as Record<string, unknown>
+    return HttpResponse.json({
+      id: params.id, work_log_id: 'wl-001', employee_id: 'EMP-001',
+      work_date: '2026-04-13', task_description: 'Fixed auth bug',
+      work_category: 'project', hours_spent: body.hours_spent ?? 3, status: 'done',
+      priority: null, blockers: null, next_steps: null, tags: null,
+      project_name: null, ticket_id: null, confidence_score: null,
+      needs_review: false, clarification_needed: false, clarification_reason: null,
+      is_user_corrected: true, created_at: '2026-04-13T09:00:00', updated_at: '2026-04-14T10:00:00',
+    })
+  }),
 ]
