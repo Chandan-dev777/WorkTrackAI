@@ -2,6 +2,9 @@ import type { ReactNode } from 'react'
 import { TopNavbar } from './TopNavbar'
 import { Sidebar } from './Sidebar'
 import { useThemeStore } from '@/store/themeStore'
+import { useUIStore } from '@/store/uiStore'
+import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcuts'
+import { CommandPalette } from '@/components/ai/CommandPalette'
 
 interface ShellProps {
   children: ReactNode
@@ -9,6 +12,11 @@ interface ShellProps {
 
 export function Shell({ children }: ShellProps) {
   const theme = useThemeStore((s) => s.theme)
+  const openPalette = useUIStore((s) => s.openCommandPalette)
+
+  // ⌘K / Ctrl+K → open command palette
+  useKeyboardShortcut({ key: 'k', ctrl: true  }, openPalette)
+  useKeyboardShortcut({ key: 'k', meta: true  }, openPalette)
 
   return (
     <div
@@ -35,6 +43,7 @@ export function Shell({ children }: ShellProps) {
           {children}
         </main>
       </div>
+      <CommandPalette />
     </div>
   )
 }
