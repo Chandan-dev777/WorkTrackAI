@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Users, Clock, AlertCircle, UserCheck } from 'lucide-react'
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import { dashboardApi } from '@/api/dashboard'
 import { worklogsApi } from '@/api/worklogs'
 import { MetricCard } from '@/components/common/Card'
