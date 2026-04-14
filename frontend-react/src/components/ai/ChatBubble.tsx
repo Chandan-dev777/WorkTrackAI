@@ -58,19 +58,20 @@ const mdComponents: Components = {
   },
   // Tables
   table: ({ children }) => (
-    <div className="overflow-x-auto mb-3">
-      <table className="w-full text-xs border-collapse rounded-lg overflow-hidden"
-        style={{ border: '1px solid var(--color-border-subtle)' }}>
+    <div className="overflow-x-auto my-3 rounded-lg" style={{ border: '1px solid var(--color-border-default)' }}>
+      <table className="w-full text-xs border-collapse">
         {children}
       </table>
     </div>
   ),
   thead: ({ children }) => (
-    <thead style={{ background: 'var(--color-bg-elevated)' }}>{children}</thead>
+    <thead style={{ background: 'rgba(99,102,241,0.18)', borderBottom: '2px solid rgba(99,102,241,0.35)' }}>
+      {children}
+    </thead>
   ),
   th: ({ children }) => (
-    <th className="px-3 py-2 text-left font-medium uppercase tracking-wide text-xs"
-      style={{ color: 'var(--color-text-muted)', borderBottom: '1px solid var(--color-border-default)' }}>
+    <th className="px-3 py-2.5 text-left font-semibold text-xs tracking-wide"
+      style={{ color: '#a5b4fc' }}>
       {children}
     </th>
   ),
@@ -82,7 +83,12 @@ const mdComponents: Components = {
   ),
   tbody: ({ children }) => <tbody>{children}</tbody>,
   tr: ({ children }) => (
-    <tr className="transition-colors hover:bg-[var(--color-bg-elevated)]">{children}</tr>
+    <tr className="transition-colors"
+      style={{ background: 'rgba(0,0,0,0)' }}
+      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(99,102,241,0.06)')}
+      onMouseLeave={e => (e.currentTarget.style.background = 'rgba(0,0,0,0)')}>
+      {children}
+    </tr>
   ),
   // Blockquote
   blockquote: ({ children }) => (
@@ -113,8 +119,8 @@ export function ChatBubble({ role, content, sources, isError }: ChatBubbleProps)
         <div
           className="px-4 py-3 text-sm"
           style={isAI ? {
-            background: isError ? 'rgba(244,63,94,0.08)' : 'rgba(139,92,246,0.06)',
-            border: `1px solid ${isError ? 'rgba(244,63,94,0.2)' : 'rgba(139,92,246,0.18)'}`,
+            background: isError ? 'rgba(244,63,94,0.1)' : '#1a1f2e',
+            border: `1px solid ${isError ? 'rgba(244,63,94,0.3)' : 'rgba(139,92,246,0.25)'}`,
             borderRadius: '4px 12px 12px 12px',
             color: 'var(--color-text-primary)',
           } : {
