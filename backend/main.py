@@ -3,13 +3,19 @@
 import argparse
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from backend.database import create_tables
 from backend.routers import admin, auth, chat, dashboard, updates, worklogs
+
+# Path to the built React frontend (worktrack-ai/frontend-react/dist/)
+_FRONTEND_DIST = Path(__file__).parent.parent / "frontend-react" / "dist"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -53,6 +59,27 @@ app.include_router(admin.router)
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok"}
+
+
+# ── React SPA static file serving ────────────────────────────────────────────
+# Only activated when the frontend has been built (frontend-react/dist/ exists).
+# Mount /assets (JS/CSS bundles) then serve index.html for all other GET paths.
+if _FRONTEND_DIST.exists():
+    app.mount(
+        "/assets",
+        StaticFiles(directory=_FRONTEND_DIST / "assets"),
+        name="frontend-assets",
+    )
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    def serve_spa(_full_path: str = "") -> FileResponse:
+        return FileResponse(_FRONTEND_DIST / "index.html")
+else:
+    logger.info(
+        "React build not found at %s — run 'npm run build' inside frontend-react/ "
+        "to enable integrated serving.",
+        _FRONTEND_DIST,
+    )
 
 
 # ── CLI entry point ───────────────────────────────────────────────────────────

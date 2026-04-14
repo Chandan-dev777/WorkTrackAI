@@ -1,0 +1,110 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Design Tokens: Dark Theme (default) ──────────────────────────── */
+:root,
+[data-theme="dark"] {
+  /* Backgrounds */
+  --color-bg-base:     #0A0F1A;
+  --color-bg-surface:  #111827;
+  --color-bg-elevated: #1F2937;
+  --color-bg-overlay:  #374151;
+
+  /* Borders */
+  --color-border-subtle:  #1F2937;
+  --color-border-default: #374151;
+  --color-border-strong:  #4B5563;
+
+  /* Text */
+  --color-text-primary:   #F9FAFB;
+  --color-text-secondary: #9CA3AF;
+  --color-text-muted:     #4B5563;
+  --color-text-inverted:  #111827;
+
+  /* Brand */
+  --color-brand-primary:   #6366F1;
+  --color-brand-secondary: #8B5CF6;
+  --color-brand-subtle:    rgba(99, 102, 241, 0.1);
+
+  /* Status */
+  --color-status-success: #10B981;
+  --color-status-warning: #F59E0B;
+  --color-status-danger:  #F43F5E;
+  --color-status-info:    #0EA5E9;
+
+  /* Gradients */
+  --gradient-brand:   linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+  --gradient-ai:      linear-gradient(135deg, #8B5CF6 0%, #06B6D4 100%);
+  --gradient-success: linear-gradient(135deg, #10B981 0%, #34D399 100%);
+  --gradient-glow-indigo: radial-gradient(
+    ellipse 80% 50% at 50% -10%,
+    rgba(99, 102, 241, 0.15) 0%,
+    transparent 70%
+  );
+  --gradient-card-accent: linear-gradient(
+    90deg,
+    rgba(99,102,241,0.8) 0%,
+    rgba(139,92,246,0.8) 100%
+  );
+}
+
+/* ─── Design Tokens: Light Theme ───────────────────────────────────── */
+[data-theme="light"] {
+  --color-bg-base:     #F9FAFB;
+  --color-bg-surface:  #FFFFFF;
+  --color-bg-elevated: #F3F4F6;
+  --color-bg-overlay:  #E5E7EB;
+
+  --color-border-subtle:  #E5E7EB;
+  --color-border-default: #D1D5DB;
+  --color-border-strong:  #9CA3AF;
+
+  --color-text-primary:   #111827;
+  --color-text-secondary: #6B7280;
+  --color-text-muted:     #9CA3AF;
+  --color-text-inverted:  #F9FAFB;
+
+  --color-brand-primary:   #4F46E5;
+  --color-brand-secondary: #7C3AED;
+  --color-brand-subtle:    rgba(79, 70, 229, 0.1);
+
+  --color-status-success: #059669;
+  --color-status-warning: #D97706;
+  --color-status-danger:  #E11D48;
+  --color-status-info:    #0284C7;
+}
+
+/* ─── Base resets ───────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-bg-base);
+  color: var(--color-text-primary);
+  min-height: 100vh;
+}
+
+/* ─── Focus ring ─────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--color-brand-primary);
+  outline-offset: 2px;
+  border-radius: inherit;
+}
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ─── Scrollbar (dark theme) ──────────────────────────────────────── */
+::-webkit-scrollbar        { width: 6px; height: 6px; }
+::-webkit-scrollbar-track  { background: var(--color-bg-base); }
+::-webkit-scrollbar-thumb  { background: var(--color-bg-overlay); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-border-strong); }

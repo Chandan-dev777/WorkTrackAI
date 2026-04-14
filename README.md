@@ -60,6 +60,27 @@ The TLS certificate for Bedrock calls is loaded automatically from `backend/cace
 
 Start the backend and frontend in two separate terminals.
 
+  How it works now:                                                                                                                                                                                                
+                                                                                                                                                                                                                   
+  One-command mode (what you asked for)                                                                                                                                                                            
+                                                                                                                                                                                                                   
+  # 1. Build React once (or after any frontend change)                                                                                                                                                             
+  cd worktrack-ai/frontend-react && npm run build
+
+  # 2. Start backend — it now serves the React app too
+  source worktrack-ai/.venv/bin/activate
+  uvicorn backend.main:app --reload --port 8000
+  Visit http://localhost:8000 → you see the React frontend.
+
+  Two-server dev mode (for active frontend development)
+
+  # Terminal 1 — backend API
+  uvicorn backend.main:app --reload --port 8000
+
+  # Terminal 2 — Vite hot-reload dev server
+  cd worktrack-ai/frontend-react && npm run dev
+  Visit http://localhost:5173 → instant hot-reload on every save.
+
 **Terminal 1 — FastAPI backend**
 
 ```bash
