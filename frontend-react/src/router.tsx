@@ -7,6 +7,7 @@ import type { Role } from '@/utils/roleGuard'
 
 // ── Lazy page imports ─────────────────────────────────────────────────────────
 const LoginPage         = lazy(() => import('@/pages/auth/LoginPage'))
+const RegisterPage      = lazy(() => import('@/pages/auth/RegisterPage'))
 const DashboardPage     = lazy(() => import('@/pages/dashboard/DashboardPage'))
 const SubmitUpdatePage  = lazy(() => import('@/pages/submit/SubmitUpdatePage'))
 const MyDashboardPage   = lazy(() => import('@/pages/dashboard/MyDashboardPage'))
@@ -45,7 +46,8 @@ export function AppRouter() {
     <Suspense fallback={<PageLoader />}>
       <Routes>
         {/* Public */}
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/login"    element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
 
         {/* Authenticated — wrapped in Shell */}
         <Route

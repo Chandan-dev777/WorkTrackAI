@@ -56,6 +56,7 @@ export interface WorkItem {
   blockers: string | null
   next_steps: string | null
   tags: string[] | null
+  links: string[] | null
   project_name: string | null
   ticket_id: string | null
   confidence_score: number | null
