@@ -83,6 +83,40 @@ export const handlers = [
     ])
   ),
 
+  // ── Admin (Phase 8) ──────────────────────────────────────────────────────
+  http.get(`${BASE}/admin/users`, () =>
+    HttpResponse.json([
+      { id: 'u-001', employee_id: 'EMP-001', full_name: 'Alice Smith',  email: 'alice@example.com',  role: 'employee', team_name: 'Engineering', department: 'Technology', is_active: true },
+      { id: 'u-002', employee_id: 'EMP-MGR', full_name: 'Bob Manager',  email: 'bob@example.com',    role: 'manager',  team_name: 'Engineering', department: 'Technology', is_active: true },
+      { id: 'u-003', employee_id: 'EMP-ADM', full_name: 'Carol Admin',  email: 'carol@example.com',  role: 'admin',    team_name: null,          department: null,         is_active: true },
+    ])
+  ),
+
+  http.get(`${BASE}/admin/extraction-errors`, () =>
+    HttpResponse.json([
+      { id: 'err-001', employee_id: 'EMP-001', work_date: '2026-04-10', extraction_status: 'failed',       raw_message: 'Could not parse this vague update about meetings and stuff', model_name: 'claude-sonnet', submitted_at: '2026-04-10T10:00:00' },
+      { id: 'err-002', employee_id: 'EMP-002', work_date: '2026-04-11', extraction_status: 'needs_review', raw_message: 'Did some work today on the project', model_name: 'claude-sonnet', submitted_at: '2026-04-11T14:00:00' },
+    ])
+  ),
+
+  http.post(`${BASE}/admin/reindex`, () =>
+    HttpResponse.json({ indexed: 42, message: 'Reindex complete — 42 items indexed.' })
+  ),
+
+  http.post(`${BASE}/admin/seed-dummy-data`, () =>
+    HttpResponse.json({ message: 'Dummy data seeded successfully.' })
+  ),
+
+  http.put(`${BASE}/admin/users/:userId`, async ({ request, params }) => {
+    const body = await request.json() as Record<string, unknown>
+    return HttpResponse.json({
+      id: params.userId, employee_id: 'EMP-001', full_name: 'Alice Smith',
+      email: 'alice@example.com', role: body.role ?? 'employee',
+      team_name: body.team_name ?? 'Engineering', department: 'Technology',
+      is_active: body.is_active ?? true,
+    })
+  }),
+
   // ── Chat (Phase 7) ───────────────────────────────────────────────────────
   http.get(`${BASE}/chat/history`, () =>
     HttpResponse.json([
