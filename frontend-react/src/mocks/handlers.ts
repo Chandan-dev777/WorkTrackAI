@@ -83,6 +83,30 @@ export const handlers = [
     ])
   ),
 
+  // ── Chat (Phase 7) ───────────────────────────────────────────────────────
+  http.get(`${BASE}/chat/history`, () =>
+    HttpResponse.json([
+      {
+        id: 'ch-001',
+        question: 'How many hours did I log last week?',
+        answer: 'You logged 32.5 hours last week across 14 work items.',
+        query_source: 'sql',
+        session_id: 'sess-001',
+        created_at: '2026-04-13T09:00:00',
+      },
+    ])
+  ),
+
+  http.post(`${BASE}/chat/query`, async ({ request }) => {
+    const body = await request.json() as { question: string; session_id?: string }
+    return HttpResponse.json({
+      answer: `Here is the answer to: "${body.question}"`,
+      query_source: 'sql',
+      session_id: body.session_id ?? 'sess-001',
+      sources: [],
+    })
+  }),
+
   // ── Team Dashboard (Phase 6) ──────────────────────────────────────────────
   http.get(`${BASE}/dashboard/team/summary`, () =>
     HttpResponse.json([
