@@ -1,3 +1,3 @@
-export default function MyDashboardPage() {
-  return <p style={{ color: 'var(--color-text-secondary)' }}>My Dashboard — coming in Phase 5</p>
-}
+// My Dashboard = full personal analytics (charts, filters, inline edit)
+// The implementation lives in DashboardPage.tsx — re-exported here for the /my-dashboard route.
+export { default } from './DashboardPage'
