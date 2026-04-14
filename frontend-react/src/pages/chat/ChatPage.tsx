@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Send, Sparkles, Trash2 } from 'lucide-react'
 import { chatApi } from '@/api/chat'
 import { ChatBubble } from '@/components/ai/ChatBubble'
@@ -27,6 +27,7 @@ const EXAMPLE_QUESTIONS = [
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ChatPage() {
+  const queryClient = useQueryClient()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [sessionId, setSessionId] = useState<string | undefined>()
@@ -42,14 +43,20 @@ export default function ChatPage() {
   })
 
   useEffect(() => {
-    if (historyQ.data && !historyLoaded) {
-      const msgs: Message[] = historyQ.data.flatMap(item => [
+    if (historyQ.data !== undefined && !historyLoaded) {
+      // Filter out items created before the last clear (persists across refreshes)
+      const clearedAt = localStorage.getItem('worktrack_chat_cleared_at')
+      const visible = clearedAt
+        ? historyQ.data.filter(item => item.created_at > clearedAt)
+        : historyQ.data
+
+      const msgs: Message[] = visible.flatMap(item => [
         { id: `${item.id}-q`, role: 'user' as const, content: item.question, created_at: item.created_at },
         { id: `${item.id}-a`, role: 'assistant' as const, content: item.answer, sources: [], created_at: item.created_at },
       ])
       setMessages(msgs)
-      if (historyQ.data.length > 0) {
-        setSessionId(historyQ.data[historyQ.data.length - 1].session_id)
+      if (visible.length > 0) {
+        setSessionId(visible[visible.length - 1].session_id)
       }
       setHistoryLoaded(true)
     }
@@ -107,9 +114,11 @@ export default function ChatPage() {
   }
 
   function clearHistory() {
+    // Persist cleared_at so filtering survives full page refreshes
+    localStorage.setItem('worktrack_chat_cleared_at', new Date().toISOString())
     setMessages([])
     setSessionId(undefined)
-    // keep historyLoaded=true so the effect doesn't re-populate from cache
+    queryClient.setQueryData(['chat-history'], [])
   }
 
   const showExamples = historyLoaded && messages.length === 0

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -30,6 +30,11 @@ function renderPage() {
 
 beforeEach(() => {
   useAuthStore.getState().login('mock-token', employeeUser)
+  localStorage.removeItem('worktrack_chat_cleared_at')
+})
+
+afterEach(() => {
+  localStorage.removeItem('worktrack_chat_cleared_at')
 })
 
 // ── LAYOUT ────────────────────────────────────────────────────────────────────
@@ -234,5 +239,69 @@ describe('ChatPage — clear history', () => {
     await waitFor(() => {
       expect(screen.queryByText('How many hours did I log last week?')).not.toBeInTheDocument()
     })
+  })
+
+  it('history cleared at timestamp is written to localStorage on clear', async () => {
+    localStorage.removeItem('worktrack_chat_cleared_at')
+    renderPage()
+    await screen.findByText('How many hours did I log last week?')
+    fireEvent.click(screen.getByRole('button', { name: /clear history/i }))
+    await waitFor(() => {
+      expect(localStorage.getItem('worktrack_chat_cleared_at')).not.toBeNull()
+    })
+  })
+
+  it('history items older than cleared_at are filtered out on page load (survives refresh)', async () => {
+    // Simulate a previous clear: set cleared_at to NOW (all existing history is older)
+    localStorage.setItem('worktrack_chat_cleared_at', new Date().toISOString())
+    renderPage()
+    // History from MSW has created_at='2026-04-13T09:00:00' which is before cleared_at
+    await waitFor(() => {
+      expect(screen.queryByText('How many hours did I log last week?')).not.toBeInTheDocument()
+    })
+  })
+
+  it('new messages sent after clearing are still visible', async () => {
+    // Clear happened in the past — existing history is filtered
+    localStorage.setItem('worktrack_chat_cleared_at', new Date().toISOString())
+    renderPage()
+    await screen.findByRole('textbox', { name: /ask|message/i })
+    const input = screen.getByRole('textbox', { name: /ask|message/i })
+    fireEvent.change(input, { target: { value: 'New message after clear' } })
+    fireEvent.click(screen.getByRole('button', { name: /send/i }))
+    expect(await screen.findByText('New message after clear')).toBeInTheDocument()
+  })
+
+  it('old history does not reappear after clear when query refetches', async () => {
+    const { unmount } = renderPage()
+    await screen.findByText('How many hours did I log last week?')
+
+    // Clear history — overwrites cache with []
+    fireEvent.click(screen.getByRole('button', { name: /clear history/i }))
+    await waitFor(() => {
+      expect(screen.queryByText('How many hours did I log last week?')).not.toBeInTheDocument()
+    })
+
+    // Simulate remount (e.g. user navigates away and back)
+    unmount()
+    // Re-render with the SAME queryClient (shared cache — [] is still in cache)
+    // The MSW server still returns history, but historyLoaded=true after cache=[]
+    // so the refetch won't repopulate
+    // We verify by rendering again with a fresh component but same cached state
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    // Pre-seed cache with [] to simulate the cleared state
+    qc.setQueryData(['chat-history'], [])
+    const { getByRole } = render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter>
+          <ChatPage />
+        </MemoryRouter>
+      </QueryClientProvider>
+    )
+    // Should show example questions, not history
+    await waitFor(() => {
+      expect(screen.queryByText('How many hours did I log last week?')).not.toBeInTheDocument()
+    })
+    expect(getByRole('textbox', { name: /ask|message/i })).toBeInTheDocument()
   })
 })
