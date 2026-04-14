@@ -34,6 +34,25 @@ export const handlers = [
     })
   }),
 
+  // ── Work Updates ──────────────────────────────────────────────────────────
+  http.post(`${BASE}/updates/submit`, async () => {
+    return HttpResponse.json({
+      work_log_id: 'wl-mock-001',
+      work_date: new Date().toISOString().split('T')[0],
+      extraction_status: 'pending',
+      total_hours_warning: false,
+      has_clarification_needed: false,
+      items: [
+        { task_description: 'Fixed authentication bug', work_category: 'project', hours_spent: 3, status: 'done', clarification_needed: false },
+        { task_description: 'Sprint planning meeting', work_category: 'meeting', hours_spent: 1, status: 'done', clarification_needed: false },
+      ],
+    })
+  }),
+
+  http.put(`${BASE}/updates/:id/confirm`, async () => {
+    return HttpResponse.json({ id: 42, extraction_status: 'confirmed' })
+  }),
+
   // ── Dashboard stubs (used from Phase 5 onward) ────────────────────────────
   http.get(`${BASE}/dashboard/summary`, () =>
     HttpResponse.json({ total_hours: 42.5, total_items: 18, done: 12, in_progress: 4, blocked: 2 })

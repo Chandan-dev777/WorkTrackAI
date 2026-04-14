@@ -101,6 +101,7 @@ streamlit run frontend/app.py
 - UI: `http://localhost:8501`
 
 ---
+cd worktrack-ai/frontend-react && npm run dev
 
 ## Seed Data
 
