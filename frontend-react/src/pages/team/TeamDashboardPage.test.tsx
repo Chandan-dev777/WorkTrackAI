@@ -42,8 +42,9 @@ function renderPage() {
   )
 }
 
+// Default: admin sees all teams — keeps existing tests stable
 beforeEach(() => {
-  useAuthStore.getState().login('mock-token', managerUser)
+  useAuthStore.getState().login('mock-token', adminUser)
 })
 
 // ── PAGE HEADER ───────────────────────────────────────────────────────────────
@@ -281,12 +282,60 @@ describe('TeamDashboardPage — table employee filter', () => {
   })
 })
 
-// ── ADMIN ACCESS ──────────────────────────────────────────────────────────────
+// ── ROLE-BASED TEAM SCOPING (replaces old admin access test) ─────────────────
 
-describe('TeamDashboardPage — admin access', () => {
-  it('admin user can see the team dashboard', async () => {
+describe('TeamDashboardPage — role-based team scoping', () => {
+  // manager tests need explicit login; admin tests inherit from top-level beforeEach
+
+  it('manager only sees their own team (Engineering → Alice Smith only)', async () => {
+    useAuthStore.getState().login('mock-token', managerUser)
+    renderPage()
+    // Alice loads; Bob & Carol are filtered out entirely (no options, no cards, no rows)
+    expect((await screen.findAllByText('Alice Smith')).length).toBeGreaterThan(0)
+    expect(screen.queryByText('Bob Jones')).not.toBeInTheDocument()
+    expect(screen.queryByText('Carol Williams')).not.toBeInTheDocument()
+  })
+
+  it('manager sees a locked team badge showing their team name', async () => {
+    useAuthStore.getState().login('mock-token', managerUser)
+    renderPage()
+    expect(await screen.findByText('Engineering')).toBeInTheDocument()
+  })
+
+  it('manager does NOT see a team search text input', async () => {
+    useAuthStore.getState().login('mock-token', managerUser)
+    renderPage()
+    await screen.findByText('Engineering')
+    expect(screen.queryByRole('textbox', { name: /filter by team/i })).not.toBeInTheDocument()
+  })
+
+  it('admin sees all teams by default (no team_name filter)', async () => {
+    // adminUser is already set by top-level beforeEach
+    renderPage()
+    // MSW returns all 3 employees when no team_name param — each name may appear multiple times
+    expect((await screen.findAllByText('Alice Smith')).length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Bob Jones').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Carol Williams').length).toBeGreaterThan(0)
+  })
+
+  it('admin sees a team name search input', async () => {
     useAuthStore.getState().login('mock-token', adminUser)
     renderPage()
-    expect(await screen.findByRole('heading', { name: /team dashboard/i })).toBeInTheDocument()
+    expect(await screen.findByRole('textbox', { name: /filter by team/i })).toBeInTheDocument()
+  })
+
+  it('admin can filter to a specific team by typing team name', async () => {
+    // adminUser from top-level beforeEach
+    renderPage()
+    // wait for all employees to load
+    expect((await screen.findAllByText('Bob Jones')).length).toBeGreaterThan(0)
+    const teamInput = screen.getByRole('textbox', { name: /filter by team/i })
+    fireEvent.change(teamInput, { target: { value: 'Engineering' } })
+    // after filtering to Engineering, Bob & Carol disappear completely
+    await waitFor(() => {
+      expect(screen.queryByText('Bob Jones')).not.toBeInTheDocument()
+      expect(screen.queryByText('Carol Williams')).not.toBeInTheDocument()
+    })
+    expect((await screen.findAllByText('Alice Smith')).length).toBeGreaterThan(0)
   })
 })

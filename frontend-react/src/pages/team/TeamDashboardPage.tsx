@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Users, Clock, AlertCircle, UserCheck } from 'lucide-react'
+import { Users, Clock, AlertCircle, UserCheck, Lock } from 'lucide-react'
+import { useAuthStore } from '@/store/authStore'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import { dashboardApi } from '@/api/dashboard'
 import { worklogsApi } from '@/api/worklogs'
@@ -55,7 +56,11 @@ function StatusBadge({ status }: { status: string | null }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function TeamDashboardPage() {
+  const user     = useAuthStore(s => s.user)
+  const isAdmin  = user?.role === 'admin'
+
   const [dateRange, setDateRange] = useState('last_30')
+  const [adminTeamSearch, setAdminTeamSearch] = useState('')
   const [selectedEmployee, setSelectedEmployee] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [tableEmployeeFilter, setTableEmployeeFilter] = useState('')
@@ -65,11 +70,22 @@ export default function TeamDashboardPage() {
 
   const dateParams = useMemo(() => getDateParams(dateRange), [dateRange])
 
-  const teamSummaryQ  = useQuery({ queryKey: ['team-summary', dateRange],     queryFn: () => dashboardApi.getTeamSummary(dateParams) })
-  const teamCategoriesQ = useQuery({ queryKey: ['team-categories', dateRange], queryFn: () => dashboardApi.getTeamCategories(dateParams) })
-  const teamItemsQ    = useQuery({
-    queryKey: ['worklogs-team', dateRange, selectedEmployee],
-    queryFn: () => worklogsApi.getTeam({ ...dateParams, employee_id: selectedEmployee || undefined }),
+  // Managers are locked to their own team; admins can search across teams
+  const effectiveTeamName = useMemo(() => {
+    if (isAdmin) return adminTeamSearch.trim() || undefined
+    return user?.team_name ?? undefined
+  }, [isAdmin, adminTeamSearch, user?.team_name])
+
+  const apiParams = useMemo(() => ({
+    ...dateParams,
+    ...(effectiveTeamName ? { team_name: effectiveTeamName } : {}),
+  }), [dateParams, effectiveTeamName])
+
+  const teamSummaryQ    = useQuery({ queryKey: ['team-summary', dateRange, effectiveTeamName],     queryFn: () => dashboardApi.getTeamSummary(apiParams) })
+  const teamCategoriesQ = useQuery({ queryKey: ['team-categories', dateRange, effectiveTeamName],  queryFn: () => dashboardApi.getTeamCategories(apiParams) })
+  const teamItemsQ      = useQuery({
+    queryKey: ['worklogs-team', dateRange, selectedEmployee, effectiveTeamName],
+    queryFn: () => worklogsApi.getTeam({ ...apiParams, employee_id: selectedEmployee || undefined }),
   })
 
   const members = teamSummaryQ.data ?? []
@@ -144,6 +160,25 @@ export default function TeamDashboardPage() {
           <option value="last_30">Last 30 Days</option>
           <option value="last_90">Last 90 Days</option>
         </select>
+
+        {/* Team scope: locked for managers, searchable for admins */}
+        {isAdmin ? (
+          <input
+            type="text"
+            aria-label="Filter by team name"
+            placeholder="All teams (type to filter)"
+            value={adminTeamSearch}
+            onChange={e => { setAdminTeamSearch(e.target.value); setSelectedEmployee('') }}
+            className="rounded-md px-3 py-1.5 text-sm w-52"
+            style={cellStyle}
+          />
+        ) : (
+          <span className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium"
+            style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.25)', color: 'var(--color-brand-primary)' }}>
+            <Lock size={11} />
+            {user?.team_name ?? 'Your team'}
+          </span>
+        )}
 
         <select aria-label="Filter by employee" value={selectedEmployee}
           onChange={e => setSelectedEmployee(e.target.value)}

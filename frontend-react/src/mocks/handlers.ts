@@ -108,21 +108,28 @@ export const handlers = [
   }),
 
   // ── Team Dashboard (Phase 6) ──────────────────────────────────────────────
-  http.get(`${BASE}/dashboard/team/summary`, () =>
-    HttpResponse.json([
-      { employee_id: 'EMP-001', full_name: 'Alice Smith',   total_hours: 42.5, done_count: 12, blocked_count: 1, last_activity: '2026-04-13' },
-      { employee_id: 'EMP-002', full_name: 'Bob Jones',     total_hours: 36.0, done_count: 10, blocked_count: 2, last_activity: '2026-04-12' },
-      { employee_id: 'EMP-003', full_name: 'Carol Williams', total_hours: 28.5, done_count: 8,  blocked_count: 0, last_activity: '2026-04-11' },
-    ])
-  ),
+  // Team summary — filtered by team_name when provided (managers scope to own team)
+  http.get(`${BASE}/dashboard/team/summary`, ({ request }) => {
+    const teamName = new URL(request.url).searchParams.get('team_name')
+    const all = [
+      { employee_id: 'EMP-001', full_name: 'Alice Smith',    team: 'Engineering', total_hours: 42.5, done_count: 12, blocked_count: 1, last_activity: '2026-04-13' },
+      { employee_id: 'EMP-002', full_name: 'Bob Jones',      team: 'Data',        total_hours: 36.0, done_count: 10, blocked_count: 2, last_activity: '2026-04-12' },
+      { employee_id: 'EMP-003', full_name: 'Carol Williams', team: 'Data',        total_hours: 28.5, done_count: 8,  blocked_count: 0, last_activity: '2026-04-11' },
+    ]
+    const rows = teamName ? all.filter(m => m.team === teamName) : all
+    return HttpResponse.json(rows.map(({ team: _t, ...m }) => m))
+  }),
 
-  http.get(`${BASE}/dashboard/employees`, () =>
-    HttpResponse.json([
-      { employee_id: 'EMP-001', full_name: 'Alice Smith',   total_hours: 42.5, done_count: 12, blocked_count: 1, last_activity: '2026-04-13' },
-      { employee_id: 'EMP-002', full_name: 'Bob Jones',     total_hours: 36.0, done_count: 10, blocked_count: 2, last_activity: '2026-04-12' },
-      { employee_id: 'EMP-003', full_name: 'Carol Williams', total_hours: 28.5, done_count: 8,  blocked_count: 0, last_activity: '2026-04-11' },
-    ])
-  ),
+  http.get(`${BASE}/dashboard/employees`, ({ request }) => {
+    const teamName = new URL(request.url).searchParams.get('team_name')
+    const all = [
+      { employee_id: 'EMP-001', full_name: 'Alice Smith',    team: 'Engineering', total_hours: 42.5, done_count: 12, blocked_count: 1, last_activity: '2026-04-13' },
+      { employee_id: 'EMP-002', full_name: 'Bob Jones',      team: 'Data',        total_hours: 36.0, done_count: 10, blocked_count: 2, last_activity: '2026-04-12' },
+      { employee_id: 'EMP-003', full_name: 'Carol Williams', team: 'Data',        total_hours: 28.5, done_count: 8,  blocked_count: 0, last_activity: '2026-04-11' },
+    ]
+    const rows = teamName ? all.filter(m => m.team === teamName) : all
+    return HttpResponse.json(rows.map(({ team: _t, ...m }) => m))
+  }),
 
   http.get(`${BASE}/dashboard/team/categories`, () =>
     HttpResponse.json([
@@ -136,6 +143,9 @@ export const handlers = [
   http.get(`${BASE}/worklogs/team`, ({ request }) => {
     const url = new URL(request.url)
     const employeeId = url.searchParams.get('employee_id')
+    const teamName   = url.searchParams.get('team_name')
+    // EMP-001 = Engineering, EMP-002/EMP-003 = Data
+    const teamMap: Record<string, string> = { 'EMP-001': 'Engineering', 'EMP-002': 'Data', 'EMP-003': 'Data' }
     const allItems = [
       {
         id: 'ti-001', work_log_id: 'wl-t01', employee_id: 'EMP-001',
@@ -168,7 +178,9 @@ export const handlers = [
         employee_name: 'Carol Williams',
       },
     ]
-    const filtered = employeeId ? allItems.filter(i => i.employee_id === employeeId) : allItems
+    let filtered = allItems
+    if (teamName) filtered = filtered.filter(i => teamMap[i.employee_id] === teamName)
+    if (employeeId) filtered = filtered.filter(i => i.employee_id === employeeId)
     return HttpResponse.json(filtered)
   }),
 
