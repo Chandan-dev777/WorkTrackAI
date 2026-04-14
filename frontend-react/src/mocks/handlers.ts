@@ -83,6 +83,71 @@ export const handlers = [
     ])
   ),
 
+  // ── Team Dashboard (Phase 6) ──────────────────────────────────────────────
+  http.get(`${BASE}/dashboard/team/summary`, () =>
+    HttpResponse.json([
+      { employee_id: 'EMP-001', full_name: 'Alice Smith',   total_hours: 42.5, done_count: 12, blocked_count: 1, last_activity: '2026-04-13' },
+      { employee_id: 'EMP-002', full_name: 'Bob Jones',     total_hours: 36.0, done_count: 10, blocked_count: 2, last_activity: '2026-04-12' },
+      { employee_id: 'EMP-003', full_name: 'Carol Williams', total_hours: 28.5, done_count: 8,  blocked_count: 0, last_activity: '2026-04-11' },
+    ])
+  ),
+
+  http.get(`${BASE}/dashboard/employees`, () =>
+    HttpResponse.json([
+      { employee_id: 'EMP-001', full_name: 'Alice Smith',   total_hours: 42.5, done_count: 12, blocked_count: 1, last_activity: '2026-04-13' },
+      { employee_id: 'EMP-002', full_name: 'Bob Jones',     total_hours: 36.0, done_count: 10, blocked_count: 2, last_activity: '2026-04-12' },
+      { employee_id: 'EMP-003', full_name: 'Carol Williams', total_hours: 28.5, done_count: 8,  blocked_count: 0, last_activity: '2026-04-11' },
+    ])
+  ),
+
+  http.get(`${BASE}/dashboard/team/categories`, () =>
+    HttpResponse.json([
+      { category: 'project',  hours: 55.0, item_count: 20 },
+      { category: 'meeting',  hours: 18.0, item_count: 12 },
+      { category: 'review',   hours: 14.0, item_count: 8  },
+      { category: 'learning', hours: 20.0, item_count: 6  },
+    ])
+  ),
+
+  http.get(`${BASE}/worklogs/team`, ({ request }) => {
+    const url = new URL(request.url)
+    const employeeId = url.searchParams.get('employee_id')
+    const allItems = [
+      {
+        id: 'ti-001', work_log_id: 'wl-t01', employee_id: 'EMP-001',
+        work_date: '2026-04-13', task_description: 'Fixed auth bug',
+        work_category: 'project', hours_spent: 3, status: 'done',
+        priority: null, blockers: null, next_steps: null, tags: null,
+        project_name: null, ticket_id: null, confidence_score: null,
+        needs_review: false, clarification_needed: false, clarification_reason: null,
+        is_user_corrected: false, created_at: '2026-04-13T09:00:00', updated_at: '2026-04-13T09:00:00',
+        employee_name: 'Alice Smith',
+      },
+      {
+        id: 'ti-002', work_log_id: 'wl-t02', employee_id: 'EMP-002',
+        work_date: '2026-04-12', task_description: 'Deployment blocked by infra',
+        work_category: 'project', hours_spent: 2, status: 'blocked',
+        priority: 'high', blockers: 'Infra team unavailable', next_steps: null, tags: null,
+        project_name: null, ticket_id: null, confidence_score: null,
+        needs_review: true, clarification_needed: false, clarification_reason: null,
+        is_user_corrected: false, created_at: '2026-04-12T11:00:00', updated_at: '2026-04-12T11:00:00',
+        employee_name: 'Bob Jones',
+      },
+      {
+        id: 'ti-003', work_log_id: 'wl-t03', employee_id: 'EMP-003',
+        work_date: '2026-04-11', task_description: 'Code review session',
+        work_category: 'review', hours_spent: 1.5, status: 'done',
+        priority: null, blockers: null, next_steps: null, tags: null,
+        project_name: null, ticket_id: null, confidence_score: null,
+        needs_review: false, clarification_needed: false, clarification_reason: null,
+        is_user_corrected: false, created_at: '2026-04-11T14:00:00', updated_at: '2026-04-11T14:00:00',
+        employee_name: 'Carol Williams',
+      },
+    ]
+    const filtered = employeeId ? allItems.filter(i => i.employee_id === employeeId) : allItems
+    return HttpResponse.json(filtered)
+  }),
+
   // ── Work Logs (Phase 5) ───────────────────────────────────────────────────
   http.get(`${BASE}/worklogs/my`, () =>
     HttpResponse.json([

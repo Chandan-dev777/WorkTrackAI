@@ -33,6 +33,15 @@ export interface DateRangeParams {
   end_date?: string
 }
 
+export interface TeamMemberSummary {
+  employee_id: string
+  full_name: string
+  total_hours: number
+  done_count: number
+  blocked_count: number
+  last_activity: string | null
+}
+
 export const dashboardApi = {
   getSummary: (params?: DateRangeParams) =>
     apiClient.get<HoursSummary>('/dashboard/summary', { params }).then(r => r.data),
@@ -45,4 +54,13 @@ export const dashboardApi = {
 
   getTrend: (params?: DateRangeParams) =>
     apiClient.get<DailyHours[]>('/dashboard/trend', { params }).then(r => r.data),
+
+  getTeamSummary: (params?: DateRangeParams & { team_name?: string }) =>
+    apiClient.get<TeamMemberSummary[]>('/dashboard/team/summary', { params }).then(r => r.data),
+
+  getTeamCategories: (params?: DateRangeParams & { team_name?: string }) =>
+    apiClient.get<CategoryHours[]>('/dashboard/team/categories', { params }).then(r => r.data),
+
+  getEmployees: (params?: DateRangeParams) =>
+    apiClient.get<TeamMemberSummary[]>('/dashboard/employees', { params }).then(r => r.data),
 }
