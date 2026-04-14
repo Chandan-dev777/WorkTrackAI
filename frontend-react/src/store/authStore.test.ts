@@ -5,11 +5,14 @@ beforeEach(() => {
 })
 
 const mockUser = {
-  id: 1,
-  username: 'testuser',
+  id: 'uuid-test-001',
+  employee_id: 'EMP-001',
   email: 'test@example.com',
   role: 'employee' as const,
   full_name: 'Test User',
+  team_name: 'Engineering',
+  department: 'Technology',
+  is_active: true,
 }
 
 describe('authStore', () => {

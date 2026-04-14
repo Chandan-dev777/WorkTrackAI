@@ -1,11 +1,14 @@
 import type { Role } from '@/utils/roleGuard'
 
 export interface User {
-  id: number
-  username: string
+  id: string           // UUID string from backend
+  employee_id: string
+  full_name: string
   email: string
   role: Role
-  full_name: string
+  team_name: string | null
+  department: string | null
+  is_active: boolean
 }
 
 export interface WorkItem {

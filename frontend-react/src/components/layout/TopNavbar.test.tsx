@@ -7,8 +7,9 @@ import { useThemeStore } from '@/store/themeStore'
 import type { User } from '@/types/models'
 
 const user: User = {
-  id: 1, username: 'alice', email: 'alice@test.com',
+  id: 'uuid-alice-001', employee_id: 'EMP-001', email: 'alice@test.com',
   role: 'employee', full_name: 'Alice Smith',
+  team_name: null, department: null, is_active: true,
 }
 
 function renderNavbar() {

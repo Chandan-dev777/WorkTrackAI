@@ -7,16 +7,19 @@ import { useUIStore } from '@/store/uiStore'
 import type { User } from '@/types/models'
 
 const employeeUser: User = {
-  id: 1, username: 'emp', email: 'emp@test.com',
+  id: 'uuid-emp-001', employee_id: 'EMP-001', email: 'emp@test.com',
   role: 'employee', full_name: 'Alice Employee',
+  team_name: null, department: null, is_active: true,
 }
 const managerUser: User = {
-  id: 2, username: 'mgr', email: 'mgr@test.com',
+  id: 'uuid-mgr-001', employee_id: 'EMP-002', email: 'mgr@test.com',
   role: 'manager', full_name: 'Bob Manager',
+  team_name: null, department: null, is_active: true,
 }
 const adminUser: User = {
-  id: 3, username: 'adm', email: 'adm@test.com',
+  id: 'uuid-adm-001', employee_id: 'EMP-003', email: 'adm@test.com',
   role: 'admin', full_name: 'Carol Admin',
+  team_name: null, department: null, is_active: true,
 }
 
 function renderSidebar() {

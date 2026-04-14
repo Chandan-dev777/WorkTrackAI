@@ -7,8 +7,9 @@ import { useThemeStore } from '@/store/themeStore'
 import type { User } from '@/types/models'
 
 const user: User = {
-  id: 1, username: 'test', email: 't@t.com',
+  id: 'uuid-test-001', employee_id: 'EMP-001', email: 't@t.com',
   role: 'employee', full_name: 'Test User',
+  team_name: null, department: null, is_active: true,
 }
 
 beforeEach(() => {
