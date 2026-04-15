@@ -54,7 +54,7 @@ _SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=_engine)
 
 @pytest.fixture(autouse=True)
 def setup_integration_db():
-    from backend.models import chat_history, user, work_item, work_log  # noqa: F401
+    from backend.models import assistant_note, chat_history, user, work_item, work_log  # noqa: F401
     Base.metadata.create_all(bind=_engine)
     yield
     Base.metadata.drop_all(bind=_engine)

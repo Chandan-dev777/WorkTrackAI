@@ -37,6 +37,7 @@ class User(Base):
     # Relationships
     work_logs: Mapped[list] = relationship("WorkLog", back_populates="user")
     chat_histories: Mapped[list] = relationship("ChatHistory", back_populates="user")
+    assistant_notes: Mapped[list] = relationship("AssistantNote", back_populates="user")
     direct_reports: Mapped[list] = relationship(
         "User", foreign_keys=[manager_id], primaryjoin="User.manager_id == User.id"
     )

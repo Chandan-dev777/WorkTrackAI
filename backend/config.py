@@ -61,6 +61,8 @@ class Settings(BaseSettings):
     LLM_MODEL_FIXING: str = "Claude Haiku 4.5"
     # Chat agent: needs multi-step reasoning + tool-use planning
     LLM_MODEL_CHAT: str = "Claude Sonnet 4.6"
+    # Help widget: FAQ-style app help — Haiku is fast enough and cheaper
+    LLM_MODEL_ASSISTANT: str = "Claude Haiku 4.5"
 
     # Azure endpoints
     NLP_ENDPOINT: str = "https://api.nlp.p.uptimize.merckgroup.com"
@@ -124,16 +126,19 @@ def get_llm(model: str | None = None) -> AzureChatOpenAI:
     """
     model = model or settings.LLM_MODEL
 
+    _bedrock_headers = {"openai-standard": "True"}
     bedrock_kwargs = dict(
         azure_endpoint=settings.BEDROCK_ENDPOINT,
         api_key=get_api_key("AWS_BEDROCK_KEY"),
         api_version=settings.BEDROCK_API_VERSION,
         temperature=0,
         max_retries=0,
-        http_client=httpx.Client(
-            verify=CERT_PATH,
-            headers={"openai-standard": "True"},
-        ),
+        # Sync client — used by .invoke() / create_react_agent
+        http_client=httpx.Client(verify=CERT_PATH, headers=_bedrock_headers),
+        # Async client — used by .ainvoke() / .astream()
+        # Without this, LangChain creates its own AsyncClient that omits the
+        # required "openai-standard" header and the custom cert, causing 400s.
+        http_async_client=httpx.AsyncClient(verify=CERT_PATH, headers=_bedrock_headers),
     )
     nlp_kwargs = dict(
         azure_endpoint=settings.NLP_ENDPOINT,

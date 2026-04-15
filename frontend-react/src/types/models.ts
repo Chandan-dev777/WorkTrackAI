@@ -95,3 +95,47 @@ export interface SourceReference {
   work_date: string
   employee_name?: string
 }
+
+// ── Help Widget / Assistant Notes ─────────────────────────────────────────────
+
+export type NoteType = 'bug' | 'requirement' | 'feedback'
+export type NotePriority = 'low' | 'medium' | 'high' | 'critical'
+export type NoteStatus = 'open' | 'acknowledged' | 'in_progress' | 'resolved' | 'wont_fix'
+
+export interface AssistantNote {
+  id: string
+  user_id: string
+  type: NoteType
+  title: string
+  body: string
+  priority: NotePriority
+  status: NoteStatus
+  affected_page: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface NoteCreate {
+  type: NoteType
+  title: string
+  body: string
+  priority?: NotePriority
+  affected_page?: string | null
+}
+
+export interface NoteUpdate {
+  title?: string
+  body?: string
+  priority?: NotePriority
+  status?: NoteStatus
+  affected_page?: string | null
+}
+
+// Widget-local message type
+export interface HelpMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  toolCall?: string   // e.g. "Saved Bug #abc123: Login page 401"
+  isError?: boolean
+}

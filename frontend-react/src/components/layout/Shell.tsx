@@ -5,6 +5,7 @@ import { useThemeStore } from '@/store/themeStore'
 import { useUIStore } from '@/store/uiStore'
 import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcuts'
 import { CommandPalette } from '@/components/ai/CommandPalette'
+import { HelpWidget } from '@/components/help-widget/HelpWidget'
 
 interface ShellProps {
   children: ReactNode
@@ -44,6 +45,7 @@ export function Shell({ children }: ShellProps) {
         </main>
       </div>
       <CommandPalette />
+      <HelpWidget />
     </div>
   )
 }

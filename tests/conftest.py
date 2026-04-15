@@ -25,7 +25,7 @@ TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_eng
 @pytest.fixture(autouse=True)
 def setup_test_db():
     """Create all tables before each test and drop them after."""
-    from backend.models import user, work_log, work_item, chat_history  # noqa: F401
+    from backend.models import user, work_log, work_item, chat_history, assistant_note  # noqa: F401
     Base.metadata.create_all(bind=test_engine)
     yield
     Base.metadata.drop_all(bind=test_engine)

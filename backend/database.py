@@ -42,6 +42,6 @@ def get_db():
 def create_tables() -> None:
     """Create all tables. Called once on app startup."""
     # Import models so they register with Base.metadata before create_all
-    from backend.models import chat_history, user, work_item, work_log  # noqa: F401
+    from backend.models import assistant_note, chat_history, user, work_item, work_log  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
