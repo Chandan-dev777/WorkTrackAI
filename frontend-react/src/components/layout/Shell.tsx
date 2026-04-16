@@ -32,8 +32,24 @@ export function Shell({ children }: ShellProps) {
         height: '100vh',
         backgroundColor: 'var(--color-bg-base)',
         color: 'var(--color-text-primary)',
+        position: 'relative',
       }}
     >
+      {/* Ambient gradient mesh — fixed, decorative only */}
+      <div aria-hidden="true" style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+        <div style={{
+          position: 'absolute', top: '-15%', left: '-10%',
+          width: 480, height: 480, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(99,102,241,0.07) 0%, transparent 70%)',
+          filter: 'blur(40px)',
+        }} />
+        <div style={{
+          position: 'absolute', bottom: '10%', right: '-5%',
+          width: 360, height: 360, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(139,92,246,0.06) 0%, transparent 70%)',
+          filter: 'blur(60px)',
+        }} />
+      </div>
       <TopNavbar />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         <Sidebar />

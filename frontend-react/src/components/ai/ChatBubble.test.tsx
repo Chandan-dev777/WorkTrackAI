@@ -42,8 +42,8 @@ describe('ChatBubble — assistant bubble', () => {
       work_item_id: 'wi-1',
       work_date: '2026-04-14',
       task_description: 'Fixed login bug today',
-      hours_spent: 2,
       work_category: 'project',
+      employee_id: 'EMP-001',
     }]
     render(<ChatBubble role="assistant" content="Answer" sources={sources} />)
     expect(screen.getByLabelText('Sources')).toBeInTheDocument()

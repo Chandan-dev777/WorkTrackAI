@@ -62,18 +62,31 @@ const ICONS: Record<IconName, LucideFC> = {
   alert: AlertCircle,
 }
 
+export type MetricAccent = 'brand' | 'success' | 'danger' | 'warning' | 'info'
+
+const ACCENT_STYLES: Record<MetricAccent, { bg: string; border: string; icon: string }> = {
+  brand:   { bg: 'rgba(99,102,241,0.12)',  border: 'rgba(99,102,241,0.2)',  icon: 'var(--color-brand-primary)' },
+  success: { bg: 'rgba(16,185,129,0.12)',  border: 'rgba(16,185,129,0.2)',  icon: '#10B981' },
+  danger:  { bg: 'rgba(244,63,94,0.12)',   border: 'rgba(244,63,94,0.2)',   icon: '#F43F5E' },
+  warning: { bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.2)',  icon: '#F59E0B' },
+  info:    { bg: 'rgba(14,165,233,0.12)',  border: 'rgba(14,165,233,0.2)',  icon: '#0EA5E9' },
+}
+
 export interface MetricCardProps {
   label: string
   value: number | string
   trend?: number
   icon?: IconName
+  /** Semantic colour accent — affects icon container colour */
+  accent?: MetricAccent
   className?: string
 }
 
-export function MetricCard({ label, value, trend, icon, className }: MetricCardProps) {
+export function MetricCard({ label, value, trend, icon, accent = 'brand', className }: MetricCardProps) {
   const Icon = icon ? ICONS[icon] : null
   const isPositive = trend !== undefined && trend >= 0
   const isNegative = trend !== undefined && trend < 0
+  const accentStyle = ACCENT_STYLES[accent]
 
   return (
     <Card className={cn('flex flex-col gap-3', className)}>
@@ -85,11 +98,11 @@ export function MetricCard({ label, value, trend, icon, className }: MetricCardP
           <div
             className="w-9 h-9 rounded-lg flex items-center justify-center"
             style={{
-              background: 'rgba(99,102,241,0.12)',
-              border: '1px solid rgba(99,102,241,0.2)',
+              background: accentStyle.bg,
+              border: `1px solid ${accentStyle.border}`,
             }}
           >
-            <Icon size={16} color="var(--color-brand-primary)" />
+            <Icon size={16} color={accentStyle.icon} />
           </div>
         )}
         {trend !== undefined && (

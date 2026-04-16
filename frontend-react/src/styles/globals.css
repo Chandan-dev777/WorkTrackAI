@@ -5,11 +5,11 @@
 /* ─── Design Tokens: Dark Theme (default) ──────────────────────────── */
 :root,
 [data-theme="dark"] {
-  /* Backgrounds */
-  --color-bg-base:     #0A0F1A;
-  --color-bg-surface:  #111827;
-  --color-bg-elevated: #1F2937;
-  --color-bg-overlay:  #374151;
+  /* Backgrounds — deep navy palette (not pure black) */
+  --color-bg-base:     #0D0F14;
+  --color-bg-surface:  #13161E;
+  --color-bg-elevated: #1C2030;
+  --color-bg-overlay:  rgba(19,22,30,0.85);
 
   /* Borders */
   --color-border-subtle:  #1F2937;
@@ -51,10 +51,10 @@
 
 /* ─── Design Tokens: Light Theme ───────────────────────────────────── */
 [data-theme="light"] {
-  --color-bg-base:     #F9FAFB;
+  --color-bg-base:     #F8F9FC;
   --color-bg-surface:  #FFFFFF;
-  --color-bg-elevated: #F3F4F6;
-  --color-bg-overlay:  #E5E7EB;
+  --color-bg-elevated: #F0F2F8;
+  --color-bg-overlay:  rgba(255,255,255,0.85);
 
   --color-border-subtle:  #E5E7EB;
   --color-border-default: #D1D5DB;
@@ -73,6 +73,35 @@
   --color-status-warning: #D97706;
   --color-status-danger:  #E11D48;
   --color-status-info:    #0284C7;
+}
+
+/* ─── Shared tokens (theme-independent) ────────────────────────────── */
+:root {
+  /* Border radius scale */
+  --radius-sm:  6px;
+  --radius-md:  10px;
+  --radius-lg:  16px;
+  --radius-xl:  24px;
+
+  /* Shadow scale */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.15), 0 2px 4px rgba(0,0,0,0.08);
+  --shadow-lg: 0 10px 40px rgba(0,0,0,0.20);
+  --shadow-glow: 0 0 0 3px rgba(99,102,241,0.25);
+  --shadow-brand: 0 0 40px rgba(99,102,241,0.15);
+
+  /* Typography scale */
+  --font-size-xs:   11px;
+  --font-size-sm:   13px;
+  --font-size-base: 14px;
+  --font-size-lg:   16px;
+  --font-size-xl:   20px;
+  --font-size-2xl:  28px;
+  --font-weight-normal:   400;
+  --font-weight-medium:   500;
+  --font-weight-semibold: 600;
+  --font-weight-bold:     700;
 }
 
 /* ─── Base resets ───────────────────────────────────────────────────── */
@@ -108,3 +137,28 @@ body {
 ::-webkit-scrollbar-track  { background: var(--color-bg-base); }
 ::-webkit-scrollbar-thumb  { background: var(--color-bg-overlay); border-radius: 9999px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--color-border-strong); }
+
+/* ─── Reduced motion ─────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ─── Shimmer skeleton animation ────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-bg-elevated) 25%,
+    var(--color-bg-overlay)  50%,
+    var(--color-bg-elevated) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}

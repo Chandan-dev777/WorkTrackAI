@@ -78,4 +78,25 @@ describe('MetricCard', () => {
     )
     expect(container.querySelector('svg')).toBeTruthy()
   })
+
+  it('danger accent applies red/danger color to icon container', () => {
+    const { container } = render(
+      <MetricCard label="Blocked" value={2} accent="danger" icon="alert" />
+    )
+    // Collect all inline backgrounds; the icon container uses rgba(244,63,94,...)
+    const allBgs = Array.from(container.querySelectorAll('[style]'))
+      .map(el => (el as HTMLElement).style.background)
+      .join(' ')
+    expect(allBgs).toMatch(/244.*63.*94|rgba\(244/)
+  })
+
+  it('success accent applies green/success color to icon container', () => {
+    const { container } = render(
+      <MetricCard label="Done" value={10} accent="success" icon="chart" />
+    )
+    const allBgs = Array.from(container.querySelectorAll('[style]'))
+      .map(el => (el as HTMLElement).style.background)
+      .join(' ')
+    expect(allBgs).toMatch(/16.*185.*129|rgba\(16/)
+  })
 })
