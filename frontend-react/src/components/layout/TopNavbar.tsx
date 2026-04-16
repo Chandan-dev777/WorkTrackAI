@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Moon, Sun, LogOut, User } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useThemeStore } from '@/store/themeStore'
@@ -18,6 +19,7 @@ export function TopNavbar() {
   const logout      = useAuthStore((s) => s.logout)
   const theme       = useThemeStore((s) => s.theme)
   const toggleTheme = useThemeStore((s) => s.toggleTheme)
+  const navigate    = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
 
   const initials = user ? getInitials(user.full_name) : '?'
@@ -128,7 +130,7 @@ export function TopNavbar() {
               </div>
 
               <button
-                onClick={() => { setMenuOpen(false) }}
+                onClick={() => { setMenuOpen(false); navigate('/settings') }}
                 className="flex items-center gap-2 w-full rounded-md px-3 py-2 text-sm text-text-secondary hover:bg-bg-overlay hover:text-text-primary transition-colors"
               >
                 <User size={15} strokeWidth={1.5} />
@@ -138,7 +140,7 @@ export function TopNavbar() {
               <div style={{ borderTop: '1px solid var(--color-border-subtle)', margin: '4px 0' }} />
 
               <button
-                onClick={() => { setMenuOpen(false); logout() }}
+                onClick={() => { setMenuOpen(false); logout(); navigate('/login', { replace: true }) }}
                 aria-label="Sign out"
                 className="flex items-center gap-2 w-full rounded-md px-3 py-2 text-sm transition-colors"
                 style={{ color: 'var(--color-status-danger)' }}

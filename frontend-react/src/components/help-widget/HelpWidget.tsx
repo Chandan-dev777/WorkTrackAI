@@ -94,7 +94,7 @@ export function HelpWidget() {
             transition={{ type: 'spring', stiffness: 380, damping: 30 }}
             className="fixed bottom-24 right-6 z-[9997] flex flex-col rounded-2xl overflow-hidden shadow-2xl"
             style={{
-              width: '380px',
+              width: 'min(380px, calc(100vw - 24px))',
               height: '580px',
               background: 'var(--color-bg-surface)',
               border: '1px solid var(--color-border-default)',

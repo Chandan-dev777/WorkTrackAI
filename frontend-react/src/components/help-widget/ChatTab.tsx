@@ -9,7 +9,8 @@ import { TypingIndicator } from '@/components/ai/TypingIndicator'
 import type { HelpMessage } from '@/types/models'
 
 const PAGE_NAMES: Record<string, string> = {
-  '/dashboard': 'My Dashboard',
+  '/dashboard': 'Home Dashboard',
+  '/my-dashboard': 'My Dashboard',
   '/submit': 'Submit Work Update',
   '/team': 'Team Dashboard',
   '/chat': 'Chat Assistant',

@@ -119,6 +119,31 @@ describe('RegisterPage — successful registration', () => {
   })
 })
 
+// ── SECURITY — role selector ─────────────────────────────────────────────────
+
+describe('RegisterPage — role security', () => {
+  it('role selector does NOT offer admin option', () => {
+    renderPage()
+    const select = screen.getByLabelText(/role/i) as HTMLSelectElement
+    const options = Array.from(select.options).map(o => o.value)
+    expect(options).not.toContain('admin')
+  })
+
+  it('role selector does NOT offer manager option', () => {
+    renderPage()
+    const select = screen.getByLabelText(/role/i) as HTMLSelectElement
+    const options = Array.from(select.options).map(o => o.value)
+    expect(options).not.toContain('manager')
+  })
+
+  it('role selector only offers employee option', () => {
+    renderPage()
+    const select = screen.getByLabelText(/role/i) as HTMLSelectElement
+    const options = Array.from(select.options).map(o => o.value)
+    expect(options).toEqual(['employee'])
+  })
+})
+
 // ── ERROR STATE ───────────────────────────────────────────────────────────────
 
 describe('RegisterPage — error state', () => {

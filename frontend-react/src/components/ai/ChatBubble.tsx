@@ -119,7 +119,7 @@ export function ChatBubble({ role, content, sources, isError }: ChatBubbleProps)
         <div
           className="px-4 py-3 text-sm"
           style={isAI ? {
-            background: isError ? 'rgba(244,63,94,0.1)' : '#1a1f2e',
+            background: isError ? 'rgba(244,63,94,0.1)' : 'var(--color-bg-elevated)',
             border: `1px solid ${isError ? 'rgba(244,63,94,0.3)' : 'rgba(139,92,246,0.25)'}`,
             borderRadius: '4px 12px 12px 12px',
             color: 'var(--color-text-primary)',

@@ -47,7 +47,7 @@ export default function ChatPage() {
       // Filter out items created before the last clear (persists across refreshes)
       const clearedAt = localStorage.getItem('worktrack_chat_cleared_at')
       const visible = clearedAt
-        ? historyQ.data.filter(item => item.created_at > clearedAt)
+        ? historyQ.data.filter(item => new Date(item.created_at) > new Date(clearedAt))
         : historyQ.data
 
       const msgs: Message[] = visible.flatMap(item => [

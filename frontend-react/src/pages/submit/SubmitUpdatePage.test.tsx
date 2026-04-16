@@ -204,6 +204,28 @@ describe('SubmitUpdatePage — confirmation', () => {
   })
 })
 
+// ── SAFETY GUARDS ────────────────────────────────────────────────────────────
+
+describe('SubmitUpdatePage — safety guards', () => {
+  it('confirm button is disabled when all rows are deleted', async () => {
+    renderPage()
+    await submitAndWaitForPreview()
+    // delete every row
+    const deleteBtns = screen.getAllByRole('button', { name: /delete row|delete|remove/i })
+    for (const btn of deleteBtns) fireEvent.click(btn)
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /confirm|save/i })).toBeDisabled()
+    })
+  })
+
+  it('date input has max attribute set to today', () => {
+    renderPage()
+    const today = new Date().toISOString().split('T')[0]
+    const dateInput = screen.getByDisplayValue(today)
+    expect(dateInput).toHaveAttribute('max', today)
+  })
+})
+
 // ── ACCESSIBILITY ─────────────────────────────────────────────────────────────
 
 describe('SubmitUpdatePage — accessibility', () => {

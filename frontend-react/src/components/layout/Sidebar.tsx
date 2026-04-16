@@ -57,6 +57,7 @@ export function Sidebar() {
               key={item.path}
               to={item.path}
               aria-label={item.label}
+              title={item.label}
               style={{ textDecoration: 'none', display: 'block', marginBottom: 2 }}
             >
               {({ isActive }) => (

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { Sparkles, Trash2, Plus, AlertTriangle, Info } from 'lucide-react'
 import { apiClient } from '@/api/client'
 import type { ExtractionResult, WorkItemExtracted, WorkCategory, StatusType } from '@/types/models'
@@ -20,10 +20,10 @@ interface PreviewRow extends WorkItemExtracted {
   _key: number
 }
 
-let _rowKey = 0
-function newRow(): PreviewRow {
+// _rowKey is now managed per-component instance via useRef (see inside component)
+function makeNewRow(keyRef: React.MutableRefObject<number>): PreviewRow {
   return {
-    _key: ++_rowKey,
+    _key: ++keyRef.current,
     task_description: '', work_category: 'project', hours_spent: null, status: null,
     priority: null, blockers: null, next_steps: null, tags: null, links: null,
     project_name: null, ticket_id: null, confidence_score: null,
@@ -44,7 +44,8 @@ const cellCls = 'w-full rounded px-2 py-1 text-xs'
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function SubmitUpdatePage() {
-  const today = new Date().toISOString().split('T')[0]
+  const today   = new Date().toISOString().split('T')[0]
+  const keyRef  = useRef(0)
 
   const [rawText, setRawText]       = useState('')
   const [workDate, setWorkDate]     = useState(today)
@@ -69,7 +70,7 @@ export default function SubmitUpdatePage() {
       })
       const data = res.data
       setExtraction(data)
-      setRows(data.items.map(item => ({ ...item, _key: ++_rowKey })))
+      setRows(data.items.map(item => ({ ...item, _key: ++keyRef.current })))
     } catch {
       setSubmitError('Extraction failed. Please try again.')
     } finally {
@@ -147,6 +148,7 @@ export default function SubmitUpdatePage() {
               For date:
             </label>
             <input id="work-date" type="date" value={workDate}
+              max={today}
               onChange={e => setWorkDate(e.target.value)}
               className="rounded-md px-3 py-2 text-sm w-48" style={cellStyle} />
           </div>
@@ -248,8 +250,8 @@ export default function SubmitUpdatePage() {
               </thead>
               <tbody>
                 {rows.map(row => (
-                  <>
-                    <tr key={row._key}
+                  <React.Fragment key={row._key}>
+                    <tr
                       style={{ borderBottom: row.clarification_reason ? 'none' : '1px solid var(--color-border-subtle)' }}>
 
                       {/* task_description */}
@@ -364,7 +366,7 @@ export default function SubmitUpdatePage() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
@@ -372,7 +374,7 @@ export default function SubmitUpdatePage() {
 
           {/* Add row */}
           <div className="px-6 py-3">
-            <button onClick={() => setRows(prev => [...prev, newRow()])}
+            <button onClick={() => setRows(prev => [...prev, makeNewRow(keyRef)])}
               aria-label="Add item"
               className="flex items-center gap-1 text-xs font-medium rounded px-3 py-1.5"
               style={{ color: 'var(--color-brand-primary)', border: '1px dashed var(--color-border-default)' }}>
@@ -394,8 +396,8 @@ export default function SubmitUpdatePage() {
               style={{ border: '1px solid var(--color-border-default)', color: 'var(--color-text-secondary)' }}>
               Cancel
             </button>
-            <button onClick={handleConfirm} disabled={confirming}
-              className={cn('rounded-md px-4 py-2 text-sm font-semibold', confirming && 'opacity-50 cursor-not-allowed')}
+            <button onClick={handleConfirm} disabled={confirming || rows.length === 0}
+              className={cn('rounded-md px-4 py-2 text-sm font-semibold', (confirming || rows.length === 0) && 'opacity-50 cursor-not-allowed')}
               style={{ background: 'var(--color-brand-primary)', color: '#fff' }}>
               {confirming ? 'Saving...' : 'Confirm & Save'}
             </button>

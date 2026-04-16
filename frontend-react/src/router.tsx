@@ -26,6 +26,15 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+/** Redirects already-authenticated users away from login/register */
+function RequireGuest({ children }: { children: React.ReactNode }) {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />
+  }
+  return <>{children}</>
+}
+
 function RequireRole({ role, children }: { role: Role; children: React.ReactNode }) {
   const userRole = useAuthStore((s) => s.user?.role ?? 'employee') as Role
   if (!canAccess(userRole, role)) {
@@ -45,9 +54,9 @@ export function AppRouter() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        {/* Public */}
-        <Route path="/login"    element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+        {/* Public — redirect authenticated users to dashboard */}
+        <Route path="/login"    element={<RequireGuest><LoginPage /></RequireGuest>} />
+        <Route path="/register" element={<RequireGuest><RegisterPage /></RequireGuest>} />
 
         {/* Authenticated — wrapped in Shell */}
         <Route

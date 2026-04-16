@@ -15,7 +15,7 @@ const schema = z.object({
   full_name:   z.string().min(1, 'Full name is required'),
   email:       z.string().min(1, 'Email is required').email('Invalid email address'),
   password:    z.string().min(8, 'Password must be at least 8 characters'),
-  role:        z.enum(['employee', 'manager', 'admin']),
+  role:        z.enum(['employee']),
   team_name:   z.string().optional(),
 })
 type FormData = z.infer<typeof schema>
@@ -237,8 +237,6 @@ export default function RegisterPage() {
                   onFocus={onFocus}
                   onBlur={e => onBlur(e, false)}>
                   <option value="employee">Employee</option>
-                  <option value="manager">Manager</option>
-                  <option value="admin">Admin</option>
                 </select>
               </div>
               <div>

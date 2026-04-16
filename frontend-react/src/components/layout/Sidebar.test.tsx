@@ -111,4 +111,11 @@ describe('Sidebar — collapse', () => {
     fireEvent.click(toggle)
     expect(useUIStore.getState().sidebarOpen).toBe(false)
   })
+
+  it('nav links have title attribute when sidebar is collapsed', () => {
+    useUIStore.getState().setSidebarOpen(false)
+    renderSidebar()
+    const dashLink = screen.getByRole('link', { name: 'Dashboard' })
+    expect(dashLink).toHaveAttribute('title', 'Dashboard')
+  })
 })

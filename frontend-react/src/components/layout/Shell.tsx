@@ -11,13 +11,17 @@ interface ShellProps {
   children: ReactNode
 }
 
+// Stable option objects — defined outside component to prevent listener re-registration on every render
+const SHORTCUT_CTRL_K = { key: 'k', ctrl: true  }
+const SHORTCUT_META_K = { key: 'k', meta: true  }
+
 export function Shell({ children }: ShellProps) {
   const theme = useThemeStore((s) => s.theme)
   const openPalette = useUIStore((s) => s.openCommandPalette)
 
   // ⌘K / Ctrl+K → open command palette
-  useKeyboardShortcut({ key: 'k', ctrl: true  }, openPalette)
-  useKeyboardShortcut({ key: 'k', meta: true  }, openPalette)
+  useKeyboardShortcut(SHORTCUT_CTRL_K, openPalette)
+  useKeyboardShortcut(SHORTCUT_META_K, openPalette)
 
   return (
     <div

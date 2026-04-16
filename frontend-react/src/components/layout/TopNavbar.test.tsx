@@ -1,10 +1,26 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { TopNavbar } from './TopNavbar'
 import { useAuthStore } from '@/store/authStore'
 import { useThemeStore } from '@/store/themeStore'
 import type { User } from '@/types/models'
+
+/** Renders TopNavbar inside a full router so navigate() calls update location */
+function LocationDisplay() {
+  const loc = useLocation()
+  return <div data-testid="pathname">{loc.pathname}</div>
+}
+
+function renderNavbarWithRouter(initialPath = '/dashboard') {
+  return render(
+    <MemoryRouter initialEntries={[initialPath]}>
+      <Routes>
+        <Route path="*" element={<><TopNavbar /><LocationDisplay /></>} />
+      </Routes>
+    </MemoryRouter>
+  )
+}
 
 const user: User = {
   id: 'uuid-alice-001', employee_id: 'EMP-001', email: 'alice@test.com',
@@ -61,5 +77,25 @@ describe('TopNavbar', () => {
     const signOut = screen.getByRole('button', { name: /sign out|logout/i })
     fireEvent.click(signOut)
     expect(useAuthStore.getState().isAuthenticated).toBe(false)
+  })
+})
+
+describe('TopNavbar — navigation', () => {
+  beforeEach(() => {
+    useAuthStore.getState().login('tok', user)
+  })
+
+  it('clicking Profile navigates to /settings', () => {
+    renderNavbarWithRouter('/dashboard')
+    fireEvent.click(screen.getByRole('button', { name: /alice smith|user menu|account/i }))
+    fireEvent.click(screen.getByRole('button', { name: /profile/i }))
+    expect(screen.getByTestId('pathname')).toHaveTextContent('/settings')
+  })
+
+  it('clicking Sign Out navigates to /login', () => {
+    renderNavbarWithRouter('/dashboard')
+    fireEvent.click(screen.getByRole('button', { name: /alice smith|user menu|account/i }))
+    fireEvent.click(screen.getByRole('button', { name: /sign out/i }))
+    expect(screen.getByTestId('pathname')).toHaveTextContent('/login')
   })
 })

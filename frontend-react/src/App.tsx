@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { Toaster } from 'sonner'
 import { useThemeStore } from '@/store/themeStore'
 import { AppRouter } from './router'
 
@@ -21,6 +22,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AppRouter />
+        <Toaster position="bottom-right" richColors closeButton />
       </BrowserRouter>
     </QueryClientProvider>
   )
