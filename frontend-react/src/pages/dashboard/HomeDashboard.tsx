@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import {
   PlusCircle, MessageSquare, BarChart3, Users, Shield,
   Clock, CheckCircle, AlertCircle, ArrowRight,
@@ -71,11 +71,13 @@ export default function HomeDashboard() {
   const summaryQ = useQuery({
     queryKey: ['home-summary', weekParams.start_date],
     queryFn: () => dashboardApi.getSummary(weekParams),
+    placeholderData: keepPreviousData,
   })
 
   const itemsQ = useQuery({
     queryKey: ['home-recent-items'],
     queryFn: () => worklogsApi.getMy(weekParams),
+    placeholderData: keepPreviousData,
   })
 
   const visibleActions = ACTIONS.filter(a => canAccess(userRole, a.minRole))

@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { Pencil } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { dashboardApi } from '@/api/dashboard'
@@ -77,11 +78,11 @@ export default function DashboardPage() {
 
   const dateParams = useMemo(() => getDateParams(dateRange), [dateRange])
 
-  const summaryQ   = useQuery({ queryKey: ['dashboard-summary', dateRange],   queryFn: () => dashboardApi.getSummary(dateParams) })
-  const categoriesQ = useQuery({ queryKey: ['dashboard-categories', dateRange], queryFn: () => dashboardApi.getCategories(dateParams) })
-  const statusQ    = useQuery({ queryKey: ['dashboard-status', dateRange],    queryFn: () => dashboardApi.getStatus(dateParams) })
-  const trendQ     = useQuery({ queryKey: ['dashboard-trend', dateRange],     queryFn: () => dashboardApi.getTrend(dateParams) })
-  const itemsQ     = useQuery({ queryKey: ['worklogs-my', dateRange],         queryFn: () => worklogsApi.getMy(dateParams) })
+  const summaryQ    = useQuery({ queryKey: ['dashboard-summary',    dateRange], queryFn: () => dashboardApi.getSummary(dateParams),    placeholderData: keepPreviousData })
+  const categoriesQ = useQuery({ queryKey: ['dashboard-categories', dateRange], queryFn: () => dashboardApi.getCategories(dateParams), placeholderData: keepPreviousData })
+  const statusQ     = useQuery({ queryKey: ['dashboard-status',     dateRange], queryFn: () => dashboardApi.getStatus(dateParams),     placeholderData: keepPreviousData })
+  const trendQ      = useQuery({ queryKey: ['dashboard-trend',      dateRange], queryFn: () => dashboardApi.getTrend(dateParams),      placeholderData: keepPreviousData })
+  const itemsQ      = useQuery({ queryKey: ['worklogs-my',          dateRange], queryFn: () => worklogsApi.getMy(dateParams),          placeholderData: keepPreviousData })
 
   const firstName = user?.full_name.split(' ')[0] ?? 'there'
 
@@ -145,11 +146,11 @@ export default function DashboardPage() {
               : 'Loading your work summary…'}
           </p>
         </div>
-        <a href="/submit"
+        <Link to="/submit"
           className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold"
-          style={{ background: 'var(--color-brand-primary)', color: '#fff' }}>
+          style={{ background: 'var(--color-brand-primary)', color: '#fff', textDecoration: 'none' }}>
           + Submit Update
-        </a>
+        </Link>
       </div>
 
       {/* Zone 2 — Date Range Filter */}
@@ -179,10 +180,10 @@ export default function DashboardPage() {
         </div>
       ) : summaryQ.data ? (
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <MetricCard label="Total Hours" value={summaryQ.data.total_hours}      icon="clock" />
-          <MetricCard label="Tasks Done"  value={summaryQ.data.done_count}      icon="chart" />
-          <MetricCard label="In Progress" value={summaryQ.data.in_progress_count} icon="chart" />
-          <MetricCard label="Blocked"     value={summaryQ.data.blocked_count}   icon="alert" />
+          <MetricCard label="Total Hours" value={summaryQ.data.total_hours}       icon="clock"  accent="brand"   />
+          <MetricCard label="Tasks Done"  value={summaryQ.data.done_count}        icon="chart"  accent="success" />
+          <MetricCard label="In Progress" value={summaryQ.data.in_progress_count} icon="chart"  accent="info"    />
+          <MetricCard label="Blocked"     value={summaryQ.data.blocked_count}     icon="alert"  accent="danger"  />
         </div>
       ) : null}
 
@@ -268,10 +269,10 @@ export default function DashboardPage() {
             <p className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>
               No work items yet. Submit your first update to get started.
             </p>
-            <a href="/submit" className="mt-3 inline-block text-sm font-medium"
+            <Link to="/submit" className="mt-3 inline-block text-sm font-medium"
               style={{ color: 'var(--color-brand-primary)' }}>
               Submit an update →
-            </a>
+            </Link>
           </div>
         ) : (
           <div className="rounded-xl overflow-hidden"

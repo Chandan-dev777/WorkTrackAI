@@ -1,6 +1,9 @@
 import type { ReactNode } from 'react'
+import { useLocation } from 'react-router-dom'
+import { AnimatePresence } from 'framer-motion'
 import { TopNavbar } from './TopNavbar'
 import { Sidebar } from './Sidebar'
+import { PageTransition } from './PageTransition'
 import { useThemeStore } from '@/store/themeStore'
 import { useUIStore } from '@/store/uiStore'
 import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcuts'
@@ -18,6 +21,7 @@ const SHORTCUT_META_K = { key: 'k', meta: true  }
 export function Shell({ children }: ShellProps) {
   const theme = useThemeStore((s) => s.theme)
   const openPalette = useUIStore((s) => s.openCommandPalette)
+  const location = useLocation()
 
   // ⌘K / Ctrl+K → open command palette
   useKeyboardShortcut(SHORTCUT_CTRL_K, openPalette)
@@ -59,9 +63,14 @@ export function Shell({ children }: ShellProps) {
             overflowY: 'auto',
             padding: '32px',
             backgroundColor: 'var(--color-bg-base)',
+            position: 'relative',
           }}
         >
-          {children}
+          <AnimatePresence mode="wait" initial={false}>
+            <PageTransition key={location.pathname}>
+              {children}
+            </PageTransition>
+          </AnimatePresence>
         </main>
       </div>
       <CommandPalette />

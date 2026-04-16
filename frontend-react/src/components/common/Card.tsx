@@ -74,7 +74,7 @@ const ACCENT_STYLES: Record<MetricAccent, { bg: string; border: string; icon: st
 
 export interface MetricCardProps {
   label: string
-  value: number | string
+  value: React.ReactNode
   trend?: number
   icon?: IconName
   /** Semantic colour accent — affects icon container colour */

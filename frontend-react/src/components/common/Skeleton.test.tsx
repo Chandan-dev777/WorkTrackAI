@@ -14,6 +14,12 @@ describe('Skeleton', () => {
     expect(el.className).toMatch(/animate|shimmer|pulse/)
   })
 
+  it('applies skeleton-shimmer class for premium shimmer effect', () => {
+    const { container } = render(<Skeleton />)
+    const el = container.firstChild as HTMLElement
+    expect(el.className).toContain('skeleton-shimmer')
+  })
+
   it('applies custom width and height via className or style', () => {
     const { container } = render(<Skeleton className="w-48 h-4" />)
     const el = container.firstChild as HTMLElement

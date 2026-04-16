@@ -10,13 +10,10 @@ export interface SkeletonProps {
 export function Skeleton({ className, style }: SkeletonProps) {
   return (
     <div
-      className={cn('rounded-md animate-pulse', className)}
+      className={cn('rounded-md skeleton-shimmer', className)}
       aria-busy="true"
       aria-label="Loading..."
-      style={{
-        background: 'var(--color-bg-elevated)',
-        ...style,
-      }}
+      style={style}
     />
   )
 }

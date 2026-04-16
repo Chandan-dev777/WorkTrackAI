@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { Users, Clock, AlertCircle, UserCheck, Lock } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
@@ -81,11 +81,12 @@ export default function TeamDashboardPage() {
     ...(effectiveTeamName ? { team_name: effectiveTeamName } : {}),
   }), [dateParams, effectiveTeamName])
 
-  const teamSummaryQ    = useQuery({ queryKey: ['team-summary', dateRange, effectiveTeamName],     queryFn: () => dashboardApi.getTeamSummary(apiParams) })
-  const teamCategoriesQ = useQuery({ queryKey: ['team-categories', dateRange, effectiveTeamName],  queryFn: () => dashboardApi.getTeamCategories(apiParams) })
+  const teamSummaryQ    = useQuery({ queryKey: ['team-summary',    dateRange, effectiveTeamName], queryFn: () => dashboardApi.getTeamSummary(apiParams),    placeholderData: keepPreviousData })
+  const teamCategoriesQ = useQuery({ queryKey: ['team-categories', dateRange, effectiveTeamName], queryFn: () => dashboardApi.getTeamCategories(apiParams), placeholderData: keepPreviousData })
   const teamItemsQ      = useQuery({
     queryKey: ['worklogs-team', dateRange, selectedEmployee, effectiveTeamName],
     queryFn: () => worklogsApi.getTeam({ ...apiParams, employee_id: selectedEmployee || undefined }),
+    placeholderData: keepPreviousData,
   })
 
   const members = teamSummaryQ.data ?? []

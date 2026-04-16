@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Moon, Sun, LogOut, User } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { LogOut, User } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useThemeStore } from '@/store/themeStore'
 import { cn } from '@/utils/cn'
@@ -58,19 +59,24 @@ export function TopNavbar() {
 
       <div style={{ flex: 1 }} />
 
-      {/* Theme toggle */}
+      {/* Animated theme toggle — spring pill */}
       <button
         onClick={toggleTheme}
         aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-        className={cn(
-          'flex items-center justify-center rounded-md p-2 transition-colors duration-100',
-          'text-text-secondary hover:bg-bg-elevated hover:text-text-primary'
-        )}
-        style={{ width: 36, height: 36 }}
+        className={cn('relative flex items-center rounded-full transition-colors duration-200', theme === 'dark' ? 'bg-indigo-900/40' : 'bg-amber-100')}
+        style={{ width: 44, height: 24, padding: '0 3px', flexShrink: 0 }}
       >
-        {theme === 'dark'
-          ? <Sun size={18} strokeWidth={1.5} />
-          : <Moon size={18} strokeWidth={1.5} />}
+        <motion.div
+          layout
+          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+          className="w-[18px] h-[18px] rounded-full flex items-center justify-center text-[10px]"
+          style={{
+            background: theme === 'dark' ? '#818cf8' : '#f59e0b',
+            marginLeft: theme === 'dark' ? 'auto' : '0',
+          }}
+        >
+          {theme === 'dark' ? '🌙' : '☀️'}
+        </motion.div>
       </button>
 
       {/* User menu */}
