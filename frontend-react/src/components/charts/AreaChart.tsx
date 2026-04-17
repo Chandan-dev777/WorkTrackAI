@@ -1,4 +1,4 @@
-import { ResponsiveContainer, AreaChart as ReAreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
+import { ResponsiveContainer, AreaChart as ReAreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceDot } from 'recharts'
 import { format, parseISO } from 'date-fns'
 import type { DailyHours } from '@/api/dashboard'
 
@@ -14,8 +14,20 @@ function formatTick(d: string) {
   try { return format(parseISO(d), 'MMM d') } catch { return d }
 }
 
+/** Detect anomaly spikes: points > (mean + 1.5 * stddev) */
+function detectAnomalies(data: DailyHours[]): string[] {
+  if (data.length < 3) return []
+  const vals = data.map(d => d.hours)
+  const mean = vals.reduce((s, v) => s + v, 0) / vals.length
+  const std  = Math.sqrt(vals.reduce((s, v) => s + (v - mean) ** 2, 0) / vals.length)
+  const threshold = mean + 1.5 * std
+  return data.filter(d => d.hours > threshold).map(d => d.date)
+}
+
 export function AreaChart({ data, height = 200 }: { data: DailyHours[]; height?: number }) {
   if (!data.length) return <EmptyState height={height} />
+
+  const anomalyDates = detectAnomalies(data)
 
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -71,6 +83,24 @@ export function AreaChart({ data, height = 200 }: { data: DailyHours[]; height?:
           animationDuration={800}
           animationEasing="ease-out"
         />
+
+        {/* Anomaly markers — orange dot on spikes > 1.5σ above mean */}
+        {anomalyDates.map(date => {
+          const entry = data.find(d => d.date === date)
+          if (!entry) return null
+          return (
+            <ReferenceDot
+              key={date}
+              x={date}
+              y={entry.hours}
+              r={5}
+              fill="#F59E0B"
+              stroke="#fff"
+              strokeWidth={1.5}
+              label={{ value: '↑', position: 'top', fontSize: 10, fill: '#F59E0B' }}
+            />
+          )
+        })}
       </ReAreaChart>
     </ResponsiveContainer>
   )

@@ -8,10 +8,18 @@ import {
 import { useAuthStore } from '@/store/authStore'
 import { dashboardApi } from '@/api/dashboard'
 import { worklogsApi } from '@/api/worklogs'
+import { GoalRing } from '@/components/charts/GoalRing'
 import { SkeletonCard } from '@/components/common/Skeleton'
 import { formatRelative } from '@/utils/formatDate'
 import { canAccess } from '@/utils/roleGuard'
 import type { Role } from '@/utils/roleGuard'
+
+// Default weekly hours goal — user can customise in Settings (persisted to localStorage)
+const DEFAULT_WEEKLY_GOAL = 40
+function getWeeklyGoal(): number {
+  const saved = localStorage.getItem('worktrack_weekly_goal')
+  return saved ? Number(saved) : DEFAULT_WEEKLY_GOAL
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -102,11 +110,11 @@ export default function HomeDashboard() {
           Hours this week
         </p>
         {summaryQ.isLoading ? (
-          <div className="grid grid-cols-3 gap-4">
-            {[...Array(3)].map((_, i) => <SkeletonCard key={i} />)}
+          <div className="grid grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => <SkeletonCard key={i} />)}
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-4 gap-4">
             {[
               { label: 'Hours Logged', value: summaryQ.data?.total_hours ?? 0,    icon: Clock,        color: 'var(--color-brand-primary)' },
               { label: 'Tasks Done',   value: summaryQ.data?.done_count   ?? 0,    icon: CheckCircle,  color: '#10B981' },
@@ -131,6 +139,17 @@ export default function HomeDashboard() {
                 </div>
               )
             })}
+
+            {/* Goal ring — 4th card */}
+            <div className="rounded-xl p-4 flex flex-col items-center justify-center"
+              style={{ background: 'var(--color-bg-surface)', border: '1px solid var(--color-border-subtle)' }}>
+              <GoalRing
+                current={summaryQ.data?.total_hours ?? 0}
+                target={getWeeklyGoal()}
+                label="Weekly Goal"
+                size={88}
+              />
+            </div>
           </div>
         )}
       </div>

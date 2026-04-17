@@ -138,6 +138,28 @@ body {
 ::-webkit-scrollbar-thumb  { background: var(--color-bg-overlay); border-radius: 9999px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--color-border-strong); }
 
+/* ─── Productivity Heatmap ───────────────────────────────────────────── */
+/* Make the SVG scale to fill its container width */
+.react-calendar-heatmap { width: 100%; height: auto; display: block; }
+.react-calendar-heatmap rect { rx: 2; }
+
+/* Colour scale — dark theme */
+.color-empty   { fill: #1C2030; }
+.color-scale-1 { fill: #312e81; }
+.color-scale-2 { fill: #4338ca; }
+.color-scale-3 { fill: #6366f1; }
+.color-scale-4 { fill: #a5b4fc; }
+
+/* Colour scale — light theme */
+[data-theme="light"] .color-empty   { fill: #e5e7eb; }
+[data-theme="light"] .color-scale-1 { fill: #c7d2fe; }
+[data-theme="light"] .color-scale-2 { fill: #818cf8; }
+[data-theme="light"] .color-scale-3 { fill: #6366f1; }
+[data-theme="light"] .color-scale-4 { fill: #4338ca; }
+
+/* Override react-calendar-heatmap default styles that conflict */
+.react-calendar-heatmap text { font-size: 10px; fill: #6b7280; }
+
 /* ─── Reduced motion ─────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

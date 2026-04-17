@@ -6,10 +6,13 @@ import { useAuthStore } from '@/store/authStore'
 import { dashboardApi } from '@/api/dashboard'
 import { worklogsApi } from '@/api/worklogs'
 import { MetricCard } from '@/components/common/Card'
+import { BenchmarkCard } from '@/components/common/BenchmarkCard'
 import { SkeletonCard, SkeletonTable } from '@/components/common/Skeleton'
 import { AreaChart } from '@/components/charts/AreaChart'
 import { BarChart } from '@/components/charts/BarChart'
 import { DonutChart } from '@/components/charts/DonutChart'
+import { ProductivityHeatmap } from '@/components/charts/ProductivityHeatmap'
+import { AskAiButton } from '@/components/ai/AskAiButton'
 import { formatDateShort } from '@/utils/formatDate'
 import { cn } from '@/utils/cn'
 import type { WorkItem } from '@/types/models'
@@ -25,6 +28,17 @@ function getDateParams(preset: string) {
   return {
     start_date: start.toISOString().split('T')[0],
     end_date: end.toISOString().split('T')[0],
+  }
+}
+
+/** Previous period — same length, shifted back */
+function getPrevDateParams(preset: string) {
+  const days = preset === 'last_7' ? 7 : preset === 'last_30' ? 30 : 90
+  const end = new Date(); end.setDate(end.getDate() - days)
+  const start = new Date(end); start.setDate(start.getDate() - days)
+  return {
+    start_date: start.toISOString().split('T')[0],
+    end_date:   end.toISOString().split('T')[0],
   }
 }
 
@@ -76,13 +90,15 @@ export default function DashboardPage() {
   const [editError, setEditError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
-  const dateParams = useMemo(() => getDateParams(dateRange), [dateRange])
+  const dateParams     = useMemo(() => getDateParams(dateRange),     [dateRange])
+  const prevDateParams = useMemo(() => getPrevDateParams(dateRange), [dateRange])
 
-  const summaryQ    = useQuery({ queryKey: ['dashboard-summary',    dateRange], queryFn: () => dashboardApi.getSummary(dateParams),    placeholderData: keepPreviousData })
-  const categoriesQ = useQuery({ queryKey: ['dashboard-categories', dateRange], queryFn: () => dashboardApi.getCategories(dateParams), placeholderData: keepPreviousData })
-  const statusQ     = useQuery({ queryKey: ['dashboard-status',     dateRange], queryFn: () => dashboardApi.getStatus(dateParams),     placeholderData: keepPreviousData })
-  const trendQ      = useQuery({ queryKey: ['dashboard-trend',      dateRange], queryFn: () => dashboardApi.getTrend(dateParams),      placeholderData: keepPreviousData })
-  const itemsQ      = useQuery({ queryKey: ['worklogs-my',          dateRange], queryFn: () => worklogsApi.getMy(dateParams),          placeholderData: keepPreviousData })
+  const summaryQ     = useQuery({ queryKey: ['dashboard-summary',    dateRange], queryFn: () => dashboardApi.getSummary(dateParams),    placeholderData: keepPreviousData })
+  const prevSummaryQ = useQuery({ queryKey: ['dashboard-summary-prev', dateRange], queryFn: () => dashboardApi.getSummary(prevDateParams), placeholderData: keepPreviousData })
+  const categoriesQ  = useQuery({ queryKey: ['dashboard-categories', dateRange], queryFn: () => dashboardApi.getCategories(dateParams), placeholderData: keepPreviousData })
+  const statusQ      = useQuery({ queryKey: ['dashboard-status',     dateRange], queryFn: () => dashboardApi.getStatus(dateParams),     placeholderData: keepPreviousData })
+  const trendQ       = useQuery({ queryKey: ['dashboard-trend',      dateRange], queryFn: () => dashboardApi.getTrend(dateParams),      placeholderData: keepPreviousData })
+  const itemsQ       = useQuery({ queryKey: ['worklogs-my',          dateRange], queryFn: () => worklogsApi.getMy(dateParams),          placeholderData: keepPreviousData })
 
   const firstName = user?.full_name.split(' ')[0] ?? 'there'
 
@@ -180,20 +196,57 @@ export default function DashboardPage() {
         </div>
       ) : summaryQ.data ? (
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <MetricCard label="Total Hours" value={summaryQ.data.total_hours}       icon="clock"  accent="brand"   />
-          <MetricCard label="Tasks Done"  value={summaryQ.data.done_count}        icon="chart"  accent="success" />
+          <MetricCard label="Total Hours" value={summaryQ.data.total_hours}       icon="clock"  accent="brand"   sparklineData={trendQ.data?.map(d => d.hours)} />
+          <MetricCard label="Tasks Done"  value={summaryQ.data.done_count}        icon="chart"  accent="success" sparklineData={trendQ.data?.map(d => d.item_count ?? 0)} />
           <MetricCard label="In Progress" value={summaryQ.data.in_progress_count} icon="chart"  accent="info"    />
           <MetricCard label="Blocked"     value={summaryQ.data.blocked_count}     icon="alert"  accent="danger"  />
         </div>
       ) : null}
 
+      {/* You vs Previous Period benchmark */}
+      {summaryQ.data && prevSummaryQ.data && (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <BenchmarkCard
+            label="Hours — this vs prev period"
+            you={Math.round(summaryQ.data.total_hours * 10) / 10}
+            average={Math.round(prevSummaryQ.data.total_hours * 10) / 10}
+            unit="h"
+          />
+          <BenchmarkCard
+            label="Tasks Done — this vs prev period"
+            you={summaryQ.data.done_count}
+            average={prevSummaryQ.data.done_count}
+          />
+          <BenchmarkCard
+            label="Blocked — this vs prev period"
+            you={summaryQ.data.blocked_count}
+            average={prevSummaryQ.data.blocked_count}
+          />
+        </div>
+      )}
+
+      {/* Productivity Heatmap */}
+      {trendQ.data && trendQ.data.length > 0 && (
+        <section style={sectionStyle} aria-labelledby="heatmap-heading">
+          <div className="flex items-center justify-between mb-3">
+            <h2 id="heatmap-heading" className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+              Activity Heatmap
+            </h2>
+            <AskAiButton question="Summarize my activity pattern over the past months" />
+          </div>
+          <ProductivityHeatmap data={trendQ.data.map(d => ({ date: d.date, count: d.hours }))} weeks={52} />
+        </section>
+      )}
+
       {/* Zone 4 — Charts */}
       <div className="grid gap-6" style={{ gridTemplateColumns: '2fr 1fr' }}>
         <section style={sectionStyle} aria-labelledby="trend-heading">
-          <h2 id="trend-heading" className="text-base font-semibold mb-4"
-            style={{ color: 'var(--color-text-primary)' }}>
-            Daily Hours Logged
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 id="trend-heading" className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+              Daily Hours Logged
+            </h2>
+            <AskAiButton question="Explain the trend in my daily hours this period" />
+          </div>
           {trendQ.isLoading
             ? <SkeletonCard className="h-48" />
             : <AreaChart data={trendQ.data ?? []} height={180} />}

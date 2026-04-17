@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Send, Sparkles, Trash2 } from 'lucide-react'
 import { chatApi } from '@/api/chat'
@@ -28,8 +29,13 @@ const EXAMPLE_QUESTIONS = [
 
 export default function ChatPage() {
   const queryClient = useQueryClient()
+  const location = useLocation()
+
+  // Support pre-filled question from AskAiButton navigation
+  const prefill = (location.state as { prefillQuestion?: string } | null)?.prefillQuestion ?? ''
+
   const [messages, setMessages] = useState<Message[]>([])
-  const [input, setInput] = useState('')
+  const [input, setInput] = useState(prefill)
   const [sessionId, setSessionId] = useState<string | undefined>()
   const [isTyping, setIsTyping] = useState(false)
   const [historyLoaded, setHistoryLoaded] = useState(false)

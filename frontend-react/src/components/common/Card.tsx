@@ -1,5 +1,6 @@
 import { Clock, BarChart3, Users, AlertCircle, type LucideProps } from 'lucide-react'
 import { cn } from '@/utils/cn'
+import { Sparkline } from '@/components/charts/Sparkline'
 
 type IconName = 'clock' | 'chart' | 'users' | 'alert'
 type LucideFC = React.ForwardRefExoticComponent<Omit<LucideProps, 'ref'> & React.RefAttributes<SVGSVGElement>>
@@ -79,10 +80,12 @@ export interface MetricCardProps {
   icon?: IconName
   /** Semantic colour accent — affects icon container colour */
   accent?: MetricAccent
+  /** Optional 7-point sparkline shown bottom-right of the card */
+  sparklineData?: number[]
   className?: string
 }
 
-export function MetricCard({ label, value, trend, icon, accent = 'brand', className }: MetricCardProps) {
+export function MetricCard({ label, value, trend, icon, accent = 'brand', sparklineData, className }: MetricCardProps) {
   const Icon = icon ? ICONS[icon] : null
   const isPositive = trend !== undefined && trend >= 0
   const isNegative = trend !== undefined && trend < 0
@@ -118,9 +121,19 @@ export function MetricCard({ label, value, trend, icon, accent = 'brand', classN
           </span>
         )}
       </div>
-      <p className="text-2xl font-bold font-mono" style={{ color: 'var(--color-text-primary)' }}>
-        {value}
-      </p>
+      <div className="flex items-end justify-between gap-2">
+        <p className="text-2xl font-bold font-mono" style={{ color: 'var(--color-text-primary)' }}>
+          {value}
+        </p>
+        {sparklineData && sparklineData.length >= 2 && (
+          <Sparkline
+            data={sparklineData}
+            width={64}
+            height={24}
+            color={accentStyle.icon}
+          />
+        )}
+      </div>
     </Card>
   )
 }
