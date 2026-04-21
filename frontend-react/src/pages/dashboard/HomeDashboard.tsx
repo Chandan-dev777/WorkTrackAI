@@ -135,17 +135,21 @@ export default function HomeDashboard() {
 
   const summaryQ    = useQuery({ queryKey: ['home-summary',    weekParams.start_date], queryFn: () => dashboardApi.getSummary(weekParams),    placeholderData: keepPreviousData })
   const categoriesQ = useQuery({ queryKey: ['home-categories', weekParams.start_date], queryFn: () => dashboardApi.getCategories(weekParams), placeholderData: keepPreviousData })
-  const itemsQ      = useQuery({ queryKey: ['home-recent-items'],                      queryFn: () => worklogsApi.getMy(weekParams),           placeholderData: keepPreviousData })
+  // Week items — used for heatmap, streak, needs-review (scoped to this week)
+  const itemsQ      = useQuery({ queryKey: ['home-week-items', weekParams.start_date], queryFn: () => worklogsApi.getMy(weekParams),           placeholderData: keepPreviousData })
+  // Recent items — unfiltered so the activity feed always shows the latest work
+  const recentQ     = useQuery({ queryKey: ['home-recent-items'],                      queryFn: () => worklogsApi.getMy(),                      placeholderData: keepPreviousData })
 
-  const totalHours  = summaryQ.data?.total_hours  ?? 0
-  const doneCount   = summaryQ.data?.done_count   ?? 0
+  const totalHours   = summaryQ.data?.total_hours   ?? 0
+  const doneCount    = summaryQ.data?.done_count    ?? 0
   const blockedCount = summaryQ.data?.blocked_count ?? 0
 
-  // Derived: streak from work log dates
-  const allItems   = itemsQ.data ?? []
-  const streak     = useMemo(() => computeStreak(allItems), [allItems])
-  const recentItems = allItems.slice(0, 5)
+  // Derived: streak + heatmap + needs-review from week items
+  const allItems    = itemsQ.data ?? []
+  const streak      = useMemo(() => computeStreak(allItems), [allItems])
   const needsReview = allItems.filter(i => i.needs_review)
+  // Activity feed: most recent 5 items, no date restriction
+  const recentItems = (recentQ.data ?? []).slice(0, 5)
 
   // Derived: heatmap data
   const heatmapData = useMemo(() => {
@@ -186,7 +190,7 @@ export default function HomeDashboard() {
     return buildNarrative(totalHours, doneCount, blockedCount, weekGoal, firstName)
   }, [summaryQ.data, totalHours, doneCount, blockedCount, weekGoal, firstName])
 
-  const hasNoItems = !itemsQ.isLoading && allItems.length === 0
+  const hasNoItems = !recentQ.isLoading && recentItems.length === 0
 
   return (
     <div className="mx-auto p-6 flex flex-col gap-6" style={{ maxWidth: '1200px' }}>
@@ -395,7 +399,7 @@ export default function HomeDashboard() {
           </Link>
         </div>
 
-        {itemsQ.isLoading ? (
+        {recentQ.isLoading ? (
           <SkeletonCard />
         ) : hasNoItems ? (
           <BentoCard className="py-10 text-center">
