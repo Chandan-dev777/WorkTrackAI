@@ -3,7 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import {
   Sparkles, Trash2, Plus, AlertTriangle, Info,
-  GripVertical, CheckCircle2, Calendar,
+  GripVertical, CheckCircle2, Calendar, PanelLeftClose, PanelLeftOpen,
+  ChevronDown, ChevronUp,
+  Users, Code2, Bug, Search, LifeBuoy, GitPullRequest,
+  FileText, BookOpen, Settings2, Star,
 } from 'lucide-react'
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor,
@@ -35,13 +38,158 @@ const AI_STAGES = [
   'Ready for review',
 ] as const
 
-const TEMPLATES = [
-  { label: 'Meeting',     text: 'Attended [meeting] for [X] hours. Discussed [topics]. Action items: [list].' },
-  { label: 'Development', text: 'Worked on [feature/bug] for [X] hours. [Progress]. Status: in_progress.' },
-  { label: 'Research',    text: 'Researched [topic] for [X] hours. Key findings: [summary].' },
-  { label: 'Support',     text: 'Handled [N] support tickets for [X] hours. Resolved [issue].' },
-  { label: 'Code review', text: 'Reviewed [N] PRs for [X] hours. Gave feedback on [repos].' },
-] as const
+// ── Template definitions ─────────────────────────────────────────────────────
+// Each template text is structured so the LLM can cleanly extract all schema
+// fields: task_description, work_category, hours_spent, status, priority,
+// ticket_id, project_name, blockers, next_steps, tags.
+
+interface Template {
+  label: string
+  hint: string                                  // one-line description shown in card
+  icon: React.ElementType
+  color: string                                 // matches CATEGORY_COLORS
+  category: WorkCategory
+  text: string
+}
+
+const TEMPLATES: Template[] = [
+  {
+    label: 'Meeting',
+    hint: 'Standup, sync, planning call',
+    icon: Users,
+    color: '#0EA5E9',
+    category: 'meeting',
+    text:
+      'Attended [meeting name] for [X] hours with [team / attendees].\n' +
+      'Discussed: [topics covered].\n' +
+      'Decisions made: [key decisions, or none].\n' +
+      'Action items: [follow-up tasks, or none].\n' +
+      'Status: done.',
+  },
+  {
+    label: 'Feature / Project',
+    hint: 'Named project or feature work',
+    icon: Code2,
+    color: '#6366F1',
+    category: 'project',
+    text:
+      'Worked on [feature name] as part of project [project name] for [X] hours.\n' +
+      'What was done: [description of progress].\n' +
+      'Priority: [high / medium / low].\n' +
+      'Status: [done / in_progress / blocked].\n' +
+      'Next steps: [what comes next].\n' +
+      'Blockers: [any blockers, or none].',
+  },
+  {
+    label: 'Bug / Ticket',
+    hint: 'JIRA, ServiceNow or hotfix',
+    icon: Bug,
+    color: '#8B5CF6',
+    category: 'ticket',
+    text:
+      'Investigated and fixed [bug description] for [X] hours.\n' +
+      'Ticket: [TICKET-ID], Project: [project name].\n' +
+      'Root cause: [brief explanation].\n' +
+      'Fix applied: [what was changed].\n' +
+      'Priority: [high / medium / low].\n' +
+      'Status: [done / in_progress / blocked].\n' +
+      'Next steps: [testing / deployment / none].\n' +
+      'Blockers: [any blockers, or none].',
+  },
+  {
+    label: 'Code Review',
+    hint: 'PR review, design review',
+    icon: GitPullRequest,
+    color: '#06B6D4',
+    category: 'review',
+    text:
+      'Reviewed [N] pull requests for [X] hours.\n' +
+      'Project / repository: [project or repo name].\n' +
+      'Scope: [what was reviewed — feature, bug fix, refactor, etc.].\n' +
+      'Key feedback given: [summary of comments].\n' +
+      'Outcome: [approved / changes requested / merged].\n' +
+      'Status: done.',
+  },
+  {
+    label: 'Support',
+    hint: 'Tickets, on-call, colleague help',
+    icon: LifeBuoy,
+    color: '#F59E0B',
+    category: 'support',
+    text:
+      'Handled [N] support tickets for [X] hours.\n' +
+      'Ticket IDs: [IDs if known, or none].\n' +
+      'Issues resolved: [brief description].\n' +
+      'Escalated: [escalation details, or none].\n' +
+      'Status: done.',
+  },
+  {
+    label: 'Documentation',
+    hint: 'Docs, wikis, runbooks, README',
+    icon: FileText,
+    color: '#34D399',
+    category: 'documentation',
+    text:
+      'Wrote / updated documentation for [X] hours.\n' +
+      'Document type: [wiki / runbook / README / design doc].\n' +
+      'Topic covered: [what the doc is about].\n' +
+      'Project: [project name].\n' +
+      'Link: [URL if published, or none].\n' +
+      'Status: [done / in_progress].',
+  },
+  {
+    label: 'Research',
+    hint: 'Spike, investigation, PoC',
+    icon: Search,
+    color: '#10B981',
+    category: 'project',
+    text:
+      'Researched [topic] for [X] hours as part of [project name].\n' +
+      'Goal: [what question was being answered].\n' +
+      'Key findings: [summary of what was learned].\n' +
+      'References / links: [URLs or doc names, or none].\n' +
+      'Next steps: [follow-up actions].\n' +
+      'Status: done.',
+  },
+  {
+    label: 'Learning',
+    hint: 'Training, courses, self-development',
+    icon: BookOpen,
+    color: '#10B981',
+    category: 'learning',
+    text:
+      'Completed training / learning on [topic] for [X] hours.\n' +
+      'Resource: [course name / book / video / conference].\n' +
+      'Key takeaways: [what was learned].\n' +
+      'Applicable to: [project or team this helps].\n' +
+      'Status: done.',
+  },
+  {
+    label: 'Admin',
+    hint: 'Emails, HR, expenses, planning',
+    icon: Settings2,
+    color: '#6B7280',
+    category: 'admin',
+    text:
+      'Handled administrative tasks for [X] hours.\n' +
+      'Tasks completed: [emails / expense reports / HR tasks / planning docs].\n' +
+      'Status: done.',
+  },
+  {
+    label: 'Polaris',
+    hint: 'Polaris classification / scoring',
+    icon: Star,
+    color: '#A78BFA',
+    category: 'polaris_classification',
+    text:
+      'Worked on Polaris classification / scoring tasks for [X] hours.\n' +
+      'Scope: [what was classified or scored].\n' +
+      'Dataset / items processed: [describe].\n' +
+      'Project: [project name].\n' +
+      'Status: [done / in_progress].\n' +
+      'Notes: [quality issues or edge cases, or none].',
+  },
+]
 
 const QUICK_CATEGORIES: WorkCategory[] = ['project', 'meeting', 'review', 'support', 'learning']
 
@@ -113,6 +261,19 @@ function AIThinkingStrip({ stage }: { stage: number }) {
   )
 }
 
+// ── Labeled field wrapper ────────────────────────────────────────────────────
+
+function LabeledField({ label, children, style }: { label: string; children: React.ReactNode; style?: React.CSSProperties }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 3, ...style }}>
+      <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' as const, color: 'var(--color-text-muted)' }}>
+        {label}
+      </span>
+      {children}
+    </div>
+  )
+}
+
 // ── Sortable item card ───────────────────────────────────────────────────────
 
 interface CardProps {
@@ -160,98 +321,151 @@ function SortableItemCard({ row, onUpdate, onDelete }: CardProps) {
       exit={{ opacity: 0, scale: 0.94 }}
       transition={{ duration: 0.18 }}
     >
-      {/* Card top row: drag handle + description + confidence + delete */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-        <button
-          {...attributes} {...listeners}
-          aria-label="Drag to reorder"
-          style={{ cursor: 'grab', color: 'var(--color-text-muted)', flexShrink: 0, marginTop: 3, touchAction: 'none' }}
-        >
-          <GripVertical size={14} />
-        </button>
-
-        <input
-          type="text"
-          value={row.task_description}
-          onChange={e => onUpdate(row._key, 'task_description', e.target.value)}
-          placeholder="Task description"
-          style={{ ...inputStyle, flex: 1, fontWeight: 500 }}
-        />
-
-        <ConfidenceBadge score={row.confidence_score} />
-
+      {/* Card top row: drag handle + badges + delete */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button {...attributes} {...listeners}
+            aria-label="Drag to reorder"
+            style={{ cursor: 'grab', color: 'var(--color-text-muted)', flexShrink: 0, touchAction: 'none', lineHeight: 0 }}>
+            <GripVertical size={14} />
+          </button>
+          <ConfidenceBadge score={row.confidence_score ?? null} />
+          {row.clarification_needed && (
+            <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, background: 'rgba(245,158,11,0.12)', color: '#F59E0B', border: '1px solid rgba(245,158,11,0.3)' }}>
+              Needs review
+            </span>
+          )}
+        </div>
         <button onClick={() => onDelete(row._key)} aria-label="Delete row"
-          style={{ color: 'var(--color-status-danger)', flexShrink: 0, marginTop: 2 }}>
+          style={{ color: 'var(--color-status-danger)', lineHeight: 0 }}>
           <Trash2 size={13} />
         </button>
       </div>
 
-      {/* Second row: hours + category + status + priority */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, paddingLeft: 22 }}>
-        <input type="number" min="0" step="0.5"
-          value={row.hours_spent ?? ''}
-          onChange={e => onUpdate(row._key, 'hours_spent', parseFloat(e.target.value) || 0)}
-          placeholder="Hours"
-          style={{ ...inputStyle, width: 70 }}
-        />
-        <select value={row.work_category}
-          onChange={e => onUpdate(row._key, 'work_category', e.target.value as WorkCategory)}
-          style={{ ...inputStyle, width: 120 }}>
-          {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
-        <select value={row.status ?? ''}
-          onChange={e => onUpdate(row._key, 'status', (e.target.value as StatusType) || null)}
-          style={{ ...inputStyle, width: 110 }}>
-          <option value="">Status…</option>
-          {STATUSES.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
-        </select>
-        <select value={row.priority ?? ''}
-          onChange={e => onUpdate(row._key, 'priority', e.target.value || null)}
-          style={{ ...inputStyle, width: 90 }}>
-          <option value="">Priority…</option>
-          {PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
-        </select>
+      {/* Task Description */}
+      <LabeledField label="Task Description">
+        <input type="text"
+          value={row.task_description}
+          onChange={e => onUpdate(row._key, 'task_description', e.target.value)}
+          placeholder="What was worked on…"
+          style={{ ...inputStyle, fontWeight: 500, fontSize: 13 }} />
+      </LabeledField>
+
+      {/* Hours · Category · Status · Priority */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        <LabeledField label="Hours">
+          <input type="number" min="0" step="0.5"
+            value={row.hours_spent ?? ''}
+            onChange={e => onUpdate(row._key, 'hours_spent', parseFloat(e.target.value) || 0)}
+            placeholder="0"
+            style={{ ...inputStyle, width: 72 }} />
+        </LabeledField>
+        <LabeledField label="Category">
+          <select value={row.work_category}
+            onChange={e => onUpdate(row._key, 'work_category', e.target.value as WorkCategory)}
+            style={{ ...inputStyle, width: 126 }}>
+            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </LabeledField>
+        <LabeledField label="Status">
+          <select value={row.status ?? ''}
+            onChange={e => onUpdate(row._key, 'status', (e.target.value as StatusType) || null)}
+            style={{ ...inputStyle, width: 116 }}>
+            <option value="">— select —</option>
+            {STATUSES.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
+          </select>
+        </LabeledField>
+        <LabeledField label="Priority">
+          <select value={row.priority ?? ''}
+            onChange={e => onUpdate(row._key, 'priority', e.target.value || null)}
+            style={{ ...inputStyle, width: 96 }}>
+            <option value="">— none —</option>
+            {PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
+          </select>
+        </LabeledField>
       </div>
 
-      {/* Quick-fix chips for needs_review */}
-      {row.needs_review && !row.clarification_needed && (
-        <div style={{ paddingLeft: 22, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-          <span style={{ fontSize: 10, color: '#F59E0B', marginRight: 4, alignSelf: 'center' }}>Quick fix:</span>
-          {QUICK_CATEGORIES.map(cat => (
-            <button key={cat} onClick={() => onUpdate(row._key, 'work_category', cat)}
-              style={{
-                fontSize: 10, padding: '2px 8px', borderRadius: 999,
-                border: `1px solid ${row.work_category === cat ? 'var(--color-brand-primary)' : 'var(--color-border-default)'}`,
-                background: row.work_category === cat ? 'rgba(99,102,241,0.15)' : 'transparent',
-                color: row.work_category === cat ? 'var(--color-brand-primary)' : 'var(--color-text-secondary)',
-                cursor: 'pointer',
-              }}>
-              {cat}
-            </button>
-          ))}
-          <button onClick={() => onUpdate(row._key, 'status', 'done')}
-            style={{ fontSize: 10, padding: '2px 8px', borderRadius: 999, border: '1px solid rgba(16,185,129,0.4)', background: 'rgba(16,185,129,0.08)', color: '#10B981', cursor: 'pointer' }}>
-            Mark done
-          </button>
-        </div>
-      )}
+      {/* Ticket ID · Project */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        <LabeledField label="Ticket ID">
+          <input type="text"
+            value={row.ticket_id ?? ''}
+            onChange={e => onUpdate(row._key, 'ticket_id', e.target.value || null)}
+            placeholder="e.g. JIRA-123"
+            style={{ ...inputStyle, width: 130 }} />
+        </LabeledField>
+        <LabeledField label="Project">
+          <input type="text"
+            value={row.project_name ?? ''}
+            onChange={e => onUpdate(row._key, 'project_name', e.target.value || null)}
+            placeholder="Project name"
+            style={{ ...inputStyle, width: 160 }} />
+        </LabeledField>
+        <LabeledField label="Confidence">
+          <div style={{ ...inputStyle, width: 70, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+            {row.confidence_score != null
+              ? <ConfidenceBadge score={row.confidence_score} />
+              : <span style={{ color: 'var(--color-text-muted)', fontSize: 11 }}>—</span>}
+          </div>
+        </LabeledField>
+        <LabeledField label="Review?">
+          <div style={{ ...inputStyle, width: 70, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <input type="checkbox"
+              checked={row.clarification_needed ?? false}
+              onChange={e => onUpdate(row._key, 'clarification_needed', e.target.checked)}
+              style={{ width: 13, height: 13, accentColor: 'var(--color-brand-primary)', cursor: 'pointer' }} />
+            <span style={{ fontSize: 11, color: (row.clarification_needed) ? '#F59E0B' : 'var(--color-text-muted)' }}>
+              {row.clarification_needed ? 'Yes' : 'No'}
+            </span>
+          </div>
+        </LabeledField>
+      </div>
 
-      {/* Clarification quick-pick */}
+      {/* Blockers · Next Steps */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        <LabeledField label="Blockers" style={{ flex: '1 1 180px' }}>
+          <input type="text"
+            value={row.blockers ?? ''}
+            onChange={e => onUpdate(row._key, 'blockers', e.target.value || null)}
+            placeholder="Any blockers?"
+            style={{ ...inputStyle }} />
+        </LabeledField>
+        <LabeledField label="Next Steps" style={{ flex: '1 1 180px' }}>
+          <input type="text"
+            value={row.next_steps ?? ''}
+            onChange={e => onUpdate(row._key, 'next_steps', e.target.value || null)}
+            placeholder="What's next?"
+            style={{ ...inputStyle }} />
+        </LabeledField>
+      </div>
+
+      {/* Clarification quick-pick — shown when needs review */}
       {row.clarification_needed && (
-        <div style={{ paddingLeft: 22 }}>
+        <div>
           <div className="flex items-start gap-2 rounded px-3 py-2 text-xs mb-2"
             style={{ background: 'rgba(245,158,11,0.08)', color: '#F59E0B' }}>
             <Info size={11} className="mt-0.5 shrink-0" />
-            <span>{row.clarification_reason ?? 'Needs clarification'}</span>
+            <span>{row.clarification_reason ?? 'Please verify the category, hours, and status for this item.'}</span>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            <span style={{ fontSize: 10, color: 'var(--color-text-muted)', alignSelf: 'center' }}>This is a:</span>
+            <span style={{ fontSize: 10, color: 'var(--color-text-muted)', alignSelf: 'center' }}>Quick pick:</span>
             {QUICK_CATEGORIES.map(cat => (
-              <button key={cat} onClick={() => { onUpdate(row._key, 'work_category', cat); onUpdate(row._key, 'clarification_needed', false) }}
-                style={{ fontSize: 10, padding: '2px 8px', borderRadius: 999, border: '1px solid var(--color-border-default)', background: 'var(--color-bg-surface)', color: 'var(--color-text-secondary)', cursor: 'pointer' }}>
+              <button key={cat}
+                onClick={() => { onUpdate(row._key, 'work_category', cat); onUpdate(row._key, 'clarification_needed', false) }}
+                style={{
+                  fontSize: 10, padding: '2px 8px', borderRadius: 999,
+                  border: `1px solid ${row.work_category === cat ? 'var(--color-brand-primary)' : 'var(--color-border-default)'}`,
+                  background: row.work_category === cat ? 'rgba(99,102,241,0.15)' : 'transparent',
+                  color: row.work_category === cat ? 'var(--color-brand-primary)' : 'var(--color-text-secondary)',
+                  cursor: 'pointer',
+                }}>
                 {cat}
               </button>
             ))}
+            <button onClick={() => { onUpdate(row._key, 'status', 'done'); onUpdate(row._key, 'clarification_needed', false) }}
+              style={{ fontSize: 10, padding: '2px 8px', borderRadius: 999, border: '1px solid rgba(16,185,129,0.4)', background: 'rgba(16,185,129,0.08)', color: '#10B981', cursor: 'pointer' }}>
+              Mark done
+            </button>
           </div>
         </div>
       )}
@@ -274,6 +488,8 @@ export default function SubmitUpdatePage() {
   const [rows, setRows]             = useState<PreviewRow[]>([])
   const [submitError, setSubmitError]   = useState<string | null>(null)
   const [confirmError, setConfirmError] = useState<string | null>(null)
+  const [inputHidden, setInputHidden]   = useState(false)
+  const [templatesOpen, setTemplatesOpen] = useState(false)
 
   // dnd-kit sensors
   const sensors = useSensors(
@@ -402,26 +618,87 @@ export default function SubmitUpdatePage() {
       <div className="flex gap-5" style={{ alignItems: 'flex-start', flexWrap: 'wrap' }}>
 
         {/* ── LEFT: Input zone ─────────────────────────────────────────────── */}
-        <div className="flex flex-col gap-4 rounded-xl p-5"
-          style={{ flex: '1 1 380px', minWidth: 320, background: 'var(--color-bg-surface)', border: '1px solid var(--color-border-subtle)' }}>
+        <AnimatePresence initial={false}>
+        {!inputHidden && (
+        <motion.div
+          key="input-zone"
+          initial={{ opacity: 0, width: 0, minWidth: 0 }}
+          animate={{ opacity: 1, width: 'auto', minWidth: 320 }}
+          exit={{ opacity: 0, width: 0, minWidth: 0, overflow: 'hidden' }}
+          transition={{ duration: 0.25 }}
+          className="flex flex-col gap-4 rounded-xl p-5"
+          style={{ flex: '1 1 380px', background: 'var(--color-bg-surface)', border: '1px solid var(--color-border-subtle)' }}>
 
-          {/* Template chips */}
+          {/* Templates — collapsible icon card grid */}
           <div>
-            <p className="text-xs font-medium mb-2" style={{ color: 'var(--color-text-muted)' }}>
-              Quick templates:
-            </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {TEMPLATES.map(t => (
-                <button key={t.label}
-                  onClick={() => setRawText(prev => prev ? `${prev}\n${t.text}` : t.text)}
-                  className="rounded-full px-3 py-1 text-xs transition-all"
-                  style={{ border: '1px solid var(--color-border-default)', color: 'var(--color-text-secondary)', background: 'var(--color-bg-elevated)' }}
-                  onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--color-brand-primary)')}
-                  onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--color-border-default)')}>
-                  {t.label}
-                </button>
-              ))}
-            </div>
+            <button
+              onClick={() => setTemplatesOpen(o => !o)}
+              className="flex items-center gap-2 w-full text-xs font-medium mb-1 transition-colors"
+              style={{ color: 'var(--color-text-secondary)' }}
+            >
+              {templatesOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              Use a template
+              <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--color-text-muted)' }}>
+                {TEMPLATES.length} available
+              </span>
+            </button>
+
+            <AnimatePresence initial={false}>
+              {templatesOpen && (
+                <motion.div
+                  key="templates-panel"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  style={{ overflow: 'hidden' }}
+                >
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
+                    gap: 6,
+                    paddingTop: 6,
+                    paddingBottom: 2,
+                  }}>
+                    {TEMPLATES.map(t => {
+                      const Icon = t.icon
+                      return (
+                        <button
+                          key={t.label}
+                          onClick={() => {
+                            setRawText(prev => prev ? `${prev}\n\n${t.text}` : t.text)
+                            setTemplatesOpen(false)
+                          }}
+                          className="flex flex-col gap-1.5 rounded-lg p-2.5 text-left transition-all"
+                          style={{
+                            background: 'var(--color-bg-elevated)',
+                            border: '1px solid var(--color-border-default)',
+                          }}
+                          onMouseEnter={e => {
+                            e.currentTarget.style.borderColor = t.color
+                            e.currentTarget.style.background = `${t.color}0f`
+                          }}
+                          onMouseLeave={e => {
+                            e.currentTarget.style.borderColor = 'var(--color-border-default)'
+                            e.currentTarget.style.background = 'var(--color-bg-elevated)'
+                          }}
+                        >
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                            <Icon size={12} color={t.color} />
+                            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                              {t.label}
+                            </span>
+                          </span>
+                          <span style={{ fontSize: 10, color: 'var(--color-text-muted)', lineHeight: 1.3 }}>
+                            {t.hint}
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Textarea */}
@@ -506,7 +783,9 @@ export default function SubmitUpdatePage() {
           {submitError && (
             <p className="text-xs" style={{ color: 'var(--color-status-danger)' }}>{submitError}</p>
           )}
-        </div>
+        </motion.div>
+        )}
+        </AnimatePresence>
 
         {/* ── RIGHT: Extraction preview ─────────────────────────────────────── */}
         <AnimatePresence>
@@ -526,8 +805,8 @@ export default function SubmitUpdatePage() {
               }}
             >
               {/* Preview header */}
-              <div className="px-5 pt-5 flex items-start justify-between">
-                <div>
+              <div className="px-5 pt-5 flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
                   <h2 className="flex items-center gap-2 text-base font-semibold"
                     style={{ color: 'var(--color-text-primary)' }}>
                     <Sparkles size={15} color="var(--color-brand-secondary)" />
@@ -537,10 +816,20 @@ export default function SubmitUpdatePage() {
                     Review and edit before saving — drag to reorder
                   </p>
                 </div>
-                <span className="text-xs px-2 py-1 rounded-full font-medium"
-                  style={{ background: 'var(--color-bg-elevated)', color: 'var(--color-text-secondary)' }}>
-                  {rows.length} item{rows.length !== 1 ? 's' : ''} · {totalHours.toFixed(1)}h
-                </span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-xs px-2 py-1 rounded-full font-medium"
+                    style={{ background: 'var(--color-bg-elevated)', color: 'var(--color-text-secondary)' }}>
+                    {rows.length} item{rows.length !== 1 ? 's' : ''} · {totalHours.toFixed(1)}h
+                  </span>
+                  <button
+                    onClick={() => setInputHidden(h => !h)}
+                    title={inputHidden ? 'Show input panel' : 'Hide input panel'}
+                    className="rounded-md p-1.5 transition-colors"
+                    style={{ color: 'var(--color-text-muted)', border: '1px solid var(--color-border-default)', background: 'var(--color-bg-elevated)' }}
+                  >
+                    {inputHidden ? <PanelLeftOpen size={13} /> : <PanelLeftClose size={13} />}
+                  </button>
+                </div>
               </div>
 
               {/* Warnings */}
