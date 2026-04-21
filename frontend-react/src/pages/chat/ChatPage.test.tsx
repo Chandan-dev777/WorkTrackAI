@@ -219,13 +219,16 @@ describe('ChatPage — error state', () => {
 // ── EXAMPLE QUESTIONS ─────────────────────────────────────────────────────────
 
 describe('ChatPage — example questions', () => {
-  it('clicking an example button fills the input', async () => {
+  it('clicking an example button sends the message immediately', async () => {
     server.use(http.get('/chat/history', () => HttpResponse.json([])))
     renderPage()
     const btns = await screen.findAllByRole('button', { name: /how many hours|what categories|blocked|summarize/i })
-    const input = screen.getByRole('textbox', { name: /ask|message/i })
     fireEvent.click(btns[0])
-    expect(input).not.toHaveValue('')
+    // After sending, the empty-state buttons disappear (we're no longer in empty state)
+    await waitFor(() => {
+      const remaining = screen.queryAllByRole('button', { name: /how many hours|what categories|blocked|summarize/i })
+      expect(remaining.length).toBe(0)
+    })
   })
 })
 
@@ -236,6 +239,7 @@ describe('ChatPage — clear history', () => {
     renderPage()
     await screen.findByText('How many hours did I log last week?')
     fireEvent.click(screen.getByRole('button', { name: /clear history/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /^clear$/i }))
     await waitFor(() => {
       expect(screen.queryByText('How many hours did I log last week?')).not.toBeInTheDocument()
     })
@@ -246,6 +250,7 @@ describe('ChatPage — clear history', () => {
     renderPage()
     await screen.findByText('How many hours did I log last week?')
     fireEvent.click(screen.getByRole('button', { name: /clear history/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /^clear$/i }))
     await waitFor(() => {
       expect(localStorage.getItem('worktrack_chat_cleared_at')).not.toBeNull()
     })
@@ -276,8 +281,9 @@ describe('ChatPage — clear history', () => {
     const { unmount } = renderPage()
     await screen.findByText('How many hours did I log last week?')
 
-    // Clear history — overwrites cache with []
+    // Clear history — confirm dialog then overwrites cache with []
     fireEvent.click(screen.getByRole('button', { name: /clear history/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /^clear$/i }))
     await waitFor(() => {
       expect(screen.queryByText('How many hours did I log last week?')).not.toBeInTheDocument()
     })

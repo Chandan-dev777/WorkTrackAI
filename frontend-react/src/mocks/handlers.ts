@@ -161,9 +161,12 @@ export const handlers = [
     const body = await request.json() as { question: string; session_id?: string }
     return HttpResponse.json({
       answer: `Here is the answer to: "${body.question}"`,
-      query_source: 'sql',
+      query_source: 'vector',
       session_id: body.session_id ?? 'sess-001',
-      sources: [],
+      sources: [
+        { work_item_id: 'wi-001', task_description: 'Fixed authentication bug in login flow', work_date: '2026-04-13', employee_name: 'Alice Smith' },
+        { work_item_id: 'wi-002', task_description: 'Sprint planning meeting with engineering team', work_date: '2026-04-12', employee_name: 'Alice Smith' },
+      ],
     })
   }),
 
