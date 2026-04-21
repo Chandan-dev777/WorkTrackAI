@@ -74,13 +74,25 @@ export function GoalRing({ current, target, size = 120, label }: GoalRingProps) 
       {/* Centre — percentage */}
       <text
         x={cx}
-        y={cy + size * 0.14}
+        y={cy + size * 0.1}
         textAnchor="middle"
         dominantBaseline="middle"
         fontSize={size * 0.11}
         style={{ fill: 'var(--color-text-muted)' }}
       >
-        {displayPct}% · {label}
+        {displayPct}%
+      </text>
+
+      {/* Centre — label */}
+      <text
+        x={cx}
+        y={cy + size * 0.22}
+        textAnchor="middle"
+        dominantBaseline="middle"
+        fontSize={size * 0.09}
+        style={{ fill: 'var(--color-text-muted)' }}
+      >
+        {label}
       </text>
     </svg>
   )

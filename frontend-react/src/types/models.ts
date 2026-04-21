@@ -69,6 +69,15 @@ export interface WorkItem {
   employee_name?: string
 }
 
+export interface UserTemplate {
+  id: string
+  user_id: string
+  label: string
+  text: string
+  created_at: string
+  updated_at: string
+}
+
 export interface WorkLog {
   id: string
   user_id: string

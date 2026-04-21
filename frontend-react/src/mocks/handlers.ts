@@ -53,6 +53,32 @@ export const handlers = [
     return HttpResponse.json({ id: 42, extraction_status: 'confirmed' })
   }),
 
+  http.get(`${BASE}/updates/`, () =>
+    HttpResponse.json([
+      {
+        id: 'wl-hist-001', user_id: 'uuid-alice-001',
+        work_date: '2026-04-20', submitted_at: '2026-04-20T09:00:00',
+        raw_message: 'Fixed authentication bug for 3 hours. Ticket: AUTH-42, project: Auth service. Status: done. Then attended sprint planning for 1 hour.',
+        extraction_status: 'success', model_name: 'claude-sonnet', is_deleted: false,
+        work_items: [{ id: 'wi-h1', work_log_id: 'wl-hist-001' }, { id: 'wi-h2', work_log_id: 'wl-hist-001' }],
+      },
+      {
+        id: 'wl-hist-002', user_id: 'uuid-alice-001',
+        work_date: '2026-04-19', submitted_at: '2026-04-19T17:30:00',
+        raw_message: 'Worked on dashboard charts feature for 4 hours, project: WorkTrack UI. Status: in_progress. Reviewed 2 PRs for 1 hour.',
+        extraction_status: 'success', model_name: 'claude-sonnet', is_deleted: false,
+        work_items: [{ id: 'wi-h3', work_log_id: 'wl-hist-002' }],
+      },
+      {
+        id: 'wl-hist-003', user_id: 'uuid-alice-001',
+        work_date: '2026-04-18', submitted_at: '2026-04-18T16:00:00',
+        raw_message: 'Attended team standup for 0.5 hours. Researched vector DB options for 2 hours, project: RAG pipeline. Status: done.',
+        extraction_status: 'success', model_name: 'claude-sonnet', is_deleted: false,
+        work_items: [{ id: 'wi-h4', work_log_id: 'wl-hist-003' }],
+      },
+    ])
+  ),
+
   // ── Dashboard stubs (used from Phase 5 onward) ────────────────────────────
   http.get(`${BASE}/dashboard/summary`, () =>
     HttpResponse.json({
@@ -263,4 +289,31 @@ export const handlers = [
       is_user_corrected: true, created_at: '2026-04-13T09:00:00', updated_at: '2026-04-14T10:00:00',
     })
   }),
+
+  // ── User Templates ────────────────────────────────────────────────────────
+  // In-memory store for test session (resets between test files)
+  ...(() => {
+    let store: Array<{ id: string; user_id: string; label: string; text: string; created_at: string; updated_at: string }> = []
+    const now = () => new Date().toISOString()
+    return [
+      http.get(`${BASE}/templates/`, () => HttpResponse.json(store)),
+      http.post(`${BASE}/templates/`, async ({ request }) => {
+        const body = await request.json() as { label: string; text: string }
+        const t = { id: `tmpl-${Date.now()}`, user_id: 'uuid-alice-001', label: body.label, text: body.text, created_at: now(), updated_at: now() }
+        store = [t, ...store]
+        return HttpResponse.json(t, { status: 201 })
+      }),
+      http.put(`${BASE}/templates/:id`, async ({ request, params }) => {
+        const body = await request.json() as { label?: string; text?: string }
+        store = store.map(t => t.id === params.id ? { ...t, ...body, updated_at: now() } : t)
+        const updated = store.find(t => t.id === params.id)
+        if (!updated) return HttpResponse.json({ detail: 'Not found' }, { status: 404 })
+        return HttpResponse.json(updated)
+      }),
+      http.delete(`${BASE}/templates/:id`, ({ params }) => {
+        store = store.filter(t => t.id !== params.id)
+        return new HttpResponse(null, { status: 204 })
+      }),
+    ]
+  })(),
 ]

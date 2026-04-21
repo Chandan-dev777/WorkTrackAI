@@ -69,7 +69,9 @@ describe('DashboardPage — metric cards', () => {
 
   it('renders Blocked label', async () => {
     renderPage()
-    expect(await screen.findByText(/^blocked$/i)).toBeInTheDocument()
+    // Multiple "blocked" elements may exist (MetricCard + DonutChart legend)
+    const blocked = await screen.findAllByText(/^blocked$/i)
+    expect(blocked.length).toBeGreaterThan(0)
   })
 
   it('displays total_hours value (42.5) from API', async () => {

@@ -12,7 +12,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend.database import create_tables
-from backend.routers import admin, assistant, auth, chat, dashboard, updates, worklogs
+from backend.routers import admin, assistant, auth, chat, dashboard, templates, updates, worklogs
 
 # Path to the built React frontend (worktrack-ai/frontend-react/dist/)
 _FRONTEND_DIST = Path(__file__).parent.parent / "frontend-react" / "dist"
@@ -55,6 +55,7 @@ app.include_router(dashboard.router)
 app.include_router(chat.router)
 app.include_router(admin.router)
 app.include_router(assistant.router)
+app.include_router(templates.router)
 
 
 @app.get("/health")

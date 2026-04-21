@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { http, HttpResponse } from 'msw'
 import { server } from '@/mocks/server'
 import SubmitUpdatePage from './SubmitUpdatePage'
@@ -18,11 +19,17 @@ const mockExtractionResult = {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+function makeClient() {
+  return new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+}
+
 function renderPage() {
   return render(
-    <MemoryRouter>
-      <SubmitUpdatePage />
-    </MemoryRouter>
+    <QueryClientProvider client={makeClient()}>
+      <MemoryRouter>
+        <SubmitUpdatePage />
+      </MemoryRouter>
+    </QueryClientProvider>
   )
 }
 
@@ -170,8 +177,9 @@ describe('SubmitUpdatePage — confirmation', () => {
     fireEvent.click(screen.getByRole('button', { name: /confirm|save/i }))
     await waitFor(() => {
       const successMsg = screen.queryByText(/saved|success|confirmed/i)
-      const resetTextarea = screen.queryByRole('textbox')
-      expect(successMsg !== null || resetTextarea !== null).toBe(true)
+      // queryAllByRole never throws on multiple matches — safe even during transitional renders
+      const textboxes = screen.queryAllByRole('textbox')
+      expect(successMsg !== null || textboxes.length > 0).toBe(true)
     })
   })
 

@@ -1,10 +1,11 @@
 import React, { useState, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
   Sparkles, Trash2, Plus, AlertTriangle, Info,
   GripVertical, CheckCircle2, Calendar, PanelLeftClose, PanelLeftOpen,
-  ChevronDown, ChevronUp,
+  ChevronDown, ChevronUp, Clock, BookmarkPlus, X,
   Users, Code2, Bug, Search, LifeBuoy, GitPullRequest,
   FileText, BookOpen, Settings2, Star,
 } from 'lucide-react'
@@ -19,8 +20,37 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import type { DragEndEvent } from '@dnd-kit/core'
 import { apiClient } from '@/api/client'
-import type { ExtractionResult, WorkItemExtracted, WorkCategory, StatusType } from '@/types/models'
+import { templatesApi } from '@/api/templates'
+import type { ExtractionResult, WorkItemExtracted, WorkCategory, StatusType, WorkLog, UserTemplate } from '@/types/models'
 import { cn } from '@/utils/cn'
+
+// ── User templates (API-backed) ───────────────────────────────────────────────
+
+function useUserTemplates() {
+  const qc = useQueryClient()
+  const { data: templates = [], isLoading } = useQuery({
+    queryKey: ['user-templates'],
+    queryFn: templatesApi.list,
+    staleTime: 60_000,
+  })
+  const invalidate = () => qc.invalidateQueries({ queryKey: ['user-templates'] })
+
+  const createMutation = useMutation({
+    mutationFn: ({ label, text }: { label: string; text: string }) => templatesApi.create(label, text),
+    onSuccess: invalidate,
+  })
+  const removeMutation = useMutation({
+    mutationFn: (id: string) => templatesApi.remove(id),
+    onSuccess: invalidate,
+  })
+
+  return {
+    templates: (Array.isArray(templates) ? templates : []) as UserTemplate[],
+    isLoading,
+    save: (label: string, text: string) => createMutation.mutateAsync({ label, text }),
+    remove: (id: string) => removeMutation.mutate(id),
+  }
+}
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -488,8 +518,20 @@ export default function SubmitUpdatePage() {
   const [rows, setRows]             = useState<PreviewRow[]>([])
   const [submitError, setSubmitError]   = useState<string | null>(null)
   const [confirmError, setConfirmError] = useState<string | null>(null)
-  const [inputHidden, setInputHidden]   = useState(false)
-  const [templatesOpen, setTemplatesOpen] = useState(false)
+  const [inputHidden, setInputHidden]       = useState(false)
+  const [templatesOpen, setTemplatesOpen]   = useState(false)
+  const [recentOpen, setRecentOpen]         = useState(false)
+  const [saveLabel, setSaveLabel]           = useState<string | null>(null) // null=closed, ''=open input
+
+  const { templates: userTemplates, save: saveUserTemplate, remove: removeUserTemplate } = useUserTemplates()
+
+  // Fetch recent submissions — only when panel is open
+  const recentQ = useQuery({
+    queryKey: ['recent-updates'],
+    queryFn: () => apiClient.get<WorkLog[]>('/updates/', { params: { limit: 5 } }).then(r => r.data),
+    enabled: recentOpen,
+    staleTime: 30_000,
+  })
 
   // dnd-kit sensors
   const sensors = useSensors(
@@ -629,76 +671,70 @@ export default function SubmitUpdatePage() {
           className="flex flex-col gap-4 rounded-xl p-5"
           style={{ flex: '1 1 380px', background: 'var(--color-bg-surface)', border: '1px solid var(--color-border-subtle)' }}>
 
-          {/* Templates — collapsible icon card grid */}
+          {/* ── Templates panel ───────────────────────────────────────────── */}
           <div>
-            <button
-              onClick={() => setTemplatesOpen(o => !o)}
-              className="flex items-center gap-2 w-full text-xs font-medium mb-1 transition-colors"
-              style={{ color: 'var(--color-text-secondary)' }}
-            >
+            <button onClick={() => setTemplatesOpen(o => !o)}
+              className="flex items-center gap-2 w-full text-xs font-medium mb-1"
+              style={{ color: 'var(--color-text-secondary)' }}>
               {templatesOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
               Use a template
               <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--color-text-muted)' }}>
-                {TEMPLATES.length} available
+                {TEMPLATES.length + userTemplates.length} available
               </span>
             </button>
 
-            <AnimatePresence initial={false}>
-              {templatesOpen && (
-                <motion.div
-                  key="templates-panel"
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.2 }}
-                  style={{ overflow: 'hidden' }}
-                >
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
-                    gap: 6,
-                    paddingTop: 6,
-                    paddingBottom: 2,
-                  }}>
-                    {TEMPLATES.map(t => {
-                      const Icon = t.icon
-                      return (
-                        <button
-                          key={t.label}
-                          onClick={() => {
-                            setRawText(prev => prev ? `${prev}\n\n${t.text}` : t.text)
-                            setTemplatesOpen(false)
-                          }}
-                          className="flex flex-col gap-1.5 rounded-lg p-2.5 text-left transition-all"
-                          style={{
-                            background: 'var(--color-bg-elevated)',
-                            border: '1px solid var(--color-border-default)',
-                          }}
-                          onMouseEnter={e => {
-                            e.currentTarget.style.borderColor = t.color
-                            e.currentTarget.style.background = `${t.color}0f`
-                          }}
-                          onMouseLeave={e => {
-                            e.currentTarget.style.borderColor = 'var(--color-border-default)'
-                            e.currentTarget.style.background = 'var(--color-bg-elevated)'
-                          }}
-                        >
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                            <Icon size={12} color={t.color} />
-                            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                              {t.label}
-                            </span>
-                          </span>
-                          <span style={{ fontSize: 10, color: 'var(--color-text-muted)', lineHeight: 1.3 }}>
-                            {t.hint}
-                          </span>
-                        </button>
-                      )
-                    })}
+            {templatesOpen && (
+              <div style={{ paddingTop: 6 }}>
+                {/* My templates */}
+                {userTemplates.length > 0 && (
+                  <div style={{ marginBottom: 12 }}>
+                    <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--color-text-muted)', marginBottom: 5 }}>
+                      My Templates
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {userTemplates.map(t => (
+                        <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 8, background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-default)' }}>
+                          <BookmarkPlus size={11} style={{ flexShrink: 0, color: 'var(--color-brand-primary)' }} />
+                          <button className="flex-1 text-left text-xs font-medium truncate"
+                            style={{ color: 'var(--color-text-primary)' }}
+                            onClick={() => { setRawText(prev => prev ? `${prev}\n\n${t.text}` : t.text); setTemplatesOpen(false) }}>
+                            {t.label}
+                          </button>
+                          <button onClick={() => removeUserTemplate(t.id)} title="Delete template"
+                            style={{ color: 'var(--color-text-muted)', flexShrink: 0, lineHeight: 0 }}>
+                            <X size={11} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                )}
+
+                {/* Built-in templates */}
+                <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--color-text-muted)', marginBottom: 5 }}>
+                  Built-in
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 6 }}>
+                  {TEMPLATES.map(t => {
+                    const Icon = t.icon
+                    return (
+                      <button key={t.label}
+                        onClick={() => { setRawText(prev => prev ? `${prev}\n\n${t.text}` : t.text); setTemplatesOpen(false) }}
+                        className="flex flex-col gap-1.5 rounded-lg p-2.5 text-left transition-all"
+                        style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-default)' }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = t.color; e.currentTarget.style.background = `${t.color}0f` }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border-default)'; e.currentTarget.style.background = 'var(--color-bg-elevated)' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                          <Icon size={12} style={{ color: t.color }} />
+                          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-primary)' }}>{t.label}</span>
+                        </span>
+                        <span style={{ fontSize: 10, color: 'var(--color-text-muted)', lineHeight: 1.3 }}>{t.hint}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Textarea */}
@@ -724,7 +760,7 @@ export default function SubmitUpdatePage() {
               }}
             />
 
-            {/* Live stats bar */}
+            {/* Live stats bar + save-as-template */}
             <div className="flex items-center justify-between text-xs" style={{ color: 'var(--color-text-muted)' }}>
               <span>
                 {rawText.length > 0 && (
@@ -733,8 +769,98 @@ export default function SubmitUpdatePage() {
                   </span>
                 )}
               </span>
-              <span>{rawText.length} chars</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span>{rawText.length} chars</span>
+                {rawText.trim().length > 20 && saveLabel === null && (
+                  <button onClick={() => setSaveLabel('')}
+                    className="flex items-center gap-1 transition-colors"
+                    style={{ color: 'var(--color-brand-primary)', fontSize: 10 }}>
+                    <BookmarkPlus size={11} /> Create template
+                  </button>
+                )}
+              </div>
             </div>
+
+            {/* Save template inline form */}
+            <AnimatePresence>
+              {saveLabel !== null && (
+                <motion.div key="save-tmpl"
+                  initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.15 }}
+                  style={{ overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', gap: 6, paddingTop: 4 }}>
+                    <input
+                      autoFocus
+                      type="text"
+                      value={saveLabel}
+                      onChange={e => setSaveLabel(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && saveLabel.trim()) { saveUserTemplate(saveLabel, rawText).then(() => { setSaveLabel(null); toast.success('Template saved!') }) }
+                        if (e.key === 'Escape') setSaveLabel(null)
+                      }}
+                      placeholder="Template name…"
+                      style={{ flex: 1, background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)', borderRadius: 6, padding: '4px 8px', fontSize: 12 }}
+                    />
+                    <button
+                      disabled={!saveLabel.trim()}
+                      onClick={() => saveUserTemplate(saveLabel, rawText).then(() => { setSaveLabel(null); toast.success('Template saved!') })}
+                      style={{ padding: '4px 10px', borderRadius: 6, background: 'var(--color-brand-primary)', color: '#fff', fontSize: 11, fontWeight: 600, opacity: saveLabel.trim() ? 1 : 0.4 }}>
+                      Save
+                    </button>
+                    <button onClick={() => setSaveLabel(null)} style={{ color: 'var(--color-text-muted)', lineHeight: 0 }}>
+                      <X size={13} />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* ── Recent Submissions ─────────────────────────────────────────── */}
+          <div>
+            <button onClick={() => setRecentOpen(o => !o)}
+              className="flex items-center gap-2 w-full text-xs font-medium mb-1"
+              style={{ color: 'var(--color-text-secondary)' }}>
+              {recentOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              <Clock size={11} />
+              Recent submissions
+            </button>
+
+            {recentOpen && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingTop: 6 }}>
+                {recentQ.isLoading && [0,1,2].map(i => (
+                  <div key={i} style={{ height: 44, borderRadius: 8, background: 'var(--color-bg-elevated)', opacity: 0.6 }} />
+                ))}
+                {recentQ.data?.filter(l => l.extraction_status === 'success').slice(0, 5).map(log => (
+                  <div key={log.id} style={{ display: 'flex', gap: 8, padding: '7px 10px', borderRadius: 8, background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-default)' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 10, color: 'var(--color-text-muted)', marginBottom: 2 }}>
+                        {log.work_date}
+                        {log.work_items?.length ? ` · ${log.work_items.length} item${log.work_items.length !== 1 ? 's' : ''}` : ''}
+                      </p>
+                      <p className="truncate" style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>
+                        {log.raw_message.slice(0, 90)}{log.raw_message.length > 90 ? '…' : ''}
+                      </p>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flexShrink: 0 }}>
+                      <button onClick={() => { setRawText(log.raw_message); setRecentOpen(false) }}
+                        style={{ fontSize: 10, padding: '2px 7px', borderRadius: 4, border: '1px solid var(--color-border-default)', color: 'var(--color-text-secondary)', background: 'transparent', cursor: 'pointer' }}>
+                        Use
+                      </button>
+                      <button onClick={() => { setSaveLabel(log.work_date); setRecentOpen(false) }}
+                        style={{ fontSize: 10, padding: '2px 7px', borderRadius: 4, border: '1px solid rgba(99,102,241,0.3)', color: 'var(--color-brand-primary)', background: 'transparent', cursor: 'pointer' }}>
+                        Bookmark
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {recentQ.data?.length === 0 && (
+                  <p style={{ fontSize: 11, color: 'var(--color-text-muted)', textAlign: 'center', padding: '8px 0' }}>
+                    No previous submissions yet.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Date picker */}

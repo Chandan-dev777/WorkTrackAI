@@ -98,16 +98,17 @@ describe('TeamDashboardPage — team KPI cards', () => {
 // ── DATE FILTER ───────────────────────────────────────────────────────────────
 
 describe('TeamDashboardPage — date filter', () => {
-  it('date range selector is present', async () => {
+  it('date range preset pills are present', async () => {
     renderPage()
     await screen.findByText(/team dashboard/i)
-    expect(screen.getByRole('combobox', { name: /date range/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /last 30d/i })).toBeInTheDocument()
   })
 
-  it('default selection is last_30', async () => {
+  it('date inputs are present', async () => {
     renderPage()
     await screen.findByText(/team dashboard/i)
-    expect(screen.getByRole('combobox', { name: /date range/i })).toHaveValue('last_30')
+    expect(screen.getByLabelText(/start date/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/end date/i)).toBeInTheDocument()
   })
 })
 
