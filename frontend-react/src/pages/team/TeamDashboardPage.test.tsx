@@ -78,7 +78,8 @@ describe('TeamDashboardPage — team KPI cards', () => {
 
   it('renders Active Members label', async () => {
     renderPage()
-    expect(await screen.findByText(/active members/i)).toBeInTheDocument()
+    const matches = await screen.findAllByText(/active members/i)
+    expect(matches.length).toBeGreaterThan(0)
   })
 
   it('displays aggregated total hours from team summary', async () => {
@@ -160,7 +161,9 @@ describe('TeamDashboardPage — charts', () => {
 describe('TeamDashboardPage — blocked items panel', () => {
   it('renders Blocked Items section heading', async () => {
     renderPage()
-    expect(await screen.findByText(/blocked items/i)).toBeInTheDocument()
+    // Section renamed to "Blocked Queue" — check for either label
+    const matches = await screen.findAllByText(/blocked queue|blocked items/i)
+    expect(matches.length).toBeGreaterThan(0)
   })
 
   it('shows blocked work item description', async () => {
@@ -227,7 +230,9 @@ describe('TeamDashboardPage — team work items table', () => {
 describe('TeamDashboardPage — employee summary cards', () => {
   it('renders Employee Summary section heading', async () => {
     renderPage()
-    expect(await screen.findByText('Employee Summary')).toBeInTheDocument()
+    // Section renamed to "Team Health"
+    const matches = await screen.findAllByText(/team health|employee summary/i)
+    expect(matches.length).toBeGreaterThan(0)
   })
 
   it('shows each employee name in a summary card', async () => {
@@ -254,8 +259,8 @@ describe('TeamDashboardPage — employee summary cards', () => {
 
   it('shows last activity date for each member card', async () => {
     renderPage()
-    // "Last activity" label appears once per employee card
-    const matches = await screen.findAllByText(/Last activity/i)
+    // Cards show relative last activity ("Last: X" format)
+    const matches = await screen.findAllByText(/last:/i)
     expect(matches.length).toBeGreaterThan(0)
   })
 })

@@ -1,14 +1,18 @@
 import { useState, useMemo } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
-import { Users, Clock, AlertCircle, UserCheck, Lock } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import { Users, Clock, AlertCircle, UserCheck, Lock, Sparkles, X, RefreshCw, ChevronRight } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import { dashboardApi } from '@/api/dashboard'
 import { worklogsApi } from '@/api/worklogs'
+import { chatApi } from '@/api/chat'
 import { MetricCard } from '@/components/common/Card'
 import { WorkStatusBadge } from '@/components/common/WorkStatusBadge'
 import { SkeletonCard, SkeletonTable } from '@/components/common/Skeleton'
-import { formatDateShort } from '@/utils/formatDate'
+import { formatDateShort, formatRelative } from '@/utils/formatDate'
 import { cn } from '@/utils/cn'
 import type { WorkItem } from '@/types/models'
 
@@ -63,8 +67,12 @@ export default function TeamDashboardPage() {
   const [tableEmployeeFilter, setTableEmployeeFilter] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
   const [needsReviewOnly, setNeedsReviewOnly] = useState(false)
-  const [memberView, setMemberView]     = useState<'top3' | 'all'>('top3')
-  const [workloadView, setWorkloadView] = useState<'top5' | 'all'>('top5')
+  const [memberView, setMemberView]       = useState<'top3' | 'all'>('top3')
+  const [workloadView, setWorkloadView]   = useState<'top5' | 'all'>('top5')
+  const [drawerEmployee, setDrawerEmployee] = useState<string | null>(null)
+  const [aiHelpOpen, setAiHelpOpen]       = useState(false)
+  const [aiHelpResult, setAiHelpResult]   = useState<string | null>(null)
+  const [aiHelpLoading, setAiHelpLoading] = useState(false)
 
   const dateKey    = `${startDate}__${endDate}`
   const dateParams = useMemo(() => ({ start_date: startDate, end_date: endDate }), [startDate, endDate])
@@ -164,6 +172,55 @@ export default function TeamDashboardPage() {
   const uniqueStatuses    = [...new Set(allItems.map(i => i.status).filter(Boolean) as string[])].sort()
   const uniqueCategories  = [...new Set(allItems.map(i => i.work_category).filter(Boolean) as string[])].sort()
 
+  // Per-employee 7-day sparkline data
+  const empSparklines = useMemo(() => {
+    const last7 = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(); d.setDate(d.getDate() - (6 - i))
+      return d.toISOString().split('T')[0]
+    })
+    const result: Record<string, number[]> = {}
+    members.forEach(m => { result[m.employee_id] = new Array(7).fill(0) })
+    allTeamItems.forEach(item => {
+      const idx = last7.indexOf(item.work_date)
+      if (idx >= 0 && result[item.employee_id]) {
+        result[item.employee_id][idx] += item.hours_spent ?? 0
+      }
+    })
+    return result
+  }, [allTeamItems, members])
+
+  // Blocked items sorted by urgency (oldest work_date first)
+  const sortedBlocked = useMemo(() => {
+    return [...blockedItems].sort((a, b) =>
+      new Date(a.work_date).getTime() - new Date(b.work_date).getTime()
+    )
+  }, [blockedItems])
+
+  // Team narrative
+  const teamNarrative = totalHours > 0
+    ? `${activeMembers} active member${activeMembers !== 1 ? 's' : ''} · ${totalHours}h logged · ${totalDone} tasks done${totalBlocked > 0 ? ` · ${totalBlocked} blocked` : ' · no blockers'}`
+    : null
+
+  // Fetch AI "Who Needs Help" response
+  async function fetchWhoNeedsHelp() {
+    setAiHelpLoading(true)
+    setAiHelpResult(null)
+    try {
+      const r = await chatApi.query({
+        question: 'Which team members need attention based on recent work logs? List names and reasons briefly.',
+      })
+      setAiHelpResult(r.answer)
+    } catch {
+      setAiHelpResult('Unable to fetch AI insights right now.')
+    } finally {
+      setAiHelpLoading(false)
+    }
+  }
+
+  // Drawer: items for the selected employee
+  const drawerMember = members.find(m => m.employee_id === drawerEmployee)
+  const drawerItems  = allTeamItems.filter(i => i.employee_id === drawerEmployee).slice(0, 10)
+
   // Sorted members for summary cards
   const sortedMembers = [...members].sort((a, b) => b.total_hours - a.total_hours)
   const visibleMembers = memberView === 'top3'
@@ -172,6 +229,69 @@ export default function TeamDashboardPage() {
 
   return (
     <div className="mx-auto p-6 flex flex-col gap-6" style={{ maxWidth: '1440px' }}>
+
+      {/* Employee drilldown drawer */}
+      <AnimatePresence>
+        {drawerEmployee && (
+          <>
+            <motion.div key="backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 40 }}
+              onClick={() => setDrawerEmployee(null)} />
+            <motion.aside key="drawer"
+              initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+              transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+              style={{ position: 'fixed', top: 56, right: 0, bottom: 0, width: 440, zIndex: 41,
+                background: 'var(--color-bg-surface)', borderLeft: '1px solid var(--color-border-default)',
+                overflowY: 'auto', padding: 24, boxShadow: '-4px 0 24px rgba(0,0,0,0.25)' }}>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm"
+                    style={{ background: 'linear-gradient(135deg, var(--color-brand-primary), var(--color-brand-secondary))', color: '#fff' }}>
+                    {drawerMember?.full_name.charAt(0) ?? '?'}
+                  </div>
+                  <div>
+                    <p className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>{drawerMember?.full_name}</p>
+                    <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{drawerMember?.employee_id}</p>
+                  </div>
+                </div>
+                <button onClick={() => setDrawerEmployee(null)} style={{ color: 'var(--color-text-muted)', lineHeight: 0 }}>
+                  <X size={18} />
+                </button>
+              </div>
+              {/* Quick stats */}
+              <div className="grid grid-cols-3 gap-3 mb-6">
+                {[
+                  { label: 'Hours', value: `${(drawerMember?.total_hours ?? 0).toFixed(1)}h` },
+                  { label: 'Done', value: String(drawerMember?.done_count ?? 0) },
+                  { label: 'Blocked', value: String(drawerMember?.blocked_count ?? 0) },
+                ].map(s => (
+                  <div key={s.label} className="rounded-lg p-3 text-center"
+                    style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-subtle)' }}>
+                    <p className="text-base font-bold font-mono" style={{ color: 'var(--color-text-primary)' }}>{s.value}</p>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{s.label}</p>
+                  </div>
+                ))}
+              </div>
+              {/* Recent items */}
+              <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: 'var(--color-text-muted)' }}>Recent work</p>
+              <div className="flex flex-col gap-2">
+                {drawerItems.length === 0 ? (
+                  <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>No items in this period.</p>
+                ) : drawerItems.map(item => (
+                  <div key={item.id} className="rounded-lg px-3 py-2.5"
+                    style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-subtle)' }}>
+                    <p className="text-xs font-medium" style={{ color: 'var(--color-text-primary)' }}>{item.task_description}</p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
+                      {item.work_category} · {item.hours_spent != null ? `${item.hours_spent}h` : '—'} · {formatDateShort(item.work_date)}
+                    </p>
+                    <WorkStatusBadge status={item.status} />
+                  </div>
+                ))}
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Zone 1 — Page Header */}
       <div className="flex items-start justify-between">
@@ -188,6 +308,15 @@ export default function TeamDashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Team narrative strip */}
+      {teamNarrative && (
+        <div className="rounded-xl px-5 py-3 flex items-center gap-3"
+          style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)', borderLeft: '3px solid var(--color-brand-primary)' }}>
+          <Users size={13} color="var(--color-brand-primary)" style={{ flexShrink: 0 }} />
+          <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{teamNarrative}</p>
+        </div>
+      )}
 
       {/* Zone 2 — Filters */}
       <div className="flex flex-wrap items-center gap-2">
@@ -368,119 +497,225 @@ export default function TeamDashboardPage() {
         </section>
       )}
 
-      {/* Zone 5 — Employee Summary Cards */}
-      <section aria-labelledby="emp-summary-heading">
-        <div className="flex items-center justify-between mb-4">
-          <h2 id="emp-summary-heading" className="text-lg font-semibold"
-            style={{ color: 'var(--color-text-primary)' }}>
-            Employee Summary
-          </h2>
-          {!selectedEmployee && (
-            <div className="flex rounded-lg overflow-hidden text-xs font-medium"
-              style={{ border: '1px solid var(--color-border-default)' }}>
-              {(['top3', 'all'] as const).map(v => (
-                <button key={v} onClick={() => setMemberView(v)}
-                  className="px-3 py-1.5 transition-colors"
-                  style={{
-                    background: memberView === v ? 'var(--color-brand-primary)' : 'var(--color-bg-elevated)',
-                    color: memberView === v ? '#fff' : 'var(--color-text-secondary)',
-                  }}>
-                  {v === 'top3' ? 'Top 3' : 'All'}
-                </button>
-              ))}
+      {/* Zone 5 — Employee Health Cards + Blocked Queue side by side */}
+      <div className="grid gap-6" style={{ gridTemplateColumns: '1fr 1fr' }}>
+
+        {/* Employee Health Cards */}
+        <section aria-labelledby="emp-summary-heading">
+          <div className="flex items-center justify-between mb-4">
+            <h2 id="emp-summary-heading" className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+              Team Health
+            </h2>
+            {!selectedEmployee && (
+              <div className="flex rounded-lg overflow-hidden text-xs font-medium"
+                style={{ border: '1px solid var(--color-border-default)' }}>
+                {(['top3', 'all'] as const).map(v => (
+                  <button key={v} onClick={() => setMemberView(v)}
+                    className="px-3 py-1.5 transition-colors"
+                    style={{
+                      background: memberView === v ? 'var(--color-brand-primary)' : 'var(--color-bg-elevated)',
+                      color: memberView === v ? '#fff' : 'var(--color-text-secondary)',
+                    }}>
+                    {v === 'top3' ? 'Top 3' : 'All'}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          {teamSummaryQ.isLoading ? (
+            <div className="flex flex-col gap-3">{[...Array(3)].map((_, i) => <SkeletonCard key={i} />)}</div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {visibleMembers.map(member => {
+                const hasBlocked  = member.blocked_count > 0
+                const stale = member.last_activity
+                  ? (Date.now() - new Date(member.last_activity).getTime()) / 3600000 > 48
+                  : false
+                const sparkValues = empSparklines[member.employee_id] ?? []
+                const sparkMax    = Math.max(...sparkValues, 1)
+                return (
+                  <button key={member.employee_id}
+                    onClick={() => setDrawerEmployee(member.employee_id)}
+                    className="rounded-xl p-4 text-left transition-all w-full"
+                    style={{
+                      background: 'var(--color-bg-surface)',
+                      border: `1px solid ${hasBlocked ? 'rgba(244,63,94,0.35)' : stale ? 'rgba(245,158,11,0.35)' : 'var(--color-border-subtle)'}`,
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg-elevated)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'var(--color-bg-surface)')}>
+                    <div className="flex items-center gap-3 mb-3">
+                      {/* Avatar initial */}
+                      <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold"
+                        style={{ background: 'linear-gradient(135deg, var(--color-brand-primary), var(--color-brand-secondary))', color: '#fff' }}>
+                        {member.full_name.charAt(0)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>{member.full_name}</p>
+                        <p className="text-xs" style={{ color: stale ? '#F59E0B' : 'var(--color-text-muted)' }}>
+                          {member.last_activity ? `Last: ${formatRelative(member.last_activity)}` : 'No activity'}
+                          {stale ? ' ⚠' : ''}
+                        </p>
+                      </div>
+                      {hasBlocked && (
+                        <span className="text-xs px-2 py-0.5 rounded-full font-semibold flex-shrink-0"
+                          style={{ background: 'rgba(244,63,94,0.12)', color: '#F43F5E' }}>
+                          {member.blocked_count} blocked
+                        </span>
+                      )}
+                      <ChevronRight size={13} color="var(--color-text-muted)" style={{ flexShrink: 0 }} />
+                    </div>
+                    <div className="flex items-end gap-3">
+                      <div className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+                        <span className="font-mono font-semibold" style={{ color: 'var(--color-text-primary)' }}>{member.total_hours.toFixed(1)}h</span>
+                        {' · '}{member.done_count} done
+                      </div>
+                      {/* Mini 7-day bar sparkline */}
+                      <div className="flex items-end gap-0.5 ml-auto" style={{ height: 20 }}>
+                        {sparkValues.map((v, i) => (
+                          <div key={i} style={{ width: 4, borderRadius: 2, background: v > 0 ? 'var(--color-brand-primary)' : 'var(--color-border-default)', height: `${Math.max(15, (v / sparkMax) * 100)}%`, opacity: 0.8 }} />
+                        ))}
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
             </div>
           )}
-        </div>
-        {teamSummaryQ.isLoading ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {[...Array(3)].map((_, i) => <SkeletonCard key={i} />)}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {visibleMembers.map(member => {
-              const hasBlocked = member.blocked_count > 0
-              return (
-                <div key={member.employee_id} className="rounded-xl p-5 flex flex-col gap-3"
-                  style={{
-                    background: 'var(--color-bg-surface)',
-                    border: `1px solid ${hasBlocked ? 'rgba(244,63,94,0.4)' : 'var(--color-border-subtle)'}`,
-                    boxShadow: hasBlocked ? '0 0 0 1px rgba(244,63,94,0.15)' : 'none',
-                  }}>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>
-                        {member.full_name}
+        </section>
+
+        {/* Blocked Items Queue — urgency sorted */}
+        <section aria-labelledby="blocked-heading">
+          <h2 id="blocked-heading" className="text-base font-semibold mb-4 flex items-center gap-2"
+            style={{ color: 'var(--color-text-primary)' }}>
+            <AlertCircle size={15} color="var(--color-status-danger)" />
+            Blocked Queue
+            {sortedBlocked.length > 0 && (
+              <span className="text-xs px-2 py-0.5 rounded-full font-semibold"
+                style={{ background: 'rgba(244,63,94,0.12)', color: '#F43F5E' }}>
+                {sortedBlocked.length}
+              </span>
+            )}
+          </h2>
+          {teamItemsQ.isLoading ? (
+            <SkeletonCard />
+          ) : sortedBlocked.length === 0 ? (
+            <div className="rounded-xl py-8 text-center"
+              style={{ background: 'var(--color-bg-surface)', border: '1px solid var(--color-border-subtle)' }}>
+              <p className="text-sm font-medium" style={{ color: '#10B981' }}>✓ No blocked items</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>Team is unblocked</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {sortedBlocked.map(item => {
+                const daysBlocked = Math.floor((Date.now() - new Date(item.work_date).getTime()) / 86400000)
+                const critical    = daysBlocked > 3
+                return (
+                  <div key={item.id} className="flex items-start gap-3 rounded-lg px-4 py-3"
+                    style={{
+                      background: critical ? 'rgba(244,63,94,0.08)' : 'rgba(244,63,94,0.04)',
+                      border: `1px solid ${critical ? 'rgba(244,63,94,0.35)' : 'rgba(244,63,94,0.18)'}`,
+                    }}>
+                    <AlertCircle size={13} color="#F43F5E" style={{ marginTop: 2, flexShrink: 0 }} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>
+                        {item.task_description}
                       </p>
-                      <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
-                        {member.employee_id}
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
+                        {item.employee_name ?? item.employee_id} · {formatDateShort(item.work_date)}
                       </p>
                     </div>
-                    {hasBlocked && (
-                      <span className="text-xs px-2 py-0.5 rounded-full font-semibold"
-                        style={{ background: 'rgba(244,63,94,0.12)', color: '#F43F5E' }}>
-                        {member.blocked_count} blocked
-                      </span>
-                    )}
+                    <span className="text-xs font-semibold px-1.5 py-0.5 rounded flex-shrink-0"
+                      style={{ background: critical ? 'rgba(244,63,94,0.15)' : 'transparent', color: critical ? '#F43F5E' : 'var(--color-text-muted)' }}>
+                      {daysBlocked}d
+                    </span>
                   </div>
-                  <div className="flex items-center gap-4 text-xs" style={{ color: 'var(--color-text-secondary)' }}>
-                    <span><Clock size={11} className="inline mr-1" />{member.total_hours.toFixed(1)}h</span>
-                    <span>✅ {member.done_count} done</span>
-                    {hasBlocked && (
-                      <span style={{ color: '#F43F5E' }}>🚫 {member.blocked_count} blocked</span>
-                    )}
-                  </div>
-                  {member.last_activity && (
-                    <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                      Last activity: {formatDateShort(member.last_activity)}
-                    </p>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </section>
-
-      {/* Zone 6 — Blocked Items Panel */}
-      <section style={sectionStyle} aria-labelledby="blocked-heading">
-        <h2 id="blocked-heading" className="text-base font-semibold mb-4 flex items-center gap-2"
-          style={{ color: 'var(--color-text-primary)' }}>
-          <AlertCircle size={16} color="var(--color-status-danger)" />
-          Blocked Items
-          {blockedItems.length > 0 && (
-            <span className="text-xs px-2 py-0.5 rounded-full font-semibold"
-              style={{ background: 'rgba(244,63,94,0.12)', color: '#F43F5E' }}>
-              {blockedItems.length}
-            </span>
+                )
+              })}
+            </div>
           )}
-        </h2>
 
-        {teamItemsQ.isLoading ? (
-          <SkeletonCard />
-        ) : blockedItems.length === 0 ? (
-          <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
-            No blocked items — the team is unblocked.
-          </p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {blockedItems.map(item => (
-              <div key={item.id} className="flex items-start gap-3 rounded-lg px-4 py-3"
-                style={{ background: 'rgba(244,63,94,0.06)', border: '1px solid rgba(244,63,94,0.2)' }}>
-                <AlertCircle size={14} color="#F43F5E" className="mt-0.5 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>
-                    {item.task_description}
-                  </p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
-                    {item.employee_name ?? item.employee_id} · {formatDateShort(item.work_date)}
-                    {item.hours_spent != null && ` · ${item.hours_spent}h`}
-                  </p>
+          {/* Who Needs Help AI card */}
+          <div className="mt-4 rounded-xl overflow-hidden"
+            style={{ background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.2)' }}>
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-2.5"
+              style={{ borderBottom: aiHelpResult || aiHelpLoading ? '1px solid rgba(139,92,246,0.15)' : 'none' }}>
+              <span className="text-xs font-semibold flex items-center gap-1.5" style={{ color: 'var(--color-brand-secondary)' }}>
+                <Sparkles size={12} /> Who Needs Help?
+              </span>
+              <div className="flex items-center gap-1">
+                {aiHelpResult && (
+                  <>
+                    <button onClick={fetchWhoNeedsHelp} disabled={aiHelpLoading}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs transition-colors"
+                      style={{ color: 'var(--color-brand-secondary)', background: 'rgba(139,92,246,0.1)' }}>
+                      <RefreshCw size={10} style={{ animation: aiHelpLoading ? 'spin 1s linear infinite' : 'none' }} />
+                      Re-ask
+                    </button>
+                    <button onClick={() => setAiHelpResult(null)}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs transition-colors"
+                      style={{ color: 'var(--color-text-muted)', background: 'var(--color-bg-elevated)' }}>
+                      <X size={10} /> Clear
+                    </button>
+                  </>
+                )}
+                {!aiHelpResult && (
+                  <button onClick={fetchWhoNeedsHelp} disabled={aiHelpLoading}
+                    className="p-1 rounded" style={{ color: 'var(--color-text-muted)' }}>
+                    <RefreshCw size={12} style={{ animation: aiHelpLoading ? 'spin 1s linear infinite' : 'none' }} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Body */}
+            {!aiHelpResult && !aiHelpLoading && (
+              <button onClick={fetchWhoNeedsHelp}
+                className="text-xs w-full text-center py-2.5 transition-colors"
+                style={{ color: 'var(--color-brand-secondary)' }}>
+                Ask AI →
+              </button>
+            )}
+            {aiHelpLoading && (
+              <p className="text-xs px-4 py-2.5" style={{ color: 'var(--color-text-muted)' }}>
+                Analysing team data…
+              </p>
+            )}
+            {aiHelpResult && !aiHelpLoading && (
+              /* Scrollable box — capped at 280px so large responses don't break layout */
+              <div style={{ maxHeight: 280, overflowY: 'auto', padding: '12px 16px' }}>
+                <div className="text-xs leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      p:      ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                      strong: ({ children }) => <strong style={{ color: 'var(--color-text-primary)', fontWeight: 600 }}>{children}</strong>,
+                      ul:     ({ children }) => <ul className="pl-3 mb-2 space-y-0.5 list-disc">{children}</ul>,
+                      ol:     ({ children }) => <ol className="pl-3 mb-2 space-y-0.5 list-decimal">{children}</ol>,
+                      li:     ({ children }) => <li className="leading-relaxed">{children}</li>,
+                      h3:     ({ children }) => <p className="font-semibold mb-1 mt-2 first:mt-0" style={{ color: 'var(--color-text-primary)' }}>{children}</p>,
+                      hr:     () => <hr className="my-2" style={{ borderColor: 'rgba(139,92,246,0.2)' }} />,
+                      table:  ({ children }) => (
+                        <div className="overflow-x-auto my-2 rounded-lg" style={{ border: '1px solid rgba(139,92,246,0.2)' }}>
+                          <table className="w-full text-xs border-collapse">{children}</table>
+                        </div>
+                      ),
+                      thead:  ({ children }) => <thead style={{ background: 'rgba(139,92,246,0.1)' }}>{children}</thead>,
+                      th:     ({ children }) => <th className="px-2 py-1.5 text-left font-semibold" style={{ color: 'var(--color-brand-secondary)', borderBottom: '1px solid rgba(139,92,246,0.2)' }}>{children}</th>,
+                      td:     ({ children }) => <td className="px-2 py-1.5" style={{ borderTop: '1px solid var(--color-border-subtle)' }}>{children}</td>,
+                      tbody:  ({ children }) => <tbody>{children}</tbody>,
+                      tr:     ({ children }) => <tr>{children}</tr>,
+                    }}
+                  >
+                    {aiHelpResult}
+                  </ReactMarkdown>
                 </div>
               </div>
-            ))}
+            )}
           </div>
-        )}
-      </section>
+        </section>
+      </div>
 
       {/* Zone 6 — Team Work Items Table */}
       <section aria-labelledby="team-items-heading">
