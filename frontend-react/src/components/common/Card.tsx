@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion'
 import { Clock, BarChart3, Users, AlertCircle, type LucideProps } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import { Sparkline } from '@/components/charts/Sparkline'
@@ -37,12 +38,15 @@ export interface InteractiveCardProps extends CardProps {
 
 export function InteractiveCard({ children, className, onClick, style }: InteractiveCardProps) {
   return (
-    <div
+    <motion.div
       role="button"
       tabIndex={0}
       onClick={onClick}
-      onKeyDown={(e) => e.key === 'Enter' && onClick?.()}
-      className={cn('rounded-lg p-6 cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md', className)}
+      onKeyDown={(e: React.KeyboardEvent) => e.key === 'Enter' && onClick?.()}
+      whileHover={{ y: -2, boxShadow: '0 0 0 3px rgba(99,102,241,0.25), 0 8px 24px rgba(0,0,0,0.2)' }}
+      whileTap={{ scale: 0.99 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+      className={cn('rounded-lg p-6 cursor-pointer', className)}
       style={{
         background: 'var(--color-bg-surface)',
         border: '1px solid var(--color-border-subtle)',
@@ -50,7 +54,7 @@ export function InteractiveCard({ children, className, onClick, style }: Interac
       }}
     >
       {children}
-    </div>
+    </motion.div>
   )
 }
 

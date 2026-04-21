@@ -5,8 +5,11 @@ import { Pencil } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { dashboardApi } from '@/api/dashboard'
 import { worklogsApi } from '@/api/worklogs'
+import { toast } from 'sonner'
 import { MetricCard } from '@/components/common/Card'
 import { BenchmarkCard } from '@/components/common/BenchmarkCard'
+import { WorkStatusBadge } from '@/components/common/WorkStatusBadge'
+import { StaggerList, StaggerItem } from '@/components/common/StaggerList'
 import { SkeletonCard, SkeletonTable } from '@/components/common/Skeleton'
 import { AreaChart } from '@/components/charts/AreaChart'
 import { BarChart } from '@/components/charts/BarChart'
@@ -19,26 +22,26 @@ import type { WorkItem } from '@/types/models'
 
 // ── Date range helpers ────────────────────────────────────────────────────────
 
-function getDateParams(preset: string) {
-  const end = new Date()
-  const start = new Date()
-  if (preset === 'last_7') start.setDate(end.getDate() - 7)
-  else if (preset === 'last_30') start.setDate(end.getDate() - 30)
-  else start.setDate(end.getDate() - 90)
-  return {
-    start_date: start.toISOString().split('T')[0],
-    end_date: end.toISOString().split('T')[0],
-  }
+const TODAY = new Date().toISOString().split('T')[0]
+
+function daysAgo(n: number) {
+  const d = new Date(); d.setDate(d.getDate() - n)
+  return d.toISOString().split('T')[0]
 }
 
-/** Previous period — same length, shifted back */
-function getPrevDateParams(preset: string) {
-  const days = preset === 'last_7' ? 7 : preset === 'last_30' ? 30 : 90
-  const end = new Date(); end.setDate(end.getDate() - days)
-  const start = new Date(end); start.setDate(start.getDate() - days)
+const PRESETS = [
+  { label: '7d',    startDate: daysAgo(7),  endDate: TODAY },
+  { label: '30d',   startDate: daysAgo(30), endDate: TODAY },
+  { label: '90d',   startDate: daysAgo(90), endDate: TODAY },
+] as const
+
+/** Previous period of the same length */
+function getPrevDates(startDate: string, endDate: string) {
+  const ms   = new Date(endDate).getTime() - new Date(startDate).getTime()
+  const days = Math.round(ms / 86_400_000)
   return {
-    start_date: start.toISOString().split('T')[0],
-    end_date:   end.toISOString().split('T')[0],
+    start_date: daysAgo(days * 2),
+    end_date:   daysAgo(days),
   }
 }
 
@@ -57,22 +60,7 @@ const cellStyle: React.CSSProperties = {
   color: 'var(--color-text-primary)',
 }
 
-// ── Status badge ──────────────────────────────────────────────────────────────
-
-const STATUS_COLOR: Record<string, string> = {
-  done: '#10B981', in_progress: '#0EA5E9', blocked: '#F43F5E', planned: '#9CA3AF',
-}
-
-function StatusBadge({ status }: { status: string | null }) {
-  if (!status) return <span style={{ color: 'var(--color-text-muted)' }}>—</span>
-  const color = STATUS_COLOR[status] ?? '#9CA3AF'
-  return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
-      style={{ background: `${color}18`, border: `1px solid ${color}4D`, color }}>
-      {status.replace('_', ' ')}
-    </span>
-  )
-}
+// StatusBadge now comes from shared WorkStatusBadge component
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
@@ -80,25 +68,27 @@ export default function DashboardPage() {
   const user = useAuthStore(s => s.user)
   const queryClient = useQueryClient()
 
-  const [dateRange, setDateRange] = useState('last_30')
-  const [search, setSearch] = useState('')
+  const [startDate, setStartDate] = useState(daysAgo(30))
+  const [endDate, setEndDate]     = useState(TODAY)
+  const [search, setSearch]       = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
+  const [statusFilter, setStatusFilter]     = useState('')
 
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editHours, setEditHours] = useState('')
-  const [editError, setEditError] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
+  const [editingId, setEditingId]   = useState<string | null>(null)
+  const [editHours, setEditHours]   = useState('')
+  const [editError, setEditError]   = useState<string | null>(null)
+  const [saving, setSaving]         = useState(false)
 
-  const dateParams     = useMemo(() => getDateParams(dateRange),     [dateRange])
-  const prevDateParams = useMemo(() => getPrevDateParams(dateRange), [dateRange])
+  const dateParams     = useMemo(() => ({ start_date: startDate, end_date: endDate }),            [startDate, endDate])
+  const prevDateParams = useMemo(() => getPrevDates(startDate, endDate),                           [startDate, endDate])
+  const dateKey        = `${startDate}__${endDate}`
 
-  const summaryQ     = useQuery({ queryKey: ['dashboard-summary',    dateRange], queryFn: () => dashboardApi.getSummary(dateParams),    placeholderData: keepPreviousData })
-  const prevSummaryQ = useQuery({ queryKey: ['dashboard-summary-prev', dateRange], queryFn: () => dashboardApi.getSummary(prevDateParams), placeholderData: keepPreviousData })
-  const categoriesQ  = useQuery({ queryKey: ['dashboard-categories', dateRange], queryFn: () => dashboardApi.getCategories(dateParams), placeholderData: keepPreviousData })
-  const statusQ      = useQuery({ queryKey: ['dashboard-status',     dateRange], queryFn: () => dashboardApi.getStatus(dateParams),     placeholderData: keepPreviousData })
-  const trendQ       = useQuery({ queryKey: ['dashboard-trend',      dateRange], queryFn: () => dashboardApi.getTrend(dateParams),      placeholderData: keepPreviousData })
-  const itemsQ       = useQuery({ queryKey: ['worklogs-my',          dateRange], queryFn: () => worklogsApi.getMy(dateParams),          placeholderData: keepPreviousData })
+  const summaryQ     = useQuery({ queryKey: ['dashboard-summary',      dateKey], queryFn: () => dashboardApi.getSummary(dateParams),    placeholderData: keepPreviousData })
+  const prevSummaryQ = useQuery({ queryKey: ['dashboard-summary-prev', dateKey], queryFn: () => dashboardApi.getSummary(prevDateParams), placeholderData: keepPreviousData })
+  const categoriesQ  = useQuery({ queryKey: ['dashboard-categories',   dateKey], queryFn: () => dashboardApi.getCategories(dateParams), placeholderData: keepPreviousData })
+  const statusQ      = useQuery({ queryKey: ['dashboard-status',       dateKey], queryFn: () => dashboardApi.getStatus(dateParams),     placeholderData: keepPreviousData })
+  const trendQ       = useQuery({ queryKey: ['dashboard-trend',        dateKey], queryFn: () => dashboardApi.getTrend(dateParams),      placeholderData: keepPreviousData })
+  const itemsQ       = useQuery({ queryKey: ['worklogs-my',            dateKey], queryFn: () => worklogsApi.getMy(dateParams),          placeholderData: keepPreviousData })
 
   const firstName = user?.full_name.split(' ')[0] ?? 'there'
 
@@ -130,10 +120,12 @@ export default function DashboardPage() {
     setEditError(null)
     try {
       await worklogsApi.updateItem(id, { hours_spent: parseFloat(editHours) || 0 })
+      toast.success('Hours updated')
       setEditingId(null)
       setEditHours('')
       queryClient.invalidateQueries({ queryKey: ['worklogs-my'] })
     } catch {
+      toast.error('Failed to save changes.')
       setEditError('Failed to save changes.')
     } finally {
       setSaving(false)
@@ -170,23 +162,51 @@ export default function DashboardPage() {
       </div>
 
       {/* Zone 2 — Date Range Filter */}
-      <div className="flex items-center gap-3">
-        <label htmlFor="date-range" className="text-sm font-medium"
-          style={{ color: 'var(--color-text-secondary)' }}>
-          Date range:
-        </label>
-        <select
-          id="date-range"
-          aria-label="Date range"
-          value={dateRange}
-          onChange={e => setDateRange(e.target.value)}
-          className="rounded-md px-3 py-1.5 text-sm"
+      <div className="flex flex-wrap items-center gap-2">
+        {/* Preset pills */}
+        {PRESETS.map(p => {
+          const active = startDate === p.startDate && endDate === p.endDate
+          return (
+            <button
+              key={p.label}
+              onClick={() => { setStartDate(p.startDate); setEndDate(p.endDate) }}
+              className="rounded-full px-3 py-1 text-xs font-medium transition-all"
+              style={{
+                background: active ? 'var(--color-brand-primary)' : 'var(--color-bg-elevated)',
+                color: active ? '#fff' : 'var(--color-text-secondary)',
+                border: active ? 'none' : '1px solid var(--color-border-default)',
+              }}
+            >
+              Last {p.label}
+            </button>
+          )
+        })}
+
+        {/* Custom range divider */}
+        <span style={{ color: 'var(--color-border-strong)', fontSize: 12 }}>|</span>
+
+        {/* From date */}
+        <input
+          type="date"
+          aria-label="Start date"
+          value={startDate}
+          max={endDate}
+          onChange={e => setStartDate(e.target.value)}
+          className="rounded-md px-2 py-1 text-xs"
           style={cellStyle}
-        >
-          <option value="last_7">Last 7 Days</option>
-          <option value="last_30">Last 30 Days</option>
-          <option value="last_90">Last 90 Days</option>
-        </select>
+        />
+        <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>to</span>
+        {/* To date */}
+        <input
+          type="date"
+          aria-label="End date"
+          value={endDate}
+          min={startDate}
+          max={TODAY}
+          onChange={e => setEndDate(e.target.value)}
+          className="rounded-md px-2 py-1 text-xs"
+          style={cellStyle}
+        />
       </div>
 
       {/* Zone 3 — Metric Cards */}
@@ -341,13 +361,13 @@ export default function DashboardPage() {
                   ))}
                 </tr>
               </thead>
-              <tbody>
+              <StaggerList as="tbody">
                 {filteredItems.map(item => (
-                  <tr key={item.id}
+                  <StaggerItem as="tr" key={item.id}
                     className="transition-colors"
                     style={{ borderTop: '1px solid var(--color-border-subtle)' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg-elevated)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = '')}>
+                    onMouseEnter={(e: React.MouseEvent<HTMLTableRowElement>) => (e.currentTarget.style.background = 'var(--color-bg-elevated)')}
+                    onMouseLeave={(e: React.MouseEvent<HTMLTableRowElement>) => (e.currentTarget.style.background = '')}>
 
                     <td className="px-4 py-3 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
                       {formatDateShort(item.work_date)}
@@ -379,7 +399,7 @@ export default function DashboardPage() {
                     </td>
 
                     <td className="px-4 py-3">
-                      <StatusBadge status={item.status} />
+                      <WorkStatusBadge status={item.status} />
                     </td>
 
                     <td className="px-4 py-3">
@@ -416,9 +436,9 @@ export default function DashboardPage() {
                         </button>
                       )}
                     </td>
-                  </tr>
+                  </StaggerItem>
                 ))}
-              </tbody>
+              </StaggerList>
             </table>
           </div>
         )}

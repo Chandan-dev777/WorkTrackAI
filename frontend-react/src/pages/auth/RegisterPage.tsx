@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { Eye, EyeOff, Zap } from 'lucide-react'
 import { register as registerUser } from '@/api/auth'
 import { useAuthStore } from '@/store/authStore'
+import { useThemeStore } from '@/store/themeStore'
 import { cn } from '@/utils/cn'
 
 // ── Validation schema ─────────────────────────────────────────────────────────
@@ -36,6 +37,7 @@ const inputBase: React.CSSProperties = {
 export default function RegisterPage() {
   const navigate   = useNavigate()
   const authLogin  = useAuthStore((s) => s.login)
+  const theme      = useThemeStore((s) => s.theme)
   const [showPwd, setShowPwd]     = useState(false)
   const [serverErr, setServerErr] = useState<string | null>(null)
 
@@ -83,7 +85,7 @@ export default function RegisterPage() {
     : null
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--color-bg-base)' }} data-theme="dark">
+    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--color-bg-base)' }} data-theme={theme}>
 
       {/* ── Left panel — Brand ─────────────────────────────────────────────── */}
       <div style={{

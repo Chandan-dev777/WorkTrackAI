@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { toast } from 'sonner'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Shield, Database, Users, AlertTriangle, RefreshCw, Sprout, ChevronDown, ChevronRight } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
@@ -112,8 +113,10 @@ export default function AdminPage() {
         old?.map(u => u.id === userId ? updated : u)
       )
       setEditDrafts(prev => ({ ...prev, [userId]: { ...updated } }))
+      toast.success(`Saved — ${updated.full_name}`)
       setUserSaveMsg(prev => ({ ...prev, [userId]: { ok: `Saved — ${updated.full_name}` } }))
     } catch {
+      toast.error('Save failed.')
       setUserSaveMsg(prev => ({ ...prev, [userId]: { err: 'Save failed.' } }))
     } finally {
       setSavingUser(prev => ({ ...prev, [userId]: false }))
@@ -122,15 +125,15 @@ export default function AdminPage() {
 
   async function handleSeedConfirm() {
     setSeeding(true); setSeedConfirm(false)
-    try   { const r = await adminApi.seedDummyData(); setSeedResult(r.message) }
-    catch { setSeedResult('Seed failed — check backend logs.') }
+    try   { const r = await adminApi.seedDummyData(); setSeedResult(r.message); toast.success(r.message) }
+    catch { setSeedResult('Seed failed — check backend logs.'); toast.error('Seed failed.') }
     finally { setSeeding(false) }
   }
 
   async function handleReindex() {
     setReindexing(true); setReindexResult(null)
-    try   { const r = await adminApi.reindex(); setReindexResult(r.message) }
-    catch { setReindexResult('Reindex failed — check backend logs.') }
+    try   { const r = await adminApi.reindex(); setReindexResult(r.message); toast.success(r.message) }
+    catch { setReindexResult('Reindex failed — check backend logs.'); toast.error('Reindex failed.') }
     finally { setReindexing(false) }
   }
 

@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { Eye, EyeOff, BrainCircuit, CheckCircle, Zap, BarChart3, MessageSquare } from 'lucide-react'
 import { login } from '@/api/auth'
 import { useAuthStore } from '@/store/authStore'
+import { useThemeStore } from '@/store/themeStore'
 import { cn } from '@/utils/cn'
 
 const schema = z.object({
@@ -24,6 +25,7 @@ const FEATURES = [
 export default function LoginPage() {
   const navigate     = useNavigate()
   const authLogin    = useAuthStore((s) => s.login)
+  const theme        = useThemeStore((s) => s.theme)
   const [showPwd, setShowPwd]   = useState(false)
   const [serverErr, setServerErr] = useState<string | null>(null)
 
@@ -51,7 +53,7 @@ export default function LoginPage() {
         minHeight: '100vh',
         backgroundColor: 'var(--color-bg-base)',
       }}
-      data-theme="dark"
+      data-theme={theme}
     >
       {/* ── Left panel — Brand ─────────────────────────────────────────── */}
       <div

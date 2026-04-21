@@ -25,8 +25,9 @@ export function GoalRing({ current, target, size = 120, label }: GoalRingProps) 
       width={size}
       height={size}
       viewBox={`0 0 ${size} ${size}`}
-      aria-label={`${label}: ${displayPct}% complete`}
+      aria-label={`${label}: ${current} of ${target} (${displayPct}%)`}
       role="img"
+      style={{ color: 'var(--color-text-primary)', overflow: 'visible' }}
     >
       <defs>
         <linearGradient id={`ringGrad-${size}`} x1="0" y1="0" x2="1" y2="0">
@@ -35,11 +36,11 @@ export function GoalRing({ current, target, size = 120, label }: GoalRingProps) 
         </linearGradient>
       </defs>
 
-      {/* Track — hard hex so it always renders */}
+      {/* Track */}
       <circle
         cx={cx} cy={cy} r={RADIUS}
         fill="none"
-        stroke="#1C2030"
+        stroke="var(--color-border-default)"
         strokeWidth={size * 0.07}
       />
 
@@ -56,30 +57,30 @@ export function GoalRing({ current, target, size = 120, label }: GoalRingProps) 
         style={{ transition: 'stroke-dashoffset 1s cubic-bezier(0.25,0.46,0.45,0.94)' }}
       />
 
-      {/* Centre percentage — use font attrs not style to avoid CSS var issues in SVG */}
+      {/* Centre — actual value */}
       <text
         x={cx}
-        y={cy - size * 0.05}
+        y={cy - size * 0.04}
         textAnchor="middle"
         dominantBaseline="middle"
-        fontSize={size * 0.18}
+        fontSize={size * 0.17}
         fontWeight="700"
         fontFamily="monospace"
-        fill="#F9FAFB"
+        fill="currentColor"
       >
-        {displayPct}%
+        {current}h
       </text>
 
-      {/* Label */}
+      {/* Centre — percentage */}
       <text
         x={cx}
-        y={cy + size * 0.18}
+        y={cy + size * 0.14}
         textAnchor="middle"
         dominantBaseline="middle"
-        fontSize={size * 0.1}
-        fill="#6B7280"
+        fontSize={size * 0.11}
+        style={{ fill: 'var(--color-text-muted)' }}
       >
-        {label}
+        {displayPct}% · {label}
       </text>
     </svg>
   )

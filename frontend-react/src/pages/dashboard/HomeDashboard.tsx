@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import {
   PlusCircle, MessageSquare, BarChart3, Users, Shield,
@@ -165,11 +166,19 @@ export default function HomeDashboard() {
             const isPrimary = action.style === 'primary'
             const isAI      = action.style === 'ai'
             return (
-              <Link key={action.to} to={action.to}
+              <motion.div
+                key={action.to}
+                whileHover={{ y: -3, boxShadow: '0 0 0 2px rgba(99,102,241,0.4), 0 8px 24px rgba(99,102,241,0.18)' }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                style={{ borderRadius: 12 }}
+              >
+              <Link to={action.to}
                 aria-label={action.label}
-                className="flex items-start gap-3 rounded-xl p-4 transition-all hover:-translate-y-0.5"
+                className="flex items-start gap-3 rounded-xl p-4"
                 style={{
                   textDecoration: 'none',
+                  display: 'flex',
                   background: isPrimary ? 'linear-gradient(135deg, var(--color-brand-primary), var(--color-brand-secondary))'
                     : isAI ? 'linear-gradient(135deg, rgba(139,92,246,0.12), rgba(6,182,212,0.12))'
                     : 'var(--color-bg-surface)',
@@ -177,6 +186,7 @@ export default function HomeDashboard() {
                     : isAI ? '1px solid rgba(139,92,246,0.25)'
                     : '1px solid var(--color-border-subtle)',
                   boxShadow: isPrimary ? '0 4px 15px rgba(99,102,241,0.3)' : 'none',
+                  borderRadius: 12,
                 }}>
                 <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
                   style={{
@@ -195,6 +205,7 @@ export default function HomeDashboard() {
                 </div>
                 <ArrowRight size={14} color={isPrimary ? 'rgba(255,255,255,0.6)' : 'var(--color-text-muted)'} className="self-center flex-shrink-0" />
               </Link>
+              </motion.div>
             )
           })}
         </div>

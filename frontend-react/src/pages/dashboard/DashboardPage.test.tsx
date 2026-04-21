@@ -16,7 +16,8 @@ vi.mock('recharts', () => ({
   PieChart: ({ children }: { children: React.ReactNode }) => <div data-testid="pie-chart">{children}</div>,
   Area: () => null, Bar: () => null, Pie: () => null, Cell: () => null,
   XAxis: () => null, YAxis: () => null, CartesianGrid: () => null,
-  Tooltip: () => null, Legend: () => null,
+  Tooltip: () => null, Legend: () => null, ReferenceDot: () => null,
+  Customized: () => null,
 }))
 
 const employeeUser: User = {
@@ -87,24 +88,29 @@ describe('DashboardPage — metric cards', () => {
 // ── DATE FILTER ───────────────────────────────────────────────────────────────
 
 describe('DashboardPage — date filter', () => {
-  it('date range selector is present', async () => {
+  it('preset pills are present', async () => {
     renderPage()
     await screen.findByText(/total hours/i)
-    expect(screen.getByRole('combobox', { name: /date range/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /last 7d/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /last 30d/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /last 90d/i })).toBeInTheDocument()
   })
 
-  it('default selection is last_30', async () => {
+  it('custom date inputs are present', async () => {
     renderPage()
     await screen.findByText(/total hours/i)
-    expect(screen.getByRole('combobox', { name: /date range/i })).toHaveValue('last_30')
+    expect(screen.getByLabelText(/start date/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/end date/i)).toBeInTheDocument()
   })
 
-  it('changing to last_7 updates the selector value', async () => {
+  it('clicking last 7d pill changes start date input', async () => {
     renderPage()
     await screen.findByText(/total hours/i)
-    const select = screen.getByRole('combobox', { name: /date range/i })
-    fireEvent.change(select, { target: { value: 'last_7' } })
-    expect(select).toHaveValue('last_7')
+    fireEvent.click(screen.getByRole('button', { name: /last 7d/i }))
+    const startInput = screen.getByLabelText(/start date/i) as HTMLInputElement
+    const sevenDaysAgo = new Date()
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+    expect(startInput.value).toBe(sevenDaysAgo.toISOString().split('T')[0])
   })
 })
 

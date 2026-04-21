@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react'
+import { toast } from 'sonner'
 import { Sparkles, Trash2, Plus, AlertTriangle, Info } from 'lucide-react'
 import { apiClient } from '@/api/client'
 import type { ExtractionResult, WorkItemExtracted, WorkCategory, StatusType } from '@/types/models'
@@ -87,12 +88,14 @@ export default function SubmitUpdatePage() {
         work_date: workDate,
         items: rows.map(({ _key: _k, ...item }) => item),
       })
+      toast.success('Work log saved successfully!')
       setConfirmed(true)
       setRawText('')
       setWorkDate(today)
       setExtraction(null)
       setRows([])
     } catch {
+      toast.error('Failed to save. Please try again.')
       setConfirmError('Failed to save. Please try again.')
     } finally {
       setConfirming(false)

@@ -6,24 +6,33 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Toolti
 import { dashboardApi } from '@/api/dashboard'
 import { worklogsApi } from '@/api/worklogs'
 import { MetricCard } from '@/components/common/Card'
+import { WorkStatusBadge } from '@/components/common/WorkStatusBadge'
 import { SkeletonCard, SkeletonTable } from '@/components/common/Skeleton'
 import { formatDateShort } from '@/utils/formatDate'
 import { cn } from '@/utils/cn'
 import type { WorkItem } from '@/types/models'
 
+// Semantic category colours — matches BarChart.tsx
+const CATEGORY_COLORS: Record<string, string> = {
+  project: '#6366F1', ticket: '#8B5CF6', polaris_classification: '#A78BFA',
+  meeting: '#0EA5E9', admin: '#6B7280', learning: '#10B981',
+  support: '#F59E0B', documentation: '#34D399', review: '#06B6D4', other: '#4B5563',
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function getDateParams(preset: string) {
-  const end = new Date()
-  const start = new Date()
-  if (preset === 'last_7') start.setDate(end.getDate() - 7)
-  else if (preset === 'last_30') start.setDate(end.getDate() - 30)
-  else start.setDate(end.getDate() - 90)
-  return {
-    start_date: start.toISOString().split('T')[0],
-    end_date: end.toISOString().split('T')[0],
-  }
+const TODAY = new Date().toISOString().split('T')[0]
+
+function daysAgo(n: number) {
+  const d = new Date(); d.setDate(d.getDate() - n)
+  return d.toISOString().split('T')[0]
 }
+
+const PRESETS = [
+  { label: '7d',  startDate: daysAgo(7),  endDate: TODAY },
+  { label: '30d', startDate: daysAgo(30), endDate: TODAY },
+  { label: '90d', startDate: daysAgo(90), endDate: TODAY },
+] as const
 
 const cellStyle: React.CSSProperties = {
   background: 'var(--color-bg-elevated)',
@@ -38,20 +47,7 @@ const sectionStyle: React.CSSProperties = {
   padding: '24px',
 }
 
-const STATUS_COLOR: Record<string, string> = {
-  done: '#10B981', in_progress: '#0EA5E9', blocked: '#F43F5E', planned: '#9CA3AF',
-}
-
-function StatusBadge({ status }: { status: string | null }) {
-  if (!status) return <span style={{ color: 'var(--color-text-muted)' }}>—</span>
-  const color = STATUS_COLOR[status] ?? '#9CA3AF'
-  return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
-      style={{ background: `${color}18`, border: `1px solid ${color}4D`, color }}>
-      {status.replace('_', ' ')}
-    </span>
-  )
-}
+// StatusBadge now uses shared WorkStatusBadge component
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
@@ -59,16 +55,19 @@ export default function TeamDashboardPage() {
   const user     = useAuthStore(s => s.user)
   const isAdmin  = user?.role === 'admin'
 
-  const [dateRange, setDateRange] = useState('last_30')
+  const [startDate, setStartDate] = useState(daysAgo(30))
+  const [endDate, setEndDate]     = useState(TODAY)
   const [adminTeamSearch, setAdminTeamSearch] = useState('')
   const [selectedEmployee, setSelectedEmployee] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [tableEmployeeFilter, setTableEmployeeFilter] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
   const [needsReviewOnly, setNeedsReviewOnly] = useState(false)
-  const [memberView, setMemberView] = useState<'top3' | 'all'>('top3')
+  const [memberView, setMemberView]     = useState<'top3' | 'all'>('top3')
+  const [workloadView, setWorkloadView] = useState<'top5' | 'all'>('top5')
 
-  const dateParams = useMemo(() => getDateParams(dateRange), [dateRange])
+  const dateKey    = `${startDate}__${endDate}`
+  const dateParams = useMemo(() => ({ start_date: startDate, end_date: endDate }), [startDate, endDate])
 
   // Managers are locked to their own team; admins can search across teams
   const effectiveTeamName = useMemo(() => {
@@ -81,16 +80,24 @@ export default function TeamDashboardPage() {
     ...(effectiveTeamName ? { team_name: effectiveTeamName } : {}),
   }), [dateParams, effectiveTeamName])
 
-  const teamSummaryQ    = useQuery({ queryKey: ['team-summary',    dateRange, effectiveTeamName], queryFn: () => dashboardApi.getTeamSummary(apiParams),    placeholderData: keepPreviousData })
-  const teamCategoriesQ = useQuery({ queryKey: ['team-categories', dateRange, effectiveTeamName], queryFn: () => dashboardApi.getTeamCategories(apiParams), placeholderData: keepPreviousData })
+  const teamSummaryQ    = useQuery({ queryKey: ['team-summary',    dateKey, effectiveTeamName], queryFn: () => dashboardApi.getTeamSummary(apiParams),    placeholderData: keepPreviousData })
+  const teamCategoriesQ = useQuery({ queryKey: ['team-categories', dateKey, effectiveTeamName], queryFn: () => dashboardApi.getTeamCategories(apiParams), placeholderData: keepPreviousData })
   const teamItemsQ      = useQuery({
-    queryKey: ['worklogs-team', dateRange, selectedEmployee, effectiveTeamName],
+    queryKey: ['worklogs-team', dateKey, selectedEmployee, effectiveTeamName],
     queryFn: () => worklogsApi.getTeam({ ...apiParams, employee_id: selectedEmployee || undefined }),
     placeholderData: keepPreviousData,
   })
 
-  const members = teamSummaryQ.data ?? []
-  const allItems = teamItemsQ.data ?? []
+  // Separate unfiltered query for workload chart — not affected by selectedEmployee
+  const teamAllItemsQ = useQuery({
+    queryKey: ['worklogs-team-all', dateKey, effectiveTeamName],
+    queryFn: () => worklogsApi.getTeam(apiParams),
+    placeholderData: keepPreviousData,
+  })
+
+  const members     = teamSummaryQ.data ?? []
+  const allItems    = teamItemsQ.data ?? []
+  const allTeamItems = teamAllItemsQ.data ?? []
 
   // KPI aggregations
   const totalHours   = Math.round(members.reduce((s, m) => s + m.total_hours, 0))
@@ -122,6 +129,38 @@ export default function TeamDashboardPage() {
     hours: c.hours,
   }))
 
+  // Workload balance — per-employee category breakdown, sorted by total hours
+  // Name lookup from members (authoritative) — avoids falling back to employee IDs
+  // Team-scoped by intersecting allTeamItems with the members set (handles null team_name)
+  const { workloadData, workloadCats } = useMemo(() => {
+    const nameMap: Record<string, string> = {}
+    const teamIds = new Set<string>()
+    members.forEach(m => { nameMap[m.employee_id] = m.full_name; teamIds.add(m.employee_id) })
+
+    const empMap: Record<string, { name: string; total: number; [cat: string]: string | number }> = {}
+    const cats = new Set<string>()
+
+    allTeamItems.forEach((item: WorkItem) => {
+      // Only include employees that are in the current team scope
+      if (teamIds.size > 0 && !teamIds.has(item.employee_id)) return
+      const fullName = nameMap[item.employee_id] ?? item.employee_name ?? item.employee_id
+      if (!empMap[item.employee_id]) empMap[item.employee_id] = { name: fullName, total: 0 }
+      const h = item.hours_spent ?? 0
+      empMap[item.employee_id][item.work_category] = ((empMap[item.employee_id][item.work_category] as number) || 0) + h
+      empMap[item.employee_id].total = ((empMap[item.employee_id].total as number) || 0) + h
+      cats.add(item.work_category)
+    })
+
+    const sorted = Object.values(empMap)
+      .sort((a, b) => (b.total as number) - (a.total as number))
+      .map(e => {
+        const parts = (e.name as string).split(' ')
+        const label = parts.length > 1 ? `${parts[0]} ${parts[1][0]}.` : parts[0]
+        return { ...e, name: label }
+      })
+    return { workloadData: sorted, workloadCats: Array.from(cats) }
+  }, [allTeamItems, members])
+
   const uniqueStatuses    = [...new Set(allItems.map(i => i.status).filter(Boolean) as string[])].sort()
   const uniqueCategories  = [...new Set(allItems.map(i => i.work_category).filter(Boolean) as string[])].sort()
 
@@ -151,16 +190,50 @@ export default function TeamDashboardPage() {
       </div>
 
       {/* Zone 2 — Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <label htmlFor="team-date-range" className="text-sm font-medium"
-          style={{ color: 'var(--color-text-secondary)' }}>Date range:</label>
-        <select id="team-date-range" aria-label="Date range" value={dateRange}
-          onChange={e => setDateRange(e.target.value)}
-          className="rounded-md px-3 py-1.5 text-sm" style={cellStyle}>
-          <option value="last_7">Last 7 Days</option>
-          <option value="last_30">Last 30 Days</option>
-          <option value="last_90">Last 90 Days</option>
-        </select>
+      <div className="flex flex-wrap items-center gap-2">
+        {/* Preset pills */}
+        {PRESETS.map(p => {
+          const active = startDate === p.startDate && endDate === p.endDate
+          return (
+            <button
+              key={p.label}
+              onClick={() => { setStartDate(p.startDate); setEndDate(p.endDate) }}
+              className="rounded-full px-3 py-1 text-xs font-medium transition-all"
+              style={{
+                background: active ? 'var(--color-brand-primary)' : 'var(--color-bg-elevated)',
+                color: active ? '#fff' : 'var(--color-text-secondary)',
+                border: active ? 'none' : '1px solid var(--color-border-default)',
+              }}
+            >
+              Last {p.label}
+            </button>
+          )
+        })}
+
+        <span style={{ color: 'var(--color-border-strong)', fontSize: 12 }}>|</span>
+
+        <input
+          type="date"
+          aria-label="Start date"
+          value={startDate}
+          max={endDate}
+          onChange={e => setStartDate(e.target.value)}
+          className="rounded-md px-2 py-1 text-xs"
+          style={cellStyle}
+        />
+        <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>to</span>
+        <input
+          type="date"
+          aria-label="End date"
+          value={endDate}
+          min={startDate}
+          max={TODAY}
+          onChange={e => setEndDate(e.target.value)}
+          className="rounded-md px-2 py-1 text-xs"
+          style={cellStyle}
+        />
+
+        <span style={{ color: 'var(--color-border-strong)', fontSize: 12 }}>|</span>
 
         {/* Team scope: locked for managers, searchable for admins */}
         {isAdmin ? (
@@ -243,6 +316,57 @@ export default function TeamDashboardPage() {
           )}
         </section>
       </div>
+
+      {/* Zone 4b — Workload Balance: per-employee hours by category */}
+      {workloadData.length > 0 && (
+        <section style={sectionStyle} aria-labelledby="workload-balance-heading">
+          <div className="flex items-center justify-between mb-4">
+            <h2 id="workload-balance-heading" className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+              Workload Balance — Hours by Category
+            </h2>
+            <div className="flex rounded-lg overflow-hidden text-xs font-medium"
+              style={{ border: '1px solid var(--color-border-default)' }}>
+              {(['top5', 'all'] as const).map(v => (
+                <button key={v} onClick={() => setWorkloadView(v)}
+                  className="px-3 py-1.5 transition-colors"
+                  style={{
+                    background: workloadView === v ? 'var(--color-brand-primary)' : 'var(--color-bg-elevated)',
+                    color: workloadView === v ? '#fff' : 'var(--color-text-secondary)',
+                  }}>
+                  {v === 'top5' ? 'Top 5' : 'All'}
+                </button>
+              ))}
+            </div>
+          </div>
+          {teamAllItemsQ.isLoading ? <SkeletonCard className="h-40" /> : (() => {
+            const displayData = workloadView === 'top5' ? workloadData.slice(0, 5) : workloadData
+            return (
+              <>
+                <ResponsiveContainer width="100%" height={Math.max(80, displayData.length * 36)}>
+                  <BarChart data={displayData} layout="vertical" margin={{ top: 0, right: 40, bottom: 0, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-subtle)" horizontal={false} />
+                    <XAxis type="number" tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }} tickLine={false} axisLine={false} tickFormatter={v => `${v}h`} />
+                    <YAxis dataKey="name" type="category" tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }} tickLine={false} axisLine={false} width={80} />
+                    <Tooltip contentStyle={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-default)', borderRadius: '8px', fontSize: '12px' }} formatter={(v, name) => [`${typeof v === 'number' ? v.toFixed(1) : v}h`, String(name).replace('_', ' ')]} />
+                    {workloadCats.map(cat => (
+                      <Bar key={cat} dataKey={cat} stackId="a" fill={CATEGORY_COLORS[cat] ?? '#6366F1'} radius={[0, 2, 2, 0]} />
+                    ))}
+                  </BarChart>
+                </ResponsiveContainer>
+                {/* Category colour legend */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', marginTop: 12 }}>
+                  {workloadCats.map(cat => (
+                    <span key={cat} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--color-text-secondary)' }}>
+                      <span style={{ width: 10, height: 10, borderRadius: 2, background: CATEGORY_COLORS[cat] ?? '#6366F1', flexShrink: 0 }} />
+                      {cat.replace('_', ' ')}
+                    </span>
+                  ))}
+                </div>
+              </>
+            )
+          })()}
+        </section>
+      )}
 
       {/* Zone 5 — Employee Summary Cards */}
       <section aria-labelledby="emp-summary-heading">
@@ -454,7 +578,7 @@ export default function TeamDashboardPage() {
                       {item.hours_spent ?? '—'}
                     </td>
                     <td className="px-4 py-3">
-                      <StatusBadge status={item.status} />
+                      <WorkStatusBadge status={item.status} />
                     </td>
                   </tr>
                 ))}
