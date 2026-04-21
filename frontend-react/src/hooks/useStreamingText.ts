@@ -19,7 +19,7 @@ export function useStreamingText(
   useEffect(() => {
     // In test environments performance.now() doesn't advance between rAF frames
     // so elapsed stays 0 and streaming never progresses — show full text immediately.
-    const isTest = typeof process !== 'undefined' && process.env.NODE_ENV === 'test'
+    const isTest = import.meta.env.MODE === 'test'
     if (!enabled || !target || isTest) {
       setDisplayed(target)
       setIsDone(true)
