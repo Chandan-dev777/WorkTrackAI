@@ -56,9 +56,10 @@ describe('HomeDashboard — greeting', () => {
   it('shows today\'s date', async () => {
     renderPage()
     await screen.findByText(/alice/i)
-    // current month/year should be visible somewhere
+    // current year should be visible somewhere on the page
     const year = new Date().getFullYear().toString()
-    expect(screen.getByText(new RegExp(year))).toBeInTheDocument()
+    const matches = screen.getAllByText(new RegExp(year))
+    expect(matches.length).toBeGreaterThan(0)
   })
 })
 
