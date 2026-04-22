@@ -1,19 +1,27 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { User, Palette, LogOut, Shield, Info } from 'lucide-react'
+import { User, Palette, LogOut, Shield, Info, Target } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useThemeStore } from '@/store/themeStore'
+import { GoalRing } from '@/components/charts/GoalRing'
 import { cn } from '@/utils/cn'
+
+const WEEKLY_GOAL_KEY = 'worktrack_weekly_goal'
+function loadGoal(): number {
+  const v = localStorage.getItem(WEEKLY_GOAL_KEY)
+  return v ? Math.max(10, Math.min(80, Number(v))) : 40
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Section = 'profile' | 'appearance' | 'account'
+type Section = 'profile' | 'appearance' | 'goals' | 'account'
 
 interface NavItem { id: Section; label: string; icon: React.ElementType }
 
 const NAV: NavItem[] = [
   { id: 'profile',    label: 'Profile',    icon: User    },
   { id: 'appearance', label: 'Appearance', icon: Palette },
+  { id: 'goals',      label: 'Goals',      icon: Target  },
   { id: 'account',    label: 'Account',    icon: Shield  },
 ]
 
@@ -49,6 +57,12 @@ export default function SettingsPage() {
   const setTheme   = useThemeStore(s => s.setTheme)
 
   const [activeSection, setActiveSection] = useState<Section>('profile')
+  const [weeklyGoal, setWeeklyGoal]       = useState(loadGoal)
+
+  function handleGoalChange(val: number) {
+    setWeeklyGoal(val)
+    localStorage.setItem(WEEKLY_GOAL_KEY, String(val))
+  }
 
   function handleSignOut() {
     logout()
@@ -183,6 +197,50 @@ export default function SettingsPage() {
                       </span>
                     </button>
                   ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── GOALS ── */}
+          {activeSection === 'goals' && (
+            <div style={sectionCard}>
+              <h2 className="text-base font-semibold mb-1" style={{ color: 'var(--color-text-primary)' }}>Goals</h2>
+              <p className="text-xs mb-6" style={{ color: 'var(--color-text-secondary)' }}>
+                Set your weekly hours target. This drives the Goal Ring on your Home Dashboard.
+              </p>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 40 }}>
+                {/* Slider */}
+                <div style={{ flex: 1 }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
+                      Weekly hours goal
+                    </span>
+                    <span className="text-lg font-bold font-mono" style={{ color: 'var(--color-brand-primary)' }}>
+                      {weeklyGoal}h
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={10} max={80} step={5}
+                    value={weeklyGoal}
+                    onChange={e => handleGoalChange(Number(e.target.value))}
+                    aria-label="Weekly hours goal"
+                    style={{ width: '100%', accentColor: 'var(--color-brand-primary)', cursor: 'pointer' }}
+                  />
+                  <div className="flex justify-between text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
+                    <span>10h</span><span>40h</span><span>80h</span>
+                  </div>
+                  <p className="text-xs mt-4" style={{ color: 'var(--color-text-muted)' }}>
+                    Saved automatically to your browser. Changes apply immediately on the dashboard.
+                  </p>
+                </div>
+
+                {/* Live preview ring */}
+                <div className="flex flex-col items-center gap-1 flex-shrink-0">
+                  <GoalRing current={Math.round(weeklyGoal * 0.65)} target={weeklyGoal} label="Preview" size={100} />
+                  <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Live preview</span>
                 </div>
               </div>
             </div>

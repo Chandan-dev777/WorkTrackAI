@@ -1,10 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { TopNavbar } from './TopNavbar'
 import { useAuthStore } from '@/store/authStore'
 import { useThemeStore } from '@/store/themeStore'
 import type { User } from '@/types/models'
+
+function makeClient() {
+  return new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+}
 
 /** Renders TopNavbar inside a full router so navigate() calls update location */
 function LocationDisplay() {
@@ -14,11 +19,13 @@ function LocationDisplay() {
 
 function renderNavbarWithRouter(initialPath = '/dashboard') {
   return render(
-    <MemoryRouter initialEntries={[initialPath]}>
-      <Routes>
-        <Route path="*" element={<><TopNavbar /><LocationDisplay /></>} />
-      </Routes>
-    </MemoryRouter>
+    <QueryClientProvider client={makeClient()}>
+      <MemoryRouter initialEntries={[initialPath]}>
+        <Routes>
+          <Route path="*" element={<><TopNavbar /><LocationDisplay /></>} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>
   )
 }
 
@@ -30,9 +37,11 @@ const user: User = {
 
 function renderNavbar() {
   return render(
-    <MemoryRouter>
-      <TopNavbar />
-    </MemoryRouter>
+    <QueryClientProvider client={makeClient()}>
+      <MemoryRouter>
+        <TopNavbar />
+      </MemoryRouter>
+    </QueryClientProvider>
   )
 }
 

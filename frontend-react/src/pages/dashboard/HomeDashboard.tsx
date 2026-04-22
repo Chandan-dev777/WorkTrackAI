@@ -18,6 +18,39 @@ import { canAccess } from '@/utils/roleGuard'
 import type { Role } from '@/utils/roleGuard'
 import type { WorkItem } from '@/types/models'
 
+// ── Confetti helper ───────────────────────────────────────────────────────────
+
+async function fireConfetti(type: 'streak' | 'goal' | 'century') {
+  try {
+    const confetti = (await import('canvas-confetti')).default
+    if (type === 'streak') {
+      confetti({ particleCount: 80, angle: 60, spread: 55, origin: { x: 0, y: 0.7 } })
+      confetti({ particleCount: 80, angle: 120, spread: 55, origin: { x: 1, y: 0.7 } })
+    } else if (type === 'goal') {
+      confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 }, colors: ['#F59E0B', '#FBBF24', '#FDE68A'] })
+    } else {
+      confetti({ particleCount: 200, spread: 160, origin: { y: 0.5 }, colors: ['#6366F1', '#8B5CF6', '#F59E0B'] })
+    }
+  } catch { /* silently skip */ }
+}
+
+// ── Achievement badges ────────────────────────────────────────────────────────
+
+interface Badge { id: string; emoji: string; label: string; desc: string; unlocked: boolean; unlockedAt?: string }
+
+function computeBadges(streak: number, totalHours: number, weekGoal: number, totalItems: number): Badge[] {
+  const submitted   = !!localStorage.getItem('hasSubmittedBefore')
+  const goalReached = totalHours >= weekGoal && weekGoal > 0
+  return [
+    { id: 'first-steps', emoji: '🚀', label: 'First Steps',    desc: 'Confirm your first work log',       unlocked: submitted },
+    { id: 'on-fire',     emoji: '🔥', label: 'On Fire',        desc: '5-day submission streak',           unlocked: streak >= 5 },
+    { id: 'goal',        emoji: '🎯', label: 'Goal Crusher',   desc: 'Hit your weekly hours target',      unlocked: goalReached },
+    { id: 'century',     emoji: '🏆', label: 'Century',        desc: '100 work items confirmed',          unlocked: totalItems >= 100 },
+    { id: 'consistent',  emoji: '📅', label: 'Consistent',     desc: '30-day submission streak',          unlocked: streak >= 30 },
+    { id: 'ai-curious',  emoji: '🤖', label: 'AI Curious',     desc: 'Ask the AI assistant a question',   unlocked: !!localStorage.getItem('worktrack_chat_cleared_at') || false },
+  ]
+}
+
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const DEFAULT_WEEKLY_GOAL = 40
@@ -186,6 +219,26 @@ export default function HomeDashboard() {
   }, [categoriesQ.data])
 
   const visibleActions = ACTIONS.filter(a => canAccess(userRole, a.minRole))
+  const totalItems     = summaryQ.data?.total_items ?? 0
+  const badges         = useMemo(() => computeBadges(streak, totalHours, weekGoal, totalItems), [streak, totalHours, weekGoal, totalItems])
+  const [badgesOpen, setBadgesOpen] = useState(true)
+
+  // Confetti milestones — fire once per milestone ever
+  useEffect(() => {
+    if (!summaryQ.data) return
+    if (streak >= 5 && !localStorage.getItem('confetti_streak5')) {
+      localStorage.setItem('confetti_streak5', '1')
+      fireConfetti('streak')
+    }
+    if (totalHours >= weekGoal && weekGoal > 0 && !localStorage.getItem(`confetti_goal_${weekGoal}`)) {
+      localStorage.setItem(`confetti_goal_${weekGoal}`, '1')
+      fireConfetti('goal')
+    }
+    if (totalItems >= 100 && !localStorage.getItem('confetti_century')) {
+      localStorage.setItem('confetti_century', '1')
+      fireConfetti('century')
+    }
+  }, [streak, totalHours, weekGoal, totalItems, summaryQ.data])
 
   // Dynamic sub-message
   const subMessage = useMemo(() => {
@@ -400,6 +453,40 @@ export default function HomeDashboard() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* ── Achievements ── */}
+      <div>
+        <button onClick={() => setBadgesOpen(o => !o)}
+          className="flex items-center justify-between w-full mb-3 rounded-lg px-3 py-2 transition-colors"
+          style={{ background: 'var(--color-bg-surface)', border: '1px solid var(--color-border-subtle)' }}>
+          <div className="flex items-center gap-2">
+            <span style={{ fontSize: 14 }}>🏅</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)' }}>Achievements</span>
+            <span className="rounded-full px-2 py-0.5 text-xs font-semibold"
+              style={{ background: 'rgba(99,102,241,0.12)', color: 'var(--color-brand-primary)' }}>
+              {badges.filter(b => b.unlocked).length}/{badges.length} unlocked
+            </span>
+          </div>
+          <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{badgesOpen ? '▲' : '▼'}</span>
+        </button>
+        {badgesOpen && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
+            {badges.map(b => (
+              <div key={b.id} className="rounded-xl p-3 flex flex-col items-center text-center gap-1.5"
+                style={{
+                  background: b.unlocked ? 'var(--color-bg-surface)' : 'var(--color-bg-elevated)',
+                  border: `1px solid ${b.unlocked ? 'rgba(99,102,241,0.3)' : 'var(--color-border-subtle)'}`,
+                  opacity: b.unlocked ? 1 : 0.5,
+                }}>
+                <span style={{ fontSize: 26, filter: b.unlocked ? 'none' : 'grayscale(100%)' }}>{b.emoji}</span>
+                <p style={{ fontSize: 11, fontWeight: 600, color: b.unlocked ? 'var(--color-text-primary)' : 'var(--color-text-muted)' }}>{b.label}</p>
+                <p style={{ fontSize: 10, color: 'var(--color-text-muted)', lineHeight: 1.3 }}>{b.desc}</p>
+                {b.unlocked && <span style={{ fontSize: 9, color: '#10B981', fontWeight: 600 }}>UNLOCKED</span>}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── Recent work activity ── */}

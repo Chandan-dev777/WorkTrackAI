@@ -125,16 +125,24 @@ export default function AdminPage() {
 
   async function handleSeedConfirm() {
     setSeeding(true); setSeedConfirm(false)
-    try   { const r = await adminApi.seedDummyData(); setSeedResult(r.message); toast.success(r.message) }
-    catch { setSeedResult('Seed failed — check backend logs.'); toast.error('Seed failed.') }
-    finally { setSeeding(false) }
+    try {
+      await toast.promise(
+        adminApi.seedDummyData().then(r => { setSeedResult(r.message); return r }),
+        { loading: 'Seeding demo data…', success: (r: { message: string }) => r.message, error: 'Seed failed — check backend logs.' }
+      )
+    } catch { setSeedResult('Seed failed — check backend logs.') }
+    setSeeding(false)
   }
 
   async function handleReindex() {
     setReindexing(true); setReindexResult(null)
-    try   { const r = await adminApi.reindex(); setReindexResult(r.message); toast.success(r.message) }
-    catch { setReindexResult('Reindex failed — check backend logs.'); toast.error('Reindex failed.') }
-    finally { setReindexing(false) }
+    try {
+      await toast.promise(
+        adminApi.reindex().then(r => { setReindexResult(r.message); return r }),
+        { loading: 'Rebuilding ChromaDB index…', success: (r: { message: string }) => r.message, error: 'Reindex failed — check backend logs.' }
+      )
+    } catch { setReindexResult('Reindex failed — check backend logs.') }
+    setReindexing(false)
   }
 
   // Metrics
