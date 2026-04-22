@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { User, Palette, LogOut, Shield, Info, Target } from 'lucide-react'
+import { User, Palette, LogOut, Shield, Info, Target, Lock } from 'lucide-react'
+import { toast } from 'sonner'
 import { useAuthStore } from '@/store/authStore'
 import { useThemeStore } from '@/store/themeStore'
 import { GoalRing } from '@/components/charts/GoalRing'
+import { adminApi } from '@/api/admin'
 import { cn } from '@/utils/cn'
 
 const WEEKLY_GOAL_KEY = 'worktrack_weekly_goal'
@@ -14,7 +16,7 @@ function loadGoal(): number {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Section = 'profile' | 'appearance' | 'goals' | 'account'
+type Section = 'profile' | 'appearance' | 'goals' | 'security' | 'account'
 
 interface NavItem { id: Section; label: string; icon: React.ElementType }
 
@@ -22,6 +24,7 @@ const NAV: NavItem[] = [
   { id: 'profile',    label: 'Profile',    icon: User    },
   { id: 'appearance', label: 'Appearance', icon: Palette },
   { id: 'goals',      label: 'Goals',      icon: Target  },
+  { id: 'security',   label: 'Security',   icon: Lock    },
   { id: 'account',    label: 'Account',    icon: Shield  },
 ]
 
@@ -58,6 +61,37 @@ export default function SettingsPage() {
 
   const [activeSection, setActiveSection] = useState<Section>('profile')
   const [weeklyGoal, setWeeklyGoal]       = useState(loadGoal)
+  const [currentPw, setCurrentPw]         = useState('')
+  const [newPw, setNewPw]                 = useState('')
+  const [confirmPw, setConfirmPw]         = useState('')
+  const [changingPw, setChangingPw]       = useState(false)
+
+  async function handleChangePassword() {
+    if (newPw.length < 8) { toast.error('New password must be at least 8 characters'); return }
+    if (newPw !== confirmPw) { toast.error('Passwords do not match'); return }
+    setChangingPw(true)
+    try {
+      await adminApi.changePassword(currentPw, newPw)
+      toast.success('Password changed successfully')
+      setCurrentPw(''); setNewPw(''); setConfirmPw('')
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Failed to change password'
+      toast.error(msg)
+    } finally { setChangingPw(false) }
+  }
+
+  const pwStrength = (() => {
+    if (!newPw) return 0
+    let s = 0
+    if (newPw.length >= 8)  s++
+    if (newPw.length >= 12) s++
+    if (/[A-Z]/.test(newPw) && /[a-z]/.test(newPw)) s++
+    if (/[0-9]/.test(newPw)) s++
+    if (/[^A-Za-z0-9]/.test(newPw)) s++
+    return Math.min(s, 4)
+  })()
+  const pwStrengthLabel = ['', 'Weak', 'Fair', 'Strong', 'Very Strong'][pwStrength]
+  const pwStrengthColor = ['', '#F43F5E', '#F59E0B', '#10B981', '#6366F1'][pwStrength]
 
   function handleGoalChange(val: number) {
     setWeeklyGoal(val)
@@ -246,6 +280,58 @@ export default function SettingsPage() {
             </div>
           )}
 
+          {/* ── SECURITY ── */}
+          {activeSection === 'security' && (
+            <div style={sectionCard}>
+              <h2 className="text-base font-semibold mb-1" style={{ color: 'var(--color-text-primary)' }}>Security</h2>
+              <p className="text-xs mb-6" style={{ color: 'var(--color-text-secondary)' }}>
+                Change your password. Use a strong, unique password you don't use elsewhere.
+              </p>
+
+              <div className="flex flex-col gap-4" style={{ maxWidth: 400 }}>
+                {[
+                  { label: 'Current password', value: currentPw, onChange: setCurrentPw, id: 'cur-pw' },
+                  { label: 'New password',      value: newPw,     onChange: setNewPw,     id: 'new-pw' },
+                  { label: 'Confirm new password', value: confirmPw, onChange: setConfirmPw, id: 'conf-pw' },
+                ].map(f => (
+                  <div key={f.id}>
+                    <label htmlFor={f.id} className="block text-xs font-medium mb-1.5"
+                      style={{ color: 'var(--color-text-secondary)' }}>{f.label}</label>
+                    <input id={f.id} type="password" value={f.value} onChange={e => f.onChange(e.target.value)}
+                      className="w-full rounded-lg px-3 py-2 text-sm"
+                      style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)', outline: 'none' }} />
+                  </div>
+                ))}
+
+                {/* Strength meter */}
+                {newPw.length > 0 && (
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span style={{ color: 'var(--color-text-muted)' }}>Password strength</span>
+                      <span style={{ color: pwStrengthColor, fontWeight: 600 }}>{pwStrengthLabel}</span>
+                    </div>
+                    <div className="flex gap-1">
+                      {[1,2,3,4].map(i => (
+                        <div key={i} className="flex-1 h-1.5 rounded-full transition-all"
+                          style={{ background: i <= pwStrength ? pwStrengthColor : 'var(--color-border-default)' }} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <button onClick={handleChangePassword} disabled={changingPw || !currentPw || !newPw || !confirmPw}
+                  className="rounded-lg px-4 py-2 text-sm font-semibold transition-all"
+                  style={{
+                    background: 'var(--color-brand-primary)', color: '#fff',
+                    opacity: changingPw || !currentPw || !newPw || !confirmPw ? 0.5 : 1,
+                    cursor: changingPw || !currentPw || !newPw || !confirmPw ? 'not-allowed' : 'pointer',
+                  }}>
+                  {changingPw ? 'Changing…' : 'Change Password'}
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* ── ACCOUNT ── */}
           {activeSection === 'account' && (
             <div style={sectionCard}>
@@ -256,7 +342,23 @@ export default function SettingsPage() {
                 Manage your session.
               </p>
 
-              <div style={{ paddingTop: 8 }}>
+              {/* Account info */}
+              <div className="rounded-lg p-4 mb-4" style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-subtle)' }}>
+                {[
+                  { label: 'Employee ID', value: user?.employee_id ?? '—' },
+                  { label: 'Role',        value: user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : '—' },
+                  { label: 'Team',        value: user?.team_name ?? '—' },
+                  { label: 'Connected via', value: 'WorkTrack AI' },
+                ].map(r => (
+                  <div key={r.label} style={{ display: 'flex', padding: '10px 0', borderBottom: '1px solid var(--color-border-subtle)' }}
+                    className="last:border-b-0">
+                    <span style={{ width: 140, fontSize: 12, color: 'var(--color-text-muted)', flexShrink: 0 }}>{r.label}</span>
+                    <span style={{ fontSize: 12, color: 'var(--color-text-primary)', fontWeight: 500 }}>{r.value}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ paddingTop: 4 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid var(--color-border-subtle)' }}>
                   <div>
                     <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>Sign out</p>
@@ -264,20 +366,13 @@ export default function SettingsPage() {
                       You will be returned to the login page.
                     </p>
                   </div>
-                  <button onClick={handleSignOut}
-                    aria-label="Sign out"
+                  <button onClick={handleSignOut} aria-label="Sign out"
                     className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors"
-                    style={{
-                      background: 'rgba(244,63,94,0.1)',
-                      border: '1px solid rgba(244,63,94,0.25)',
-                      color: '#FB7185', cursor: 'pointer',
-                    }}>
-                    <LogOut size={14} />
-                    Sign Out
+                    style={{ background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.25)', color: '#FB7185', cursor: 'pointer' }}>
+                    <LogOut size={14} /> Sign Out
                   </button>
                 </div>
-
-                <div style={{ paddingTop: 16 }}>
+                <div style={{ paddingTop: 12 }}>
                   <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
                     Signed in as <span style={{ color: 'var(--color-text-secondary)', fontWeight: 500 }}>{user?.email}</span>
                   </p>

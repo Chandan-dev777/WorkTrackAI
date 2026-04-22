@@ -3,12 +3,13 @@
 import logging
 from typing import Literal, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
 from backend.models.user import User
+from backend.models.work_item import WorkItem
 from backend.models.work_log import WorkLog
 from backend.routers.auth import require_role
 from backend.seed_data import seed
@@ -173,3 +174,65 @@ def seed_dummy_data(
     logger.info("Admin seed triggered by %s", current_user.employee_id)
     seed(db)
     return {"message": "Seed complete (skipped if data already exists)."}
+
+
+# ── GET /admin/stats ──────────────────────────────────────────────────────────
+
+@router.get("/stats")
+def admin_stats(
+    current_user: User = Depends(_admin_only),
+    db: Session = Depends(get_db),
+) -> dict:
+    """System health statistics (admin only)."""
+    total_logs    = db.query(WorkLog).filter(WorkLog.is_deleted == False).count()  # noqa: E712
+    total_items   = db.query(WorkItem).count()
+    total_users   = db.query(User).count()
+    error_count   = db.query(WorkLog).filter(
+        WorkLog.extraction_status.in_(["failed", "needs_review"]),
+        WorkLog.is_deleted == False,  # noqa: E712
+    ).count()
+    error_rate = round(error_count / max(total_logs, 1) * 100, 1)
+    return {
+        "total_work_logs":       total_logs,
+        "total_work_items":      total_items,
+        "total_users":           total_users,
+        "extraction_errors":     error_count,
+        "extraction_error_rate": error_rate,
+    }
+
+
+# ── GET /admin/activity-log ───────────────────────────────────────────────────
+
+@router.get("/activity-log")
+def activity_log(
+    limit: int = Query(50, ge=1, le=200),
+    current_user: User = Depends(_admin_only),
+    db: Session = Depends(get_db),
+) -> list[dict]:
+    """Recent submission activity timeline (admin only)."""
+    logs = (
+        db.query(WorkLog)
+        .filter(WorkLog.is_deleted == False)  # noqa: E712
+        .order_by(WorkLog.submitted_at.desc())
+        .limit(limit)
+        .all()
+    )
+    user_map: dict[str, dict] = {}
+    for log in logs:
+        if log.user_id not in user_map:
+            u = db.query(User).filter(User.id == log.user_id).first()
+            user_map[log.user_id] = {
+                "name": u.full_name if u else "Unknown",
+                "employee_id": u.employee_id if u else "?",
+            }
+    return [
+        {
+            "id": log.id,
+            "employee_name": user_map.get(log.user_id, {}).get("name", "Unknown"),
+            "employee_id":   user_map.get(log.user_id, {}).get("employee_id", "?"),
+            "action":        log.extraction_status,
+            "work_date":     log.work_date.isoformat() if log.work_date else None,
+            "submitted_at":  log.submitted_at.isoformat() if log.submitted_at else None,
+        }
+        for log in logs
+    ]

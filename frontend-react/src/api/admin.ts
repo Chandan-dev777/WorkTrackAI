@@ -33,6 +33,23 @@ export interface UserUpdatePayload {
   department?: string
 }
 
+export interface AdminStats {
+  total_work_logs: number
+  total_work_items: number
+  total_users: number
+  extraction_errors: number
+  extraction_error_rate: number
+}
+
+export interface ActivityLogEntry {
+  id: string
+  employee_name: string
+  employee_id: string
+  action: string
+  work_date: string | null
+  submitted_at: string | null
+}
+
 export const adminApi = {
   getUsers: () =>
     apiClient.get<AdminUser[]>('/admin/users').then(r => r.data),
@@ -48,4 +65,16 @@ export const adminApi = {
 
   seedDummyData: () =>
     apiClient.post<{ message: string }>('/admin/seed-dummy-data').then(r => r.data),
+
+  getStats: () =>
+    apiClient.get<AdminStats>('/admin/stats').then(r => r.data),
+
+  getActivityLog: (limit = 50) =>
+    apiClient.get<ActivityLogEntry[]>('/admin/activity-log', { params: { limit } }).then(r => r.data),
+
+  changePassword: (currentPassword: string, newPassword: string) =>
+    apiClient.post<{ message: string }>('/auth/change-password', {
+      current_password: currentPassword,
+      new_password: newPassword,
+    }).then(r => r.data),
 }

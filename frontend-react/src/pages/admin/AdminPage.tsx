@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Shield, Database, Users, AlertTriangle, RefreshCw, Sprout, ChevronDown, ChevronRight } from 'lucide-react'
+import { Shield, Database, Users, AlertTriangle, RefreshCw, Sprout, ChevronDown, ChevronRight, Activity, CheckCircle2, XCircle, Clock } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { adminApi } from '@/api/admin'
 import { SkeletonCard, SkeletonTable } from '@/components/common/Skeleton'
 import { formatDateShort } from '@/utils/formatDate'
 import { cn } from '@/utils/cn'
-import type { AdminUser } from '@/api/admin'
+import type { AdminUser, ActivityLogEntry } from '@/api/admin'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -49,7 +49,7 @@ const inputStyle: React.CSSProperties = {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-type Tab = 'users' | 'system' | 'errors'
+type Tab = 'users' | 'system' | 'errors' | 'activity'
 type ErrorFilter = 'all' | 'failed' | 'needs_review'
 
 export default function AdminPage() {
@@ -74,8 +74,10 @@ export default function AdminPage() {
   const [savingUser, setSavingUser]       = useState<Record<string, boolean>>({})
   const [userSaveMsg, setUserSaveMsg]     = useState<Record<string, { ok?: string; err?: string }>>({})
 
-  const usersQ  = useQuery({ queryKey: ['admin-users'],  queryFn: adminApi.getUsers })
-  const errorsQ = useQuery({ queryKey: ['admin-errors'], queryFn: adminApi.getExtractionErrors })
+  const usersQ    = useQuery({ queryKey: ['admin-users'],    queryFn: adminApi.getUsers })
+  const errorsQ   = useQuery({ queryKey: ['admin-errors'],   queryFn: adminApi.getExtractionErrors })
+  const statsQ    = useQuery({ queryKey: ['admin-stats'],    queryFn: adminApi.getStats,        staleTime: 30_000 })
+  const activityQ = useQuery({ queryKey: ['admin-activity'], queryFn: () => adminApi.getActivityLog(50), staleTime: 30_000, enabled: activeTab === 'activity' })
 
   // Initialise edit drafts when users load
   useEffect(() => {
@@ -159,10 +161,13 @@ export default function AdminPage() {
     : errors.filter(e => e.extraction_status === errorFilter)
 
   const TABS: { id: Tab; label: string }[] = [
-    { id: 'users',  label: 'User Management' },
-    { id: 'system', label: 'System Actions' },
-    { id: 'errors', label: `Extraction Errors${errors.length > 0 ? ` (${errors.length})` : ''}` },
+    { id: 'users',    label: 'User Management' },
+    { id: 'system',   label: 'System Actions' },
+    { id: 'errors',   label: `Extraction Errors${errors.length > 0 ? ` (${errors.length})` : ''}` },
+    { id: 'activity', label: 'Activity Log' },
   ]
+
+  const stats = statsQ.data
 
   return (
     <div className="mx-auto p-6 flex flex-col gap-6" style={{ maxWidth: '1440px' }}>
@@ -176,6 +181,33 @@ export default function AdminPage() {
         <p className="mt-1 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
           System management — admin access only
         </p>
+      </div>
+
+      {/* System Health Strip */}
+      <div className="flex flex-wrap gap-2">
+        {[
+          { icon: CheckCircle2, label: 'API Online',       ok: true,  detail: 'Backend responding' },
+          { icon: Database,     label: `${stats?.total_work_logs ?? '…'} logs`, ok: true, detail: 'SQLite healthy' },
+          { icon: stats && stats.extraction_errors > 0 ? AlertTriangle : CheckCircle2,
+            label: stats ? `${stats.extraction_errors} extraction error${stats.extraction_errors !== 1 ? 's' : ''}` : 'Checking…',
+            ok: !stats || stats.extraction_errors === 0,
+            detail: stats ? `${stats.extraction_error_rate}% error rate` : '' },
+          { icon: Users, label: `${stats?.total_users ?? '…'} users`, ok: true, detail: 'All registered users' },
+        ].map(chip => {
+          const Icon = chip.icon
+          return (
+            <span key={chip.label} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
+              style={{
+                background: chip.ok ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)',
+                border: `1px solid ${chip.ok ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.3)'}`,
+                color: chip.ok ? '#10B981' : '#F59E0B',
+              }}
+              title={chip.detail}>
+              <Icon size={11} />
+              {chip.label}
+            </span>
+          )
+        })}
       </div>
 
       {/* Tab bar */}
@@ -523,6 +555,68 @@ export default function AdminPage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+          </section>
+        </div>
+      )}
+
+      {/* ── TAB: ACTIVITY LOG ── */}
+      {activeTab === 'activity' && (
+        <div className="flex flex-col gap-4">
+          {/* Stats summary row */}
+          {stats && (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {[
+                { label: 'Total Work Logs',  value: stats.total_work_logs.toLocaleString(),  color: 'var(--color-brand-primary)' },
+                { label: 'Work Items',       value: stats.total_work_items.toLocaleString(), color: '#10B981' },
+                { label: 'Registered Users', value: stats.total_users.toLocaleString(),      color: '#0EA5E9' },
+                { label: 'Error Rate',       value: `${stats.extraction_error_rate}%`,       color: stats.extraction_error_rate > 5 ? '#F43F5E' : '#F59E0B' },
+              ].map(s => (
+                <div key={s.label} className="rounded-xl p-4" style={{ background: 'var(--color-bg-surface)', border: '1px solid var(--color-border-subtle)' }}>
+                  <p className="text-xs mb-1" style={{ color: 'var(--color-text-secondary)' }}>{s.label}</p>
+                  <p className="text-2xl font-bold font-mono" style={{ color: s.color }}>{s.value}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Timeline */}
+          <section style={sectionStyle} aria-labelledby="activity-heading">
+            <h2 id="activity-heading" className="flex items-center gap-2 text-base font-semibold mb-4"
+              style={{ color: 'var(--color-text-primary)' }}>
+              <Activity size={15} color="var(--color-brand-primary)" />
+              Recent Activity
+            </h2>
+            {activityQ.isLoading ? (
+              <div className="flex flex-col gap-2">{[...Array(5)].map((_, i) => <div key={i} className="h-12 rounded-lg animate-pulse" style={{ background: 'var(--color-bg-elevated)' }} />)}</div>
+            ) : (
+              <div className="flex flex-col gap-0">
+                {(activityQ.data ?? []).map((entry: ActivityLogEntry, idx: number) => {
+                  const isOk      = entry.action === 'success'
+                  const isFailed  = entry.action === 'failed'
+                  const Icon      = isOk ? CheckCircle2 : isFailed ? XCircle : Clock
+                  const color     = isOk ? '#10B981' : isFailed ? '#F43F5E' : '#F59E0B'
+                  return (
+                    <div key={entry.id} className="flex items-start gap-3 py-3"
+                      style={{ borderBottom: idx < (activityQ.data?.length ?? 0) - 1 ? '1px solid var(--color-border-subtle)' : 'none' }}>
+                      <Icon size={14} color={color} style={{ marginTop: 2, flexShrink: 0 }} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm" style={{ color: 'var(--color-text-primary)' }}>
+                          <span style={{ fontWeight: 500 }}>{entry.employee_name}</span>
+                          <span style={{ color: 'var(--color-text-muted)' }}> · {entry.employee_id}</span>
+                        </p>
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+                          {entry.work_date ?? '—'} · {entry.submitted_at ? formatDateShort(entry.submitted_at) : '—'}
+                        </p>
+                      </div>
+                      <span className="text-xs px-2 py-0.5 rounded-full flex-shrink-0"
+                        style={{ background: `${color}18`, color }}>
+                        {entry.action.replace('_', ' ')}
+                      </span>
+                    </div>
+                  )
+                })}
               </div>
             )}
           </section>

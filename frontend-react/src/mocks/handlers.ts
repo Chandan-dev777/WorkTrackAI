@@ -133,6 +133,32 @@ export const handlers = [
     HttpResponse.json({ message: 'Dummy data seeded successfully.' })
   ),
 
+  http.get(`${BASE}/admin/stats`, () =>
+    HttpResponse.json({
+      total_work_logs: 142, total_work_items: 487, total_users: 18,
+      extraction_errors: 3, extraction_error_rate: 2.1,
+    })
+  ),
+
+  http.get(`${BASE}/admin/activity-log`, () =>
+    HttpResponse.json([
+      { id: 'al-001', employee_name: 'Alice Smith',  employee_id: 'EMP-001', action: 'success',      work_date: '2026-04-21', submitted_at: '2026-04-21T09:12:00' },
+      { id: 'al-002', employee_name: 'Bob Manager',  employee_id: 'EMP-MGR', action: 'success',      work_date: '2026-04-21', submitted_at: '2026-04-21T08:45:00' },
+      { id: 'al-003', employee_name: 'Alice Smith',  employee_id: 'EMP-001', action: 'needs_review', work_date: '2026-04-20', submitted_at: '2026-04-20T17:30:00' },
+      { id: 'al-004', employee_name: 'Carol Admin',  employee_id: 'EMP-ADM', action: 'success',      work_date: '2026-04-20', submitted_at: '2026-04-20T16:00:00' },
+      { id: 'al-005', employee_name: 'Bob Manager',  employee_id: 'EMP-MGR', action: 'failed',       work_date: '2026-04-19', submitted_at: '2026-04-19T11:20:00' },
+    ])
+  ),
+
+  http.post(`${BASE}/auth/change-password`, async ({ request }) => {
+    const body = await request.json() as { current_password: string; new_password: string }
+    if (body.current_password !== 'password123')
+      return HttpResponse.json({ detail: 'Current password is incorrect' }, { status: 400 })
+    if (!body.new_password || body.new_password.length < 8)
+      return HttpResponse.json({ detail: 'New password must be at least 8 characters' }, { status: 400 })
+    return HttpResponse.json({ message: 'Password changed successfully.' })
+  }),
+
   http.put(`${BASE}/admin/users/:userId`, async ({ request, params }) => {
     const body = await request.json() as Record<string, unknown>
     return HttpResponse.json({

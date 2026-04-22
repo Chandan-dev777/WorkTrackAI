@@ -1,6 +1,7 @@
 """Auth router: register, login, /me."""
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
 from sqlalchemy.orm import Session
@@ -20,6 +21,7 @@ from backend.services.auth_service import (
     get_user_by_email,
     get_user_by_id,
     hash_password,
+    verify_password,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -115,3 +117,30 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse
 @router.get("/me", response_model=UserProfile)
 def me(current_user: User = Depends(get_current_user)) -> UserProfile:
     return UserProfile.model_validate(current_user)
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+@router.post("/change-password")
+def change_password(
+    payload: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Change the authenticated user's password."""
+    if not verify_password(payload.current_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect",
+        )
+    if len(payload.new_password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be at least 8 characters",
+        )
+    current_user.hashed_password = hash_password(payload.new_password)
+    db.commit()
+    return {"message": "Password changed successfully."}
