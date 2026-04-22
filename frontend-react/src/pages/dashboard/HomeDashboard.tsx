@@ -7,12 +7,17 @@ import {
   Clock, CheckCircle, AlertCircle, Sparkles, Flame,
   AlertTriangle, ArrowRight,
 } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { useAuthStore } from '@/store/authStore'
 import { dashboardApi } from '@/api/dashboard'
 import { worklogsApi } from '@/api/worklogs'
+import { chatApi } from '@/api/chat'
 import { GoalRing } from '@/components/charts/GoalRing'
 import { ProductivityHeatmap } from '@/components/charts/ProductivityHeatmap'
 import { SkeletonCard } from '@/components/common/Skeleton'
+import { AnimatedNumber } from '@/components/common/AnimatedNumber'
+import { GlassCard } from '@/components/common/GlassCard'
 import { formatRelative } from '@/utils/formatDate'
 import { canAccess } from '@/utils/roleGuard'
 import type { Role } from '@/utils/roleGuard'
@@ -141,6 +146,15 @@ const ACTIONS: ActionItem[] = [
   { label: 'Admin Panel',    to: '/admin',        icon: Shield,        description: 'Users & system settings',       style: 'secondary', minRole: 'admin'    },
 ]
 
+// ── Onboarding steps (shown when user has no work items yet) ─────────────────
+
+const ONBOARD_STEPS = [
+  { id: 'submit',  emoji: '✏️', label: 'Submit your first work update', desc: 'Log what you worked on today',           to: '/submit'       },
+  { id: 'review',  emoji: '🔍', label: 'Review the extracted items',    desc: 'Check the AI extraction was accurate',  to: '/submit'       },
+  { id: 'ask-ai',  emoji: '🤖', label: 'Ask WorkTrack AI a question',   desc: 'Try the conversational assistant',       to: '/chat'         },
+  { id: 'explore', emoji: '📊', label: 'Explore your dashboard',        desc: 'See your analytics once you have data',  to: '/my-dashboard' },
+] as const
+
 // ── Bento card wrapper ────────────────────────────────────────────────────────
 
 function BentoCard({ children, style, className = '' }: { children: React.ReactNode; style?: React.CSSProperties; className?: string }) {
@@ -223,6 +237,47 @@ export default function HomeDashboard() {
   const badges         = useMemo(() => computeBadges(streak, totalHours, weekGoal, totalItems), [streak, totalHours, weekGoal, totalItems])
   const [badgesOpen, setBadgesOpen] = useState(true)
 
+  // AI Weekly Brief
+  const [brief, setBrief] = useState<{ text: string; ts: string } | null>(() => {
+    try {
+      const v = localStorage.getItem(`worktrack_brief_${new Date().toISOString().split('T')[0]}`)
+      return v ? JSON.parse(v) : null
+    } catch { return null }
+  })
+  const [briefLoading, setBriefLoading] = useState(false)
+  const [briefExpanded, setBriefExpanded] = useState(false)
+
+  // Onboarding checklist
+  const [onboardDismissed, setOnboardDismissed] = useState(() => !!localStorage.getItem('worktrack_onboard_dismissed'))
+  const [completedSteps, setCompletedSteps] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('worktrack_onboard_completed') ?? '[]') } catch { return [] }
+  })
+
+  async function generateBrief() {
+    setBriefLoading(true)
+    try {
+      const res = await chatApi.query({
+        question: 'Summarize my work this week in 3–5 bullet points: hours logged, key tasks completed, any blockers, and what to focus on next. Be concise.',
+      })
+      const result = { text: res.answer, ts: new Date().toISOString() }
+      localStorage.setItem(`worktrack_brief_${new Date().toISOString().split('T')[0]}`, JSON.stringify(result))
+      setBrief(result)
+      setBriefExpanded(true)
+    } catch { /* silent */ }
+    finally { setBriefLoading(false) }
+  }
+
+  function dismissOnboard() {
+    localStorage.setItem('worktrack_onboard_dismissed', '1')
+    setOnboardDismissed(true)
+  }
+
+  function markStepDone(id: string) {
+    const updated = [...completedSteps.filter(s => s !== id), id]
+    localStorage.setItem('worktrack_onboard_completed', JSON.stringify(updated))
+    setCompletedSteps(updated)
+  }
+
   // Confetti milestones — fire once per milestone ever
   useEffect(() => {
     if (!summaryQ.data) return
@@ -255,7 +310,8 @@ export default function HomeDashboard() {
     return buildNarrative(totalHours, doneCount, blockedCount, weekGoal, firstName)
   }, [summaryQ.data, totalHours, doneCount, blockedCount, weekGoal, firstName])
 
-  const hasNoItems = !recentQ.isLoading && recentItems.length === 0
+  const hasNoItems     = !recentQ.isLoading && recentItems.length === 0
+  const showOnboarding = hasNoItems && !onboardDismissed
 
   return (
     <div className="mx-auto p-6 flex flex-col gap-6" style={{ maxWidth: '1200px' }}>
@@ -277,15 +333,13 @@ export default function HomeDashboard() {
 
       {/* ── AI Narrative strip ── */}
       {narrative && (
-        <div className="rounded-xl px-5 py-3.5 flex items-center gap-3"
-          style={{
-            background: 'rgba(99,102,241,0.06)',
-            border: '1px solid rgba(99,102,241,0.2)',
-            borderLeft: '3px solid var(--color-brand-primary)',
-          }}>
+        <GlassCard
+          className="px-5 py-3.5 flex items-center gap-3"
+          style={{ borderLeftColor: 'var(--color-brand-primary)', borderLeftWidth: 3 }}
+        >
           <Sparkles size={14} color="var(--color-brand-primary)" style={{ flexShrink: 0 }} />
           <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{narrative}</p>
-        </div>
+        </GlassCard>
       )}
 
       {/* ── KPI Strip ── */}
@@ -311,7 +365,9 @@ export default function HomeDashboard() {
                       <Icon size={13} color={stat.color} />
                     </div>
                   </div>
-                  <p className="text-2xl font-bold font-mono" style={{ color: stat.color }}>{stat.display}</p>
+                  <p className="text-2xl font-bold font-mono" style={{ color: stat.color }}>
+                    <AnimatedNumber value={stat.value} />
+                  </p>
                 </BentoCard>
               )
             })}
@@ -489,22 +545,86 @@ export default function HomeDashboard() {
         )}
       </div>
 
-      {/* ── Recent work activity ── */}
+      {/* ── Recent work / Onboarding rail ── */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <SectionLabel>Recent work</SectionLabel>
-          <Link to="/my-dashboard" style={{ fontSize: 12, color: 'var(--color-brand-primary)', textDecoration: 'none' }}>
-            View all →
-          </Link>
+          <SectionLabel>{showOnboarding ? 'Get started' : 'Recent work'}</SectionLabel>
+          {!showOnboarding && (
+            <Link to="/my-dashboard" style={{ fontSize: 12, color: 'var(--color-brand-primary)', textDecoration: 'none' }}>
+              View all →
+            </Link>
+          )}
         </div>
 
         {recentQ.isLoading ? (
           <SkeletonCard />
+        ) : showOnboarding ? (
+          /* ── Onboarding checklist ── */
+          <GlassCard accent className="p-5">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <p className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+                  🚀 Get started with WorkTrack AI
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+                  Complete these steps to unlock the full experience
+                </p>
+              </div>
+              <button onClick={dismissOnboard} aria-label="Dismiss onboarding"
+                className="rounded p-1 transition-colors"
+                style={{ color: 'var(--color-text-muted)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>
+                ✕
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-2 mb-4">
+              {ONBOARD_STEPS.map(step => {
+                const done = completedSteps.includes(step.id)
+                return (
+                  <div key={step.id} className="flex items-center gap-3 rounded-lg px-4 py-2.5"
+                    style={{
+                      background: done ? 'rgba(16,185,129,0.05)' : 'var(--color-bg-elevated)',
+                      border: `1px solid ${done ? 'rgba(16,185,129,0.2)' : 'var(--color-border-subtle)'}`,
+                    }}>
+                    <span style={{ fontSize: 18, filter: done ? 'none' : 'grayscale(100%)', opacity: done ? 1 : 0.55 }}>
+                      {done ? '✅' : step.emoji}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium"
+                        style={{ color: done ? 'var(--color-text-muted)' : 'var(--color-text-primary)', textDecoration: done ? 'line-through' : 'none' }}>
+                        {step.label}
+                      </p>
+                      <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{step.desc}</p>
+                    </div>
+                    {!done && (
+                      <Link to={step.to} onClick={() => markStepDone(step.id)}
+                        style={{ fontSize: 12, color: 'var(--color-brand-primary)', textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                        Go →
+                      </Link>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Progress bar */}
+            <div>
+              <div className="flex justify-between text-xs mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                <span>Progress</span>
+                <span>{completedSteps.length} of {ONBOARD_STEPS.length} complete</span>
+              </div>
+              <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--color-bg-elevated)' }}>
+                <div className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${(completedSteps.length / ONBOARD_STEPS.length) * 100}%`, background: 'var(--gradient-brand)' }} />
+              </div>
+            </div>
+          </GlassCard>
         ) : hasNoItems ? (
+          /* ── Post-dismiss minimal empty state ── */
           <BentoCard className="py-10 text-center">
             <Flame size={28} style={{ margin: '0 auto 8px', color: 'var(--color-text-muted)' }} />
             <p className="text-sm font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>
-              No recent work items this week.
+              No recent work items yet.
             </p>
             <Link to="/submit" className="inline-flex items-center gap-1.5 text-sm font-medium"
               style={{ color: 'var(--color-brand-primary)', textDecoration: 'none' }}>
@@ -512,6 +632,7 @@ export default function HomeDashboard() {
             </Link>
           </BentoCard>
         ) : (
+          /* ── Regular item list ── */
           <BentoCard style={{ padding: 0, overflow: 'hidden' }}>
             {recentItems.map((item, idx) => {
               const statusColor = STATUS_COLOR[item.status ?? ''] ?? '#9CA3AF'
@@ -522,7 +643,6 @@ export default function HomeDashboard() {
                   style={{ borderTop: idx === 0 ? 'none' : '1px solid var(--color-border-subtle)' }}
                   onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg-elevated)')}
                   onMouseLeave={e => (e.currentTarget.style.background = '')}>
-                  {/* Category colour dot */}
                   <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: catColor }} title={item.work_category} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>
@@ -545,6 +665,72 @@ export default function HomeDashboard() {
           </BentoCard>
         )}
       </div>
+
+      {/* ── AI Weekly Brief ── */}
+      <GlassCard accent>
+        <div className="flex items-center justify-between px-5 py-4"
+          style={{ borderBottom: briefExpanded && !!brief ? '1px solid var(--color-border-subtle)' : 'none' }}>
+          <div className="flex items-center gap-2.5">
+            <Sparkles size={14} color="var(--color-brand-primary)" />
+            <div>
+              <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>AI Weekly Brief</p>
+              {brief?.ts ? (
+                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                  Generated {new Date(brief.ts).toLocaleDateString()} at {new Date(brief.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              ) : (
+                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                  AI summary of your week's work
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {brief && !briefLoading && (
+              <button onClick={() => setBriefExpanded(o => !o)}
+                className="text-xs rounded-md px-3 py-1.5 transition-colors"
+                style={{ background: 'var(--color-bg-elevated)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border-subtle)', cursor: 'pointer' }}>
+                {briefExpanded ? '▲ Collapse' : '▼ Expand'}
+              </button>
+            )}
+            <button onClick={generateBrief} disabled={briefLoading} aria-label={brief ? 'Refresh brief' : 'Generate brief'}
+              className="text-xs rounded-md px-3 py-1.5 transition-colors"
+              style={{ background: briefLoading ? 'var(--color-bg-elevated)' : 'rgba(99,102,241,0.1)', color: 'var(--color-brand-primary)', border: '1px solid rgba(99,102,241,0.2)', cursor: briefLoading ? 'not-allowed' : 'pointer', opacity: briefLoading ? 0.6 : 1 }}>
+              {briefLoading ? '…' : brief ? '↻ Refresh' : '✦ Generate Brief'}
+            </button>
+          </div>
+        </div>
+
+        {briefLoading && (
+          <div className="px-5 py-4 flex items-center gap-2 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+            Generating your weekly brief
+            {[0, 1, 2].map(i => (
+              <motion.span key={i} className="inline-block w-1 h-1 rounded-full"
+                style={{ background: 'var(--color-brand-primary)' }}
+                animate={{ opacity: [0.3, 1, 0.3] }}
+                transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }} />
+            ))}
+          </div>
+        )}
+
+        {!brief && !briefLoading && (
+          <p className="px-5 py-4 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+            Generate an AI-powered summary of your week — what you accomplished, where you're blocked, and what to focus on next.
+          </p>
+        )}
+
+        {briefExpanded && brief && !briefLoading && (
+          <div className="px-5 py-4">
+            <div className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{brief.text}</ReactMarkdown>
+            </div>
+            <p className="text-xs mt-3 pt-3 flex items-center gap-1"
+              style={{ color: 'var(--color-text-muted)', borderTop: '1px solid var(--color-border-subtle)' }}>
+              <Sparkles size={10} /> Generated by WorkTrack AI
+            </p>
+          </div>
+        )}
+      </GlassCard>
 
       {/* ── Sticky insight bar — slides in when KPI strip scrolls out of view ── */}
       <AnimatePresence>

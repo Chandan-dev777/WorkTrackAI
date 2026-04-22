@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { User, Palette, LogOut, Shield, Info, Target, Lock } from 'lucide-react'
+import { User, Palette, LogOut, Shield, Info, Target, Lock, Bell, Globe } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/store/authStore'
 import { useThemeStore } from '@/store/themeStore'
@@ -16,17 +16,41 @@ function loadGoal(): number {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Section = 'profile' | 'appearance' | 'goals' | 'security' | 'account'
+type Section = 'profile' | 'appearance' | 'goals' | 'notifications' | 'preferences' | 'security' | 'account'
 
 interface NavItem { id: Section; label: string; icon: React.ElementType }
 
 const NAV: NavItem[] = [
-  { id: 'profile',    label: 'Profile',    icon: User    },
-  { id: 'appearance', label: 'Appearance', icon: Palette },
-  { id: 'goals',      label: 'Goals',      icon: Target  },
-  { id: 'security',   label: 'Security',   icon: Lock    },
-  { id: 'account',    label: 'Account',    icon: Shield  },
+  { id: 'profile',       label: 'Profile',       icon: User    },
+  { id: 'appearance',    label: 'Appearance',    icon: Palette },
+  { id: 'goals',         label: 'Goals',         icon: Target  },
+  { id: 'notifications', label: 'Notifications', icon: Bell    },
+  { id: 'preferences',   label: 'Preferences',   icon: Globe   },
+  { id: 'security',      label: 'Security',      icon: Lock    },
+  { id: 'account',       label: 'Account',       icon: Shield  },
 ]
+
+// ── Notification + timezone helpers ───────────────────────────────────────────
+
+const NOTIF_KEY = 'worktrack_notif_prefs'
+const TZ_KEY    = 'worktrack_timezone'
+
+function loadNotifPrefs() {
+  try { return JSON.parse(localStorage.getItem(NOTIF_KEY) ?? '{}') } catch { return {} }
+}
+
+const COMMON_TIMEZONES = [
+  'UTC',
+  'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
+  'America/Toronto',  'America/Vancouver', 'America/Sao_Paulo', 'America/Mexico_City',
+  'Europe/London',    'Europe/Paris',    'Europe/Berlin',    'Europe/Amsterdam',
+  'Europe/Rome',      'Europe/Madrid',   'Europe/Stockholm', 'Europe/Warsaw',
+  'Europe/Istanbul',  'Europe/Moscow',
+  'Asia/Dubai',       'Asia/Kolkata',    'Asia/Bangkok',     'Asia/Singapore',
+  'Asia/Shanghai',    'Asia/Tokyo',      'Asia/Seoul',       'Asia/Jakarta',
+  'Australia/Sydney', 'Australia/Melbourne', 'Pacific/Auckland',
+  'Africa/Cairo',     'Africa/Johannesburg', 'Africa/Lagos',
+] as const
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -65,6 +89,21 @@ export default function SettingsPage() {
   const [newPw, setNewPw]                 = useState('')
   const [confirmPw, setConfirmPw]         = useState('')
   const [changingPw, setChangingPw]       = useState(false)
+
+  // Notification preferences (localStorage-backed)
+  const [emailDigest,   setEmailDigest]   = useState<'off' | 'daily' | 'weekly'>(() => loadNotifPrefs().emailDigest   ?? 'off')
+  const [reminderTime,  setReminderTime]  = useState<string>(() => loadNotifPrefs().reminderTime  ?? '09:00')
+  const [browserNotifs, setBrowserNotifs] = useState<boolean>(() => loadNotifPrefs().browserNotifs ?? false)
+
+  // Timezone preference (localStorage-backed)
+  const [timezone, setTimezone] = useState<string>(
+    () => localStorage.getItem(TZ_KEY) ?? Intl.DateTimeFormat().resolvedOptions().timeZone
+  )
+
+  function saveNotifPrefs(patch: Partial<{ emailDigest: string; reminderTime: string; browserNotifs: boolean }>) {
+    const next = { emailDigest, reminderTime, browserNotifs, ...patch }
+    localStorage.setItem(NOTIF_KEY, JSON.stringify(next))
+  }
 
   async function handleChangePassword() {
     if (newPw.length < 8) { toast.error('New password must be at least 8 characters'); return }
@@ -276,6 +315,110 @@ export default function SettingsPage() {
                   <GoalRing current={Math.round(weeklyGoal * 0.65)} target={weeklyGoal} label="Preview" size={100} />
                   <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Live preview</span>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── NOTIFICATIONS ── */}
+          {activeSection === 'notifications' && (
+            <div style={sectionCard}>
+              <h2 className="text-base font-semibold mb-1" style={{ color: 'var(--color-text-primary)' }}>Notifications</h2>
+              <p className="text-xs mb-6" style={{ color: 'var(--color-text-secondary)' }}>
+                Control how and when WorkTrack AI notifies you about your work activity.
+              </p>
+
+              {/* Email digest */}
+              <div style={{ paddingBottom: 20, marginBottom: 20, borderBottom: '1px solid var(--color-border-subtle)' }}>
+                <p className="text-sm font-medium mb-3" style={{ color: 'var(--color-text-primary)' }}>Email Digest</p>
+                <div className="flex flex-col gap-2">
+                  {(['off', 'daily', 'weekly'] as const).map(opt => (
+                    <label key={opt} className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="emailDigest"
+                        value={opt}
+                        checked={emailDigest === opt}
+                        onChange={() => { setEmailDigest(opt); saveNotifPrefs({ emailDigest: opt }) }}
+                        style={{ accentColor: 'var(--color-brand-primary)' }}
+                      />
+                      <span className="text-sm" style={{ color: 'var(--color-text-primary)', textTransform: 'capitalize' }}>
+                        {opt === 'off' ? 'Off — no email digest' : opt === 'daily' ? 'Daily — sent each morning' : 'Weekly — sent every Monday'}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Daily reminder time */}
+              <div style={{ paddingBottom: 20, marginBottom: 20, borderBottom: '1px solid var(--color-border-subtle)' }}>
+                <label htmlFor="reminder-time" className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>
+                  Daily Reminder Time
+                </label>
+                <p className="text-xs mb-3" style={{ color: 'var(--color-text-secondary)' }}>
+                  A reminder to submit your daily work update.
+                </p>
+                <input
+                  id="reminder-time"
+                  type="time"
+                  value={reminderTime}
+                  onChange={e => { setReminderTime(e.target.value); saveNotifPrefs({ reminderTime: e.target.value }) }}
+                  className="rounded-lg px-3 py-2 text-sm"
+                  style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)', outline: 'none' }}
+                />
+              </div>
+
+              {/* Browser notifications */}
+              <div>
+                <p className="text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>Browser Notifications</p>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={browserNotifs}
+                    onChange={e => { setBrowserNotifs(e.target.checked); saveNotifPrefs({ browserNotifs: e.target.checked }) }}
+                    style={{ accentColor: 'var(--color-brand-primary)', width: 16, height: 16 }}
+                  />
+                  <div>
+                    <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}>Enable browser notifications</span>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+                      Requires browser permission. For future Web Push support.
+                    </p>
+                  </div>
+                </label>
+              </div>
+            </div>
+          )}
+
+          {/* ── PREFERENCES ── */}
+          {activeSection === 'preferences' && (
+            <div style={sectionCard}>
+              <h2 className="text-base font-semibold mb-1" style={{ color: 'var(--color-text-primary)' }}>Preferences</h2>
+              <p className="text-xs mb-6" style={{ color: 'var(--color-text-secondary)' }}>
+                Regional and display preferences for your WorkTrack AI workspace.
+              </p>
+
+              {/* Timezone */}
+              <div>
+                <label htmlFor="timezone-select" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--color-text-primary)' }}>
+                  Timezone
+                </label>
+                <p className="text-xs mb-3" style={{ color: 'var(--color-text-secondary)' }}>
+                  Used to display work dates and times in your local time.
+                </p>
+                <select
+                  id="timezone-select"
+                  aria-label="Timezone"
+                  value={timezone}
+                  onChange={e => { setTimezone(e.target.value); localStorage.setItem(TZ_KEY, e.target.value); toast.success('Timezone saved') }}
+                  className="rounded-lg px-3 py-2 text-sm"
+                  style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)', outline: 'none', minWidth: 280 }}
+                >
+                  {COMMON_TIMEZONES.map(tz => (
+                    <option key={tz} value={tz}>{tz.replace(/_/g, ' ')}</option>
+                  ))}
+                </select>
+                <p className="text-xs mt-3" style={{ color: 'var(--color-text-muted)' }}>
+                  Detected: {Intl.DateTimeFormat().resolvedOptions().timeZone}
+                </p>
               </div>
             </div>
           )}

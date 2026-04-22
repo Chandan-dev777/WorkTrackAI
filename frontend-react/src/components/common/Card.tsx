@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { Clock, BarChart3, Users, AlertCircle, type LucideProps } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import { Sparkline } from '@/components/charts/Sparkline'
+import { AnimatedNumber } from './AnimatedNumber'
 
 type IconName = 'clock' | 'chart' | 'users' | 'alert'
 type LucideFC = React.ForwardRefExoticComponent<Omit<LucideProps, 'ref'> & React.RefAttributes<SVGSVGElement>>
@@ -127,7 +128,7 @@ export function MetricCard({ label, value, trend, icon, accent = 'brand', sparkl
       </div>
       <div className="flex items-end justify-between gap-2">
         <p className="text-2xl font-bold font-mono" style={{ color: 'var(--color-text-primary)' }}>
-          {value}
+          {typeof value === 'number' ? <AnimatedNumber value={value} /> : value}
         </p>
         {sparklineData && sparklineData.length >= 2 && (
           <Sparkline

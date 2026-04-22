@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { http, HttpResponse } from 'msw'
@@ -42,6 +42,7 @@ function renderPage() {
 }
 
 beforeEach(() => {
+  localStorage.clear()
   useAuthStore.getState().login('mock-token', employeeUser)
 })
 
@@ -130,12 +131,67 @@ describe('HomeDashboard — recent work items', () => {
     renderPage()
     expect(await screen.findByText('Fixed auth bug')).toBeInTheDocument()
   })
+})
 
-  it('shows empty state when no work items exist', async () => {
+// ── AI WEEKLY BRIEF ───────────────────────────────────────────────────────────
+
+describe('HomeDashboard — AI Weekly Brief', () => {
+  it('renders the AI Weekly Brief section', async () => {
+    renderPage()
+    expect(await screen.findByText(/ai weekly brief/i)).toBeInTheDocument()
+  })
+
+  it('shows Generate Brief button when no brief cached', async () => {
+    renderPage()
+    await screen.findByText(/ai weekly brief/i)
+    expect(screen.getByRole('button', { name: /generate brief/i })).toBeInTheDocument()
+  })
+
+  it('clicking Generate Brief fetches from chat API and shows content', async () => {
+    renderPage()
+    await screen.findByText(/ai weekly brief/i)
+    fireEvent.click(screen.getByRole('button', { name: /generate brief/i }))
+    await waitFor(() => {
+      expect(screen.getByText(/here is the answer to/i)).toBeInTheDocument()
+    })
+  })
+})
+
+// ── ONBOARDING RAIL ───────────────────────────────────────────────────────────
+
+describe('HomeDashboard — onboarding rail', () => {
+  it('shows onboarding rail when no work items exist', async () => {
     server.use(http.get('/worklogs/my', () => HttpResponse.json([])))
     renderPage()
     await waitFor(() => {
-      expect(screen.queryByText(/no recent work items/i)).toBeInTheDocument()
+      expect(screen.getByText(/get started with worktrack ai/i)).toBeInTheDocument()
+    })
+  })
+
+  it('onboarding rail shows all 4 steps', async () => {
+    server.use(http.get('/worklogs/my', () => HttpResponse.json([])))
+    renderPage()
+    await waitFor(() => screen.getByText(/get started with worktrack ai/i))
+    expect(screen.getByText(/submit your first work update/i)).toBeInTheDocument()
+    expect(screen.getByText(/review the extracted items/i)).toBeInTheDocument()
+    expect(screen.getByText(/ask worktrack ai a question/i)).toBeInTheDocument()
+    expect(screen.getByText(/explore your dashboard/i)).toBeInTheDocument()
+  })
+
+  it('onboarding rail shows progress bar', async () => {
+    server.use(http.get('/worklogs/my', () => HttpResponse.json([])))
+    renderPage()
+    await waitFor(() => screen.getByText(/get started with worktrack ai/i))
+    expect(screen.getByText(/0 of 4 complete/i)).toBeInTheDocument()
+  })
+
+  it('dismissing onboarding shows minimal empty state', async () => {
+    server.use(http.get('/worklogs/my', () => HttpResponse.json([])))
+    renderPage()
+    await waitFor(() => screen.getByText(/get started with worktrack ai/i))
+    fireEvent.click(screen.getByRole('button', { name: /dismiss onboarding/i }))
+    await waitFor(() => {
+      expect(screen.queryByText(/get started with worktrack ai/i)).not.toBeInTheDocument()
     })
   })
 })

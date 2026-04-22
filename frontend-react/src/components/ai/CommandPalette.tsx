@@ -145,10 +145,12 @@ export function CommandPalette() {
         style={{
           position: 'fixed', top: '18%', left: '50%', transform: 'translateX(-50%)',
           zIndex: 1001, width: '100%', maxWidth: 640,
-          background: 'var(--color-bg-surface)',
+          background: 'var(--color-bg-overlay)',
+          backdropFilter: 'blur(16px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(16px) saturate(180%)',
           border: '1px solid var(--color-border-default)',
           borderRadius: 16,
-          boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06)',
           overflow: 'hidden',
           animation: 'scale-in 180ms cubic-bezier(0.16,1,0.3,1)',
         }}>

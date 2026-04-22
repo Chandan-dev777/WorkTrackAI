@@ -4,6 +4,7 @@ import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Users, AlertCircle, UserCheck, Lock, Sparkles, X, RefreshCw, ChevronRight } from 'lucide-react'
+import { GlassCard } from '@/components/common/GlassCard'
 import { useAuthStore } from '@/store/authStore'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import { dashboardApi } from '@/api/dashboard'
@@ -635,8 +636,7 @@ export default function TeamDashboardPage() {
           )}
 
           {/* Who Needs Help AI card */}
-          <div className="mt-4 rounded-xl overflow-hidden"
-            style={{ background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.2)' }}>
+          <GlassCard className="mt-4 overflow-hidden" style={{ borderColor: 'rgba(139,92,246,0.25)' }}>
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-2.5"
               style={{ borderBottom: aiHelpResult || aiHelpLoading ? '1px solid rgba(139,92,246,0.15)' : 'none' }}>
@@ -712,7 +712,7 @@ export default function TeamDashboardPage() {
                 </div>
               </div>
             )}
-          </div>
+          </GlassCard>
         </section>
       </div>
 

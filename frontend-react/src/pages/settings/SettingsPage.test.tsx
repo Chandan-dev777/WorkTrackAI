@@ -115,6 +115,60 @@ describe('SettingsPage — Appearance section', () => {
   })
 })
 
+// ── NOTIFICATIONS SECTION ─────────────────────────────────────────────────────
+
+describe('SettingsPage — Notifications section', () => {
+  it('navigates to Notifications section on click', () => {
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: /notifications/i }))
+    expect(screen.getByText('Email Digest')).toBeInTheDocument()
+  })
+
+  it('shows daily and weekly email digest options', () => {
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: /notifications/i }))
+    expect(screen.getByText(/daily.*sent each morning/i)).toBeInTheDocument()
+    expect(screen.getByText(/weekly.*sent every monday/i)).toBeInTheDocument()
+  })
+
+  it('shows daily reminder time input', () => {
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: /notifications/i }))
+    expect(screen.getByLabelText(/reminder time/i)).toBeInTheDocument()
+  })
+
+  it('shows browser notifications checkbox', () => {
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: /notifications/i }))
+    expect(screen.getByText(/enable browser notifications/i)).toBeInTheDocument()
+  })
+})
+
+// ── PREFERENCES SECTION ───────────────────────────────────────────────────────
+
+describe('SettingsPage — Preferences section', () => {
+  it('navigates to Preferences section on click', () => {
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: /preferences/i }))
+    expect(screen.getByText(/timezone/i)).toBeInTheDocument()
+  })
+
+  it('shows UTC option in timezone selector', () => {
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: /preferences/i }))
+    expect(screen.getByRole('combobox', { name: /timezone/i })).toBeInTheDocument()
+    expect(screen.getByText('UTC')).toBeInTheDocument()
+  })
+
+  it('changing timezone saves to localStorage and shows toast', () => {
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: /preferences/i }))
+    const select = screen.getByRole('combobox', { name: /timezone/i })
+    fireEvent.change(select, { target: { value: 'Europe/London' } })
+    expect(localStorage.getItem('worktrack_timezone')).toBe('Europe/London')
+  })
+})
+
 // ── ACCOUNT SECTION ───────────────────────────────────────────────────────────
 
 describe('SettingsPage — Account section', () => {
