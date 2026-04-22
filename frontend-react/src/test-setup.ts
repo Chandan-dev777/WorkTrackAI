@@ -5,6 +5,16 @@ import { server } from './mocks/server'
 // canvas-confetti uses rAF + canvas APIs unavailable in jsdom — stub it out
 vi.mock('canvas-confetti', () => ({ default: vi.fn() }))
 
+// IntersectionObserver is not available in jsdom — stub it out globally
+if (typeof window !== 'undefined' && !window.IntersectionObserver) {
+  // @ts-expect-error — jsdom stub
+  window.IntersectionObserver = class {
+    observe()    { /* noop */ }
+    unobserve()  { /* noop */ }
+    disconnect() { /* noop */ }
+  }
+}
+
 beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }))
 afterEach(() => server.resetHandlers())
 afterAll(() => server.close())

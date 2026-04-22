@@ -46,7 +46,7 @@ describe('CommandPalette', () => {
   it('shows page navigation items', () => {
     act(() => useUIStore.getState().openCommandPalette())
     renderPalette()
-    expect(screen.getByText('Dashboard')).toBeInTheDocument()
+    expect(screen.getByText('Home Dashboard')).toBeInTheDocument()
     expect(screen.getByText('Submit Update')).toBeInTheDocument()
     expect(screen.getByText('My Dashboard')).toBeInTheDocument()
     expect(screen.getByText('Chat Assistant')).toBeInTheDocument()
@@ -63,7 +63,7 @@ describe('CommandPalette', () => {
     renderPalette()
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'chat' } })
     expect(screen.getByText('Chat Assistant')).toBeInTheDocument()
-    expect(screen.queryByText('Dashboard')).not.toBeInTheDocument()
+    expect(screen.queryByText('Home Dashboard')).not.toBeInTheDocument()
   })
 
   it('pressing Escape closes the palette', async () => {
@@ -88,7 +88,7 @@ describe('CommandPalette', () => {
   it('clicking a result closes the palette', async () => {
     act(() => useUIStore.getState().openCommandPalette())
     renderPalette()
-    fireEvent.click(screen.getByText('Dashboard'))
+    fireEvent.click(screen.getByText('Home Dashboard'))
     await waitFor(() => {
       expect(useUIStore.getState().commandPaletteOpen).toBe(false)
     })

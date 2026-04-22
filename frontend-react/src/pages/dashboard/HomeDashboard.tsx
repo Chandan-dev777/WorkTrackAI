@@ -1,6 +1,6 @@
-import { useMemo } from 'react'
+import { useMemo, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import {
   PlusCircle, MessageSquare, BarChart3, Users, Shield,
@@ -127,6 +127,18 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 export default function HomeDashboard() {
   const user      = useAuthStore(s => s.user)
+  const kpiRef    = useRef<HTMLDivElement>(null)
+  const [stickyVisible, setStickyVisible] = useState(false)
+
+  // Show sticky bar when KPI section scrolls out of view
+  useEffect(() => {
+    const el = kpiRef.current
+    if (!el) return
+    const obs = new IntersectionObserver(([entry]) => setStickyVisible(!entry.isIntersecting), { threshold: 0 })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
+
   const userRole  = (user?.role ?? 'employee') as Role
   const firstName = user?.full_name.split(' ')[0] ?? 'there'
   const weekGoal  = getWeeklyGoal()
@@ -224,7 +236,7 @@ export default function HomeDashboard() {
       )}
 
       {/* ── KPI Strip ── */}
-      <div>
+      <div ref={kpiRef}>
         <SectionLabel>This week</SectionLabel>
         {summaryQ.isLoading ? (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -446,6 +458,42 @@ export default function HomeDashboard() {
           </BentoCard>
         )}
       </div>
+
+      {/* ── Sticky insight bar — slides in when KPI strip scrolls out of view ── */}
+      <AnimatePresence>
+        {stickyVisible && summaryQ.data && (
+          <motion.div
+            key="sticky-bar"
+            initial={{ y: -40, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -40, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+            style={{
+              position: 'fixed', top: 56, left: 0, right: 0, zIndex: 30,
+              background: 'var(--color-bg-surface)',
+              borderBottom: '1px solid var(--color-border-default)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            }}>
+            <div className="mx-auto flex items-center gap-6 px-6 py-2" style={{ maxWidth: 1100 }}>
+              <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>This week</span>
+              <span className="text-sm font-bold font-mono" style={{ color: 'var(--color-brand-primary)' }}>
+                {totalHours.toFixed(1)}h
+              </span>
+              <span className="text-xs" style={{ color: '#10B981' }}>✓ {doneCount} done</span>
+              {blockedCount > 0 && (
+                <span className="text-xs" style={{ color: '#F43F5E' }}>⚠ {blockedCount} blocked</span>
+              )}
+              <span className="text-xs" style={{ color: 'var(--color-text-muted)', marginLeft: 'auto' }}>
+                {Math.round((totalHours / weekGoal) * 100)}% of {weekGoal}h goal
+              </span>
+              <Link to="/submit" className="text-xs font-medium rounded-md px-3 py-1"
+                style={{ background: 'var(--color-brand-primary)', color: '#fff', textDecoration: 'none' }}>
+                + Submit
+              </Link>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

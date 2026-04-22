@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
-import { Pencil } from 'lucide-react'
+import { Pencil, Download } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { dashboardApi } from '@/api/dashboard'
 import { worklogsApi } from '@/api/worklogs'
@@ -61,6 +61,28 @@ const cellStyle: React.CSSProperties = {
 }
 
 // StatusBadge now comes from shared WorkStatusBadge component
+
+// ── CSV export ────────────────────────────────────────────────────────────────
+
+import type { WorkItem } from '@/types/models'
+
+function exportToCSV(items: WorkItem[], startDate: string, endDate: string) {
+  const headers = ['Date', 'Description', 'Category', 'Hours', 'Status', 'Priority', 'Project', 'Ticket ID', 'Blockers', 'Next Steps']
+  const esc = (s: string | null | undefined) => `"${(s ?? '').replace(/"/g, '""')}"`
+  const rows = items.map(i => [
+    i.work_date, esc(i.task_description), i.work_category,
+    i.hours_spent ?? '', i.status ?? '', i.priority ?? '',
+    esc(i.project_name), esc(i.ticket_id), esc(i.blockers), esc(i.next_steps),
+  ].join(','))
+  const csv = [headers.join(','), ...rows].join('\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url  = URL.createObjectURL(blob)
+  const a    = document.createElement('a')
+  a.href = url
+  a.download = `worktrack-logs-${startDate}-to-${endDate}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
@@ -154,11 +176,27 @@ export default function DashboardPage() {
               : 'Loading your work summary…'}
           </p>
         </div>
-        <Link to="/submit"
-          className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold"
-          style={{ background: 'var(--color-brand-primary)', color: '#fff', textDecoration: 'none' }}>
-          + Submit Update
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => exportToCSV(allItems, startDate, endDate)}
+            disabled={allItems.length === 0}
+            aria-label="Export to CSV"
+            className="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-all"
+            style={{
+              border: '1px solid var(--color-border-default)',
+              color: allItems.length > 0 ? 'var(--color-text-secondary)' : 'var(--color-text-muted)',
+              background: 'var(--color-bg-surface)',
+              opacity: allItems.length > 0 ? 1 : 0.5,
+              cursor: allItems.length > 0 ? 'pointer' : 'not-allowed',
+            }}>
+            <Download size={13} /> Export CSV
+          </button>
+          <Link to="/submit"
+            className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold"
+            style={{ background: 'var(--color-brand-primary)', color: '#fff', textDecoration: 'none' }}>
+            + Submit Update
+          </Link>
+        </div>
       </div>
 
       {/* Zone 2 — Date Range Filter */}
