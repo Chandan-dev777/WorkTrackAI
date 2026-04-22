@@ -64,8 +64,6 @@ const cellStyle: React.CSSProperties = {
 
 // ── CSV export ────────────────────────────────────────────────────────────────
 
-import type { WorkItem } from '@/types/models'
-
 function exportToCSV(items: WorkItem[], startDate: string, endDate: string) {
   const headers = ['Date', 'Description', 'Category', 'Hours', 'Status', 'Priority', 'Project', 'Ticket ID', 'Blockers', 'Next Steps']
   const esc = (s: string | null | undefined) => `"${(s ?? '').replace(/"/g, '""')}"`

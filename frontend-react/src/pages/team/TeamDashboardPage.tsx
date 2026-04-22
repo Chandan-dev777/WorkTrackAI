@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { Users, Clock, AlertCircle, UserCheck, Lock, Sparkles, X, RefreshCw, ChevronRight } from 'lucide-react'
+import { Users, AlertCircle, UserCheck, Lock, Sparkles, X, RefreshCw, ChevronRight } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import { dashboardApi } from '@/api/dashboard'
@@ -70,7 +70,6 @@ export default function TeamDashboardPage() {
   const [memberView, setMemberView]       = useState<'top3' | 'all'>('top3')
   const [workloadView, setWorkloadView]   = useState<'top5' | 'all'>('top5')
   const [drawerEmployee, setDrawerEmployee] = useState<string | null>(null)
-  const [aiHelpOpen, setAiHelpOpen]       = useState(false)
   const [aiHelpResult, setAiHelpResult]   = useState<string | null>(null)
   const [aiHelpLoading, setAiHelpLoading] = useState(false)
 
