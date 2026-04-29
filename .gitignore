@@ -17,7 +17,7 @@ build/
 venv/
 env/
 
-# Data
+# Data (runtime-generated)
 data/worktrack.db
 data/chroma/
 
@@ -29,6 +29,20 @@ htmlcov/
 # IDE
 .vscode/
 .idea/
+*.sw?
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (frontend-react)
+frontend-react/node_modules/
+frontend-react/dist/
+frontend-react/*.timestamp-*
+
+# Claude Code
+.claude/
 
 # Temp scripts
 test_llm.py
+make_ppt.py
