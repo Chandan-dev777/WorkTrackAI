@@ -1,0 +1,49 @@
+# WorkTrack AI — Uptimize Deployment Pipeline
+
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: "ubuntu-22.04"
+
+variables:
+  isMain: $[eq(variables['Build.SourceBranch'], 'refs/heads/main')]
+
+resources:
+  repositories:
+    - repository: templates
+      name: "factory-appservice-nreg-ec1/factory-appservice-nreg-ec1"
+      type: git
+      ref: refs/heads/master
+
+stages:
+  - stage: BuildAndPushDev
+    displayName: "Build & Deploy to Dev"
+    jobs:
+      - job: BuildAndDeploy
+        steps:
+          - template: pipeline-templates/aws-login.yml@templates
+            parameters:
+              AppDestinationId: "YOUR-APP-DESTINATION-ID-HERE"  # ← Replace with your App ID from Uptimize
+
+          - template: pipeline-templates/docker-login.yml@templates
+
+          - bash: |
+              docker build \
+                --pull \
+                --cache-from $(AWS_ACCOUNT_ID).dkr.ecr.eu-central-1.amazonaws.com/$(APP_ID):main \
+                -t $(AWS_ACCOUNT_ID).dkr.ecr.eu-central-1.amazonaws.com/$(APP_ID):main \
+                -t docker-image:snapshot \
+                .
+            displayName: "Build Docker Image"
+            env:
+              DOCKER_BUILDKIT: "1"
+              BUILDKIT_PROGRESS: "plain"
+
+          - bash: |
+              docker tag docker-image:snapshot $(AWS_ACCOUNT_ID).dkr.ecr.eu-central-1.amazonaws.com/$(APP_DESTINATION_ID):main
+              docker push $(AWS_ACCOUNT_ID).dkr.ecr.eu-central-1.amazonaws.com/$(APP_DESTINATION_ID):main
+            displayName: "Push to ECR"
+            condition: and(succeeded(), eq(variables.isMain, 'true'))
