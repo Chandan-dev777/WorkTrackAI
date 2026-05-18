@@ -46,3 +46,4 @@ frontend-react/*.timestamp-*
 # Temp scripts
 test_llm.py
 make_ppt.py
+.worktrees/

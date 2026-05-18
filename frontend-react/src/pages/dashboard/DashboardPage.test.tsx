@@ -1,9 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { http, HttpResponse } from 'msw'
-import { server } from '@/mocks/server'
 import { useAuthStore } from '@/store/authStore'
 import DashboardPage from './DashboardPage'
 import type { User } from '@/types/models'
@@ -69,7 +67,6 @@ describe('DashboardPage — metric cards', () => {
 
   it('renders Blocked label', async () => {
     renderPage()
-    // Multiple "blocked" elements may exist (MetricCard + DonutChart legend)
     const blocked = await screen.findAllByText(/^blocked$/i)
     expect(blocked.length).toBeGreaterThan(0)
   })
@@ -82,7 +79,6 @@ describe('DashboardPage — metric cards', () => {
   it('displays done count (12) from API', async () => {
     renderPage()
     await screen.findByText('42.5')
-    // MetricCard + BenchmarkCard both render "12" — use getAllByText
     expect(screen.getAllByText('12').length).toBeGreaterThan(0)
   })
 })
@@ -135,98 +131,26 @@ describe('DashboardPage — charts', () => {
   })
 })
 
-// ── WORK ITEMS TABLE ──────────────────────────────────────────────────────────
+// ── NAVIGATION STRIP ─────────────────────────────────────────────────────────
 
-describe('DashboardPage — work items table', () => {
-  it('shows work item descriptions from API', async () => {
+describe('DashboardPage — navigation strip', () => {
+  it('renders Manage Tasks link to /tasks', async () => {
     renderPage()
-    expect(await screen.findByText('Fixed auth bug')).toBeInTheDocument()
-    expect(screen.getByText('Sprint planning meeting')).toBeInTheDocument()
-    expect(screen.getByText('Code review session')).toBeInTheDocument()
+    await screen.findByText(/total hours/i)
+    const link = screen.getByRole('link', { name: /manage tasks/i })
+    expect(link).toHaveAttribute('href', '/tasks')
   })
 
-  it('search input filters rows by description', async () => {
+  it('renders View Projects link to /projects', async () => {
     renderPage()
-    await screen.findByText('Fixed auth bug')
-    fireEvent.change(screen.getByRole('textbox', { name: /search/i }), { target: { value: 'sprint' } })
-    await waitFor(() => {
-      expect(screen.queryByText('Fixed auth bug')).not.toBeInTheDocument()
-      expect(screen.getByText('Sprint planning meeting')).toBeInTheDocument()
-    })
+    await screen.findByText(/total hours/i)
+    const link = screen.getByRole('link', { name: /view projects/i })
+    expect(link).toHaveAttribute('href', '/projects')
   })
 
-  it('category filter hides non-matching rows', async () => {
+  it('no work items table present (moved to Tasks page)', async () => {
     renderPage()
-    await screen.findByText('Fixed auth bug')
-    fireEvent.change(screen.getByRole('combobox', { name: /filter by category/i }), { target: { value: 'meeting' } })
-    await waitFor(() => {
-      expect(screen.queryByText('Fixed auth bug')).not.toBeInTheDocument()
-      expect(screen.getByText('Sprint planning meeting')).toBeInTheDocument()
-    })
-  })
-
-  it('status filter hides non-matching rows', async () => {
-    renderPage()
-    await screen.findByText('Fixed auth bug')
-    fireEvent.change(screen.getByRole('combobox', { name: /filter by status/i }), { target: { value: 'in_progress' } })
-    await waitFor(() => {
-      expect(screen.queryByText('Fixed auth bug')).not.toBeInTheDocument()
-      expect(screen.getByText('Code review session')).toBeInTheDocument()
-    })
-  })
-
-  it('clicking edit button shows hours spinbutton for inline edit', async () => {
-    renderPage()
-    await screen.findByText('Fixed auth bug')
-    fireEvent.click(screen.getAllByRole('button', { name: /edit/i })[0])
-    expect(screen.getByRole('spinbutton', { name: /hours/i })).toBeInTheDocument()
-  })
-
-  it('cancel button hides the inline edit input', async () => {
-    renderPage()
-    await screen.findByText('Fixed auth bug')
-    fireEvent.click(screen.getAllByRole('button', { name: /edit/i })[0])
-    expect(screen.getByRole('spinbutton', { name: /hours/i })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /^cancel$/i }))
-    expect(screen.queryByRole('spinbutton', { name: /hours/i })).not.toBeInTheDocument()
-  })
-
-  it('save calls PUT /worklogs/{id} with updated hours', async () => {
-    let capturedId: string | undefined
-    server.use(
-      http.put('/worklogs/:id', ({ params }) => {
-        capturedId = params.id as string
-        return HttpResponse.json({ id: params.id, hours_spent: 5 })
-      })
-    )
-    renderPage()
-    await screen.findByText('Fixed auth bug')
-    fireEvent.click(screen.getAllByRole('button', { name: /edit/i })[0])
-    fireEvent.change(screen.getByRole('spinbutton', { name: /hours/i }), { target: { value: '5' } })
-    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
-    await waitFor(() => expect(capturedId).toBe('wi-001'))
-  })
-
-  it('save error shows inline error message', async () => {
-    server.use(
-      http.put('/worklogs/:id', () => HttpResponse.json({ detail: 'Server error' }, { status: 500 }))
-    )
-    renderPage()
-    await screen.findByText('Fixed auth bug')
-    fireEvent.click(screen.getAllByRole('button', { name: /edit/i })[0])
-    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
-    await waitFor(() => expect(screen.queryByText(/failed|error/i)).toBeInTheDocument())
-  })
-})
-
-// ── EMPTY STATE ───────────────────────────────────────────────────────────────
-
-describe('DashboardPage — empty state', () => {
-  it('renders empty state message when no work items', async () => {
-    server.use(http.get('/worklogs/my', () => HttpResponse.json([])))
-    renderPage()
-    await waitFor(() => {
-      expect(screen.queryByText(/no work items|submit your first/i)).toBeInTheDocument()
-    })
+    await screen.findByText(/total hours/i)
+    expect(screen.queryByRole('table', { name: /work items/i })).not.toBeInTheDocument()
   })
 })

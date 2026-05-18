@@ -5,7 +5,7 @@ import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import {
   PlusCircle, MessageSquare, BarChart3, Users, Shield,
   Clock, CheckCircle, AlertCircle, Sparkles, Flame,
-  AlertTriangle, ArrowRight,
+  AlertTriangle, ArrowRight, ListTodo, FolderKanban,
 } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -141,7 +141,9 @@ interface ActionItem {
 const ACTIONS: ActionItem[] = [
   { label: 'Submit Update',  to: '/submit',       icon: PlusCircle,    description: 'Log what you worked on',        style: 'primary',   minRole: 'employee' },
   { label: 'Chat Assistant', to: '/chat',         icon: MessageSquare, description: 'Ask about your work data',      style: 'ai',        minRole: 'employee' },
-  { label: 'My Dashboard',   to: '/my-dashboard', icon: BarChart3,     description: 'Analytics & work items',        style: 'secondary', minRole: 'employee' },
+  { label: 'Tasks',          to: '/tasks',        icon: ListTodo,      description: 'View & update your task list',  style: 'secondary', minRole: 'employee' },
+  { label: 'Projects',       to: '/projects',     icon: FolderKanban,  description: 'Browse work by project',        style: 'secondary', minRole: 'employee' },
+  { label: 'My Analytics',   to: '/my-dashboard', icon: BarChart3,     description: 'Charts, trends & benchmarks',   style: 'secondary', minRole: 'employee' },
   { label: 'Team Dashboard', to: '/team',         icon: Users,         description: 'Team progress overview',        style: 'secondary', minRole: 'manager'  },
   { label: 'Admin Panel',    to: '/admin',        icon: Shield,        description: 'Users & system settings',       style: 'secondary', minRole: 'admin'    },
 ]

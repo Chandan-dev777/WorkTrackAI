@@ -99,10 +99,22 @@ describe('HomeDashboard — quick actions', () => {
     expect(screen.getByRole('link', { name: /chat.*assistant|ask ai/i })).toBeInTheDocument()
   })
 
-  it('renders My Dashboard action', async () => {
+  it('renders My Analytics action (renamed from My Dashboard)', async () => {
     renderPage()
     await screen.findByText(/alice/i)
-    expect(screen.getByRole('link', { name: /my dashboard/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /my analytics/i })).toBeInTheDocument()
+  })
+
+  it('renders Tasks action', async () => {
+    renderPage()
+    await screen.findByText(/alice/i)
+    expect(screen.getByRole('link', { name: /^tasks$/i })).toBeInTheDocument()
+  })
+
+  it('renders Projects action', async () => {
+    renderPage()
+    await screen.findByText(/alice/i)
+    expect(screen.getByRole('link', { name: /^projects$/i })).toBeInTheDocument()
   })
 
   it('does NOT show Team Dashboard action for employees', async () => {

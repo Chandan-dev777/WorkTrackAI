@@ -10,6 +10,8 @@ const LoginPage         = lazy(() => import('@/pages/auth/LoginPage'))
 const RegisterPage      = lazy(() => import('@/pages/auth/RegisterPage'))
 const HomeDashboard     = lazy(() => import('@/pages/dashboard/HomeDashboard'))
 const SubmitUpdatePage  = lazy(() => import('@/pages/submit/SubmitUpdatePage'))
+const TasksPage         = lazy(() => import('@/pages/tasks/TasksPage'))
+const ProjectsPage      = lazy(() => import('@/pages/projects/ProjectsPage'))
 const MyDashboardPage   = lazy(() => import('@/pages/dashboard/MyDashboardPage'))
 const TeamDashboardPage = lazy(() => import('@/pages/team/TeamDashboardPage'))
 const ChatPage          = lazy(() => import('@/pages/chat/ChatPage'))
@@ -82,6 +84,24 @@ export function AppRouter() {
           element={
             <RequireAuth>
               <Shell><SubmitUpdatePage /></Shell>
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/tasks"
+          element={
+            <RequireAuth>
+              <Shell><TasksPage /></Shell>
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/projects"
+          element={
+            <RequireAuth>
+              <Shell><ProjectsPage /></Shell>
             </RequireAuth>
           }
         />
