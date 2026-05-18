@@ -22,7 +22,7 @@ python -c "from backend.database import SessionLocal, create_tables; create_tabl
 
 | Role | Name | Employee ID | Email | Team | Password |
 |------|------|-------------|-------|------|----------|
-| Manager | Sarah Connor | MGR-ENG-001 | sarah.connor@worktrack.ai | Engineering | WorkTrack2026! |
+| Manager | Sarah Connor | MGR-ENG-001 |     | Engineering | WorkTrack2026! |
 | Manager | Grace Hopper | MGR-DAT-001 | grace.hopper@worktrack.ai | Data | WorkTrack2026! |
 | Manager | Linus Torvalds | MGR-SUP-001 | linus.torvalds@worktrack.ai | Support | WorkTrack2026! |
 

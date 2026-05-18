@@ -1,4 +1,4 @@
-"""Submit Update page — Phase 2."""
+"""Submit Update page — Phase 2 + Task Continuation (Phase A-B)."""
 
 import os
 from datetime import date
@@ -28,6 +28,21 @@ def _api(method, path, timeout: float = 120.0, **kwargs):
     )
 
 
+def _fetch_open_tasks() -> list[dict]:
+    resp = _api("GET", "/worklogs/my/open?days_back=14")
+    if resp.status_code == 200:
+        return resp.json()
+    return []
+
+
+def _status_emoji(s: str) -> str:
+    return {"in_progress": "🔄", "planned": "📋", "blocked": "🚫"}.get(s, "❓")
+
+
+def _status_label(s: str) -> str:
+    return {"in_progress": "In Progress", "planned": "Planned", "blocked": "Blocked"}.get(s, s)
+
+
 # ── Page header ───────────────────────────────────────────────────────────────
 user = st.session_state.get("user", {})
 st.title("📝 Submit Work Update")
@@ -41,9 +56,116 @@ with st.sidebar:
         st.session_state.clear()
         st.switch_page("app.py")
 
+# ── Open Tasks Panel (shown only on Step 1) ───────────────────────────────────
+if "preview" not in st.session_state:
+
+    open_tasks = _fetch_open_tasks()
+
+    if open_tasks:
+        with st.expander(
+            f"📋 Your Open Tasks ({len(open_tasks)}) — click an action to update without re-typing",
+            expanded=True,
+        ):
+            for task in open_tasks:
+                tid = task["id"]
+                desc = task["task_description"]
+                proj = task.get("project_name") or ""
+                hours = task.get("hours_spent")
+                st_val = task.get("status", "")
+                work_dt = task.get("work_date", "")
+
+                col_info, col_add, col_done, col_unblock = st.columns([4, 1.2, 1.2, 1.2])
+
+                with col_info:
+                    hrs_txt = f"{hours}h" if hours else "—h"
+                    proj_txt = f" · {proj}" if proj else ""
+                    st.markdown(
+                        f"{_status_emoji(st_val)} **{desc[:80]}{'…' if len(desc) > 80 else ''}**  \n"
+                        f"<small>{_status_label(st_val)}{proj_txt} · {hrs_txt} · since {work_dt}</small>",
+                        unsafe_allow_html=True,
+                    )
+
+                with col_add:
+                    if st.button("➕ Add Hours", key=f"add_{tid}"):
+                        st.session_state["quick_action"] = {"type": "add_hours", "task": task}
+                        st.rerun()
+
+                with col_done:
+                    if st_val != "blocked":
+                        if st.button("✅ Mark Done", key=f"done_{tid}"):
+                            st.session_state["quick_action"] = {"type": "mark_done", "task": task}
+                            st.rerun()
+
+                with col_unblock:
+                    if st_val == "blocked":
+                        if st.button("🔓 Unblock", key=f"unblock_{tid}"):
+                            st.session_state["quick_action"] = {"type": "unblock", "task": task}
+                            st.rerun()
+
+                st.divider()
+
+    # ── Quick Action Modal ─────────────────────────────────────────────────────
+    if "quick_action" in st.session_state:
+        action = st.session_state["quick_action"]
+        task = action["task"]
+        atype = action["type"]
+
+        titles = {
+            "add_hours": f"➕ Add Hours to: {task['task_description'][:60]}",
+            "mark_done": f"✅ Mark Done: {task['task_description'][:60]}",
+            "unblock": f"🔓 Unblock: {task['task_description'][:60]}",
+        }
+
+        with st.container(border=True):
+            st.subheader(titles.get(atype, "Quick Update"))
+
+            col_h, col_s, col_n = st.columns([1.5, 1.5, 3])
+            with col_h:
+                hours_today = st.number_input(
+                    "Hours today", min_value=0.0, step=0.5, value=1.0, key="qa_hours"
+                )
+            with col_s:
+                default_status = {
+                    "add_hours": task.get("status") or "in_progress",
+                    "mark_done": "done",
+                    "unblock": "in_progress",
+                }[atype]
+                status_options = ["in_progress", "planned", "blocked", "done"]
+                new_status = st.selectbox(
+                    "Status",
+                    status_options,
+                    index=status_options.index(default_status),
+                    key="qa_status",
+                )
+            with col_n:
+                note = st.text_input("Note (optional)", key="qa_note", placeholder="e.g. Deployed to staging")
+
+            c1, c2 = st.columns(2)
+            with c1:
+                if st.button("💾 Save Update", type="primary", use_container_width=True):
+                    payload = {
+                        "hours_today": hours_today if hours_today > 0 else None,
+                        "status": new_status,
+                        "note": note or None,
+                        "work_date": date.today().isoformat(),
+                    }
+                    resp = _api("POST", f"/worklogs/{task['id']}/continue", json=payload)
+                    if resp.status_code == 200:
+                        st.success(f"Task updated — {new_status}, {hours_today}h logged today.")
+                        del st.session_state["quick_action"]
+                        st.rerun()
+                    else:
+                        st.error(f"Update failed: {resp.text}")
+            with c2:
+                if st.button("✖ Cancel", use_container_width=True):
+                    del st.session_state["quick_action"]
+                    st.rerun()
+
+    st.markdown("---")
+
 # ── Step 1: Input form ────────────────────────────────────────────────────────
 if "preview" not in st.session_state:
-    st.subheader("What did you work on today?")
+    st.subheader("Or describe new work below")
 
     with st.form("submit_form"):
         raw_message = st.text_area(
@@ -92,7 +214,27 @@ else:
         f"{len(items)} item(s) extracted"
     )
 
-    # Fallback mode — LLM was unavailable, user fills in fields manually
+    # Continuation detection banner
+    continuations = [i for i in items if i.get("is_continuation") and i.get("continuation_of")]
+    if continuations:
+        st.info(
+            f"🔗 **{len(continuations)} item(s) detected as continuations of previous tasks.** "
+            "Review the links below — uncheck any that don't look right before confirming.",
+            icon="ℹ️",
+        )
+        for i, item in enumerate(items):
+            if item.get("is_continuation"):
+                col_a, col_b = st.columns([5, 1])
+                with col_a:
+                    st.caption(
+                        f"↩ *\"{item['task_description'][:70]}\"* continues a previous task"
+                    )
+                with col_b:
+                    if not st.checkbox("Keep link", value=True, key=f"keep_link_{i}"):
+                        items[i]["continuation_of"] = None
+                        items[i]["is_continuation"] = False
+
+    # Fallback mode
     if preview.get("extraction_status") == "needs_review" and preview.get("has_clarification_needed"):
         st.warning(
             "**AI extraction is currently unavailable.** "

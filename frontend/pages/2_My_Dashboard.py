@@ -159,6 +159,93 @@ else:
 
 st.divider()
 
+# ── Quick Actions for Open Tasks ─────────────────────────────────────────────
+open_items = [i for i in items_data if i.get("status") in ("in_progress", "planned", "blocked")]
+if open_items:
+    with st.expander(f"⚡ Quick Actions — {len(open_items)} open task(s)", expanded=False):
+        st.caption("Update status or log hours without going back to the Submit page.")
+
+        # Handle quick-action state
+        if "dash_quick_action" in st.session_state:
+            dqa = st.session_state["dash_quick_action"]
+            task = dqa["task"]
+            atype = dqa["type"]
+
+            with st.container(border=True):
+                labels = {
+                    "add_hours": f"➕ Add Hours — {task['task_description'][:60]}",
+                    "mark_done": f"✅ Mark Done — {task['task_description'][:60]}",
+                    "unblock":   f"🔓 Unblock — {task['task_description'][:60]}",
+                }
+                st.subheader(labels.get(atype, "Quick Update"))
+
+                col_h, col_s, col_n = st.columns([1.5, 1.5, 3])
+                with col_h:
+                    qa_hours = st.number_input("Hours today", min_value=0.0, step=0.5, value=1.0, key="dqa_hours")
+                with col_s:
+                    default_status = {
+                        "add_hours": task.get("status") or "in_progress",
+                        "mark_done": "done",
+                        "unblock": "in_progress",
+                    }[atype]
+                    opts = ["in_progress", "planned", "blocked", "done"]
+                    qa_status = st.selectbox("Status", opts, index=opts.index(default_status), key="dqa_status")
+                with col_n:
+                    qa_note = st.text_input("Note (optional)", key="dqa_note")
+
+                c1, c2 = st.columns(2)
+                with c1:
+                    if st.button("💾 Save", type="primary", use_container_width=True, key="dqa_save"):
+                        resp = _api("POST", f"/worklogs/{task['id']}/continue", json={
+                            "hours_today": qa_hours if qa_hours > 0 else None,
+                            "status": qa_status,
+                            "note": qa_note or None,
+                            "work_date": date.today().isoformat(),
+                        })
+                        if resp.status_code == 200:
+                            st.success("Updated!")
+                            del st.session_state["dash_quick_action"]
+                            st.rerun()
+                        else:
+                            st.error(f"Failed: {resp.text}")
+                with c2:
+                    if st.button("✖ Cancel", use_container_width=True, key="dqa_cancel"):
+                        del st.session_state["dash_quick_action"]
+                        st.rerun()
+        else:
+            for task in open_items:
+                tid = task["id"]
+                st_val = task.get("status", "")
+                emoji = {"in_progress": "🔄", "planned": "📋", "blocked": "🚫"}.get(st_val, "")
+                proj = task.get("project_name") or ""
+                hours = task.get("hours_spent")
+                hrs_txt = f"{hours}h" if hours else "—"
+
+                col_i, col_a, col_d, col_u = st.columns([4, 1.2, 1.2, 1.2])
+                with col_i:
+                    st.markdown(
+                        f"{emoji} **{task['task_description'][:75]}{'…' if len(task['task_description']) > 75 else ''}**  \n"
+                        f"<small>{proj + ' · ' if proj else ''}{st_val} · {hrs_txt} · {task.get('work_date','')}</small>",
+                        unsafe_allow_html=True,
+                    )
+                with col_a:
+                    if st.button("➕ Add Hours", key=f"d_add_{tid}"):
+                        st.session_state["dash_quick_action"] = {"type": "add_hours", "task": task}
+                        st.rerun()
+                with col_d:
+                    if st_val != "blocked":
+                        if st.button("✅ Done", key=f"d_done_{tid}"):
+                            st.session_state["dash_quick_action"] = {"type": "mark_done", "task": task}
+                            st.rerun()
+                with col_u:
+                    if st_val == "blocked":
+                        if st.button("🔓 Unblock", key=f"d_unblock_{tid}"):
+                            st.session_state["dash_quick_action"] = {"type": "unblock", "task": task}
+                            st.rerun()
+                st.divider()
+
+st.divider()
+
 # ── Work Items Table ──────────────────────────────────────────────────────────
 st.subheader("Work Items")
 

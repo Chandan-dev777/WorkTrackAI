@@ -21,6 +21,7 @@ import { CSS } from '@dnd-kit/utilities'
 import type { DragEndEvent } from '@dnd-kit/core'
 import { apiClient } from '@/api/client'
 import { templatesApi } from '@/api/templates'
+import { OpenTasksPanel } from '@/components/common/OpenTasksPanel'
 import type { ExtractionResult, WorkItemExtracted, WorkCategory, StatusType, WorkLog, UserTemplate } from '@/types/models'
 import { cn } from '@/utils/cn'
 
@@ -655,6 +656,9 @@ export default function SubmitUpdatePage() {
           Describe what you worked on in plain language — AI handles the rest
         </p>
       </div>
+
+      {/* Open Tasks Panel */}
+      <OpenTasksPanel />
 
       {/* Split-pane workspace */}
       <div className="flex gap-5" style={{ alignItems: 'flex-start', flexWrap: 'wrap' }}>

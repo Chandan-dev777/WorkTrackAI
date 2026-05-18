@@ -54,7 +54,45 @@ class WorkItemResponse(BaseModel):
     clarification_needed: bool = False
     clarification_reason: Optional[str] = None
     is_user_corrected: bool = False
+    logical_task_id: Optional[str] = None
+    continuation_of: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class ContinueTaskRequest(BaseModel):
+    """Continue an existing open task — add hours and/or update status."""
+    hours_today: Optional[float] = None
+    status: Optional[StatusType] = None
+    note: Optional[str] = None
+    work_date: Optional[date] = None
+
+    @field_validator("hours_today")
+    @classmethod
+    def hours_non_negative(cls, v):
+        if v is not None and v < 0:
+            raise ValueError("hours_today must be non-negative")
+        return v
+
+
+class BulkUpdateRequest(BaseModel):
+    """Batch status / hours update across multiple work items."""
+    item_ids: list[str]
+    status: Optional[StatusType] = None
+    hours_to_add: Optional[float] = None
+
+    @field_validator("item_ids")
+    @classmethod
+    def at_least_one(cls, v):
+        if not v:
+            raise ValueError("item_ids must not be empty")
+        return v
+
+    @field_validator("hours_to_add")
+    @classmethod
+    def hours_non_negative(cls, v):
+        if v is not None and v < 0:
+            raise ValueError("hours_to_add must be non-negative")
+        return v

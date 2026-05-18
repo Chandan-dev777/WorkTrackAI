@@ -12,7 +12,7 @@ from langchain_classic.output_parsers import OutputFixingParser
 from langchain_core.output_parsers import PydanticOutputParser
 
 from backend.config import get_llm, settings
-from backend.prompts.extraction_prompt import EXTRACTION_PROMPT
+from backend.prompts.extraction_prompt import EXTRACTION_PROMPT, EXTRACTION_PROMPT_WITH_CONTEXT
 from backend.schemas.extraction import ExtractionResult, WorkItemExtracted
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,11 @@ logger = logging.getLogger(__name__)
 PARSE_VERSION = "1.0"
 
 
-def build_extraction_chain(model: str | None = None, fixing_model: str | None = None):
+def build_extraction_chain(
+    model: str | None = None,
+    fixing_model: str | None = None,
+    with_context: bool = False,
+):
     """
     Builds and returns the LangChain extraction chain.
     Chain: prompt | llm | OutputFixingParser(PydanticOutputParser)
@@ -28,13 +32,16 @@ def build_extraction_chain(model: str | None = None, fixing_model: str | None = 
     Uses two separate models:
     - llm: primary extraction model (default: LLM_MODEL_EXTRACTION — Sonnet for accuracy)
     - fixing_llm: OutputFixingParser retry model (default: LLM_MODEL_FIXING — Haiku for speed)
+
+    with_context=True uses the prompt variant that includes active tasks for continuation detection.
     """
     llm = get_llm(model or settings.LLM_MODEL_EXTRACTION)
     fixing_llm = get_llm(fixing_model or settings.LLM_MODEL_FIXING)
     base_parser = PydanticOutputParser(pydantic_object=ExtractionResult)
     fixing_parser = OutputFixingParser.from_llm(parser=base_parser, llm=fixing_llm)
 
-    chain = EXTRACTION_PROMPT | llm | fixing_parser
+    prompt = EXTRACTION_PROMPT_WITH_CONTEXT if with_context else EXTRACTION_PROMPT
+    chain = prompt | llm | fixing_parser
     return chain, llm
 
 
@@ -42,6 +49,7 @@ def run_extraction(
     raw_message: str,
     work_date: date | None = None,
     model: str | None = None,
+    open_tasks: list | None = None,
 ) -> tuple[ExtractionResult | None, str, str]:
     """
     Run extraction chain on a raw message.
@@ -52,20 +60,39 @@ def run_extraction(
         - extraction_status: "success" | "failed" | "needs_review"
         - model_name: the LLM model used
     """
+    import json as _json
+
     today = work_date or date.today()
     model_name = model or settings.LLM_MODEL_EXTRACTION
 
-    logger.info("Starting extraction | model=%s | message_len=%d", model_name, len(raw_message))
+    logger.info("Starting extraction | model=%s | message_len=%d | open_tasks=%d",
+                model_name, len(raw_message), len(open_tasks) if open_tasks else 0)
 
     try:
-        chain, llm = build_extraction_chain(model=model_name)
-        result: ExtractionResult = chain.invoke({
-            "today": today.isoformat(),
-            "raw_message": raw_message,
-        })
+        use_context = bool(open_tasks)
+        chain, llm = build_extraction_chain(model=model_name, with_context=use_context)
 
-        # Override work_date if caller specified one explicitly
-        if work_date:
+        invoke_kwargs: dict = {"today": today.isoformat(), "raw_message": raw_message}
+        if use_context:
+            compact = [
+                {
+                    "id": t.id,
+                    "task_description": t.task_description,
+                    "project_name": t.project_name or "",
+                    "ticket_id": t.ticket_id or "",
+                    "status": t.status or "",
+                    "work_date": t.work_date.isoformat(),
+                }
+                for t in open_tasks
+            ]
+            invoke_kwargs["active_tasks_json"] = _json.dumps(compact, ensure_ascii=False)
+
+        result: ExtractionResult = chain.invoke(invoke_kwargs)
+
+        # Only override work_date if caller passed a date different from today
+        # (explicit user selection). If it's today's date, trust the LLM's
+        # resolution of relative phrases like "yesterday" or "last Monday".
+        if work_date and work_date != date.today():
             result = result.model_copy(update={"work_date": work_date})
 
         # Compute total_hours_warning

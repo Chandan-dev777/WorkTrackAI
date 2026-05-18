@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from backend.database import create_tables
+from backend.database import create_tables, run_migrations
 from backend.routers import admin, assistant, auth, chat, dashboard, templates, updates, worklogs
 
 # Path to the built React frontend (worktrack-ai/frontend-react/dist/)
@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     logger.info("Creating database tables...")
     create_tables()
+    run_migrations()
     logger.info("WorkTrack AI backend started.")
     yield
 

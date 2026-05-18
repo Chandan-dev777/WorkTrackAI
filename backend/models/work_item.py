@@ -58,6 +58,11 @@ class WorkItem(Base):
     clarification_needed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     clarification_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_user_corrected: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # Task continuation — links multi-day instances of the same conceptual work
+    logical_task_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    continuation_of: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("work_items.id"), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, nullable=False
     )

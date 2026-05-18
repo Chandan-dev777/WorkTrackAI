@@ -42,6 +42,8 @@ class WorkItemExtracted(BaseModel):
     confidence_score: Optional[float] = None     # 0.0–1.0 LLM self-reported
     clarification_needed: bool = False
     clarification_reason: Optional[str] = None  # describes what is ambiguous
+    continuation_of: Optional[str] = None       # work_item.id if this continues a prior task
+    is_continuation: bool = False               # true when LLM detected continuation
 
     @field_validator("hours_spent")
     @classmethod

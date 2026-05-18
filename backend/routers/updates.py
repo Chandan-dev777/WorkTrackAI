@@ -29,6 +29,7 @@ from backend.schemas.work_log import (
 )
 from backend.services.chroma_service import delete_work_log, upsert_work_items
 from backend.services.extraction_service import PARSE_VERSION, fallback_extraction, run_extraction
+from datetime import timedelta
 
 router = APIRouter(prefix="/updates", tags=["updates"])
 
@@ -58,10 +59,27 @@ def submit_update(
     db.commit()
     db.refresh(work_log)
 
-    # Run extraction
+    # Fetch the user's recent open tasks so the LLM can detect continuations
+    since = work_date - timedelta(days=14)
+    open_tasks = (
+        db.query(WorkItem)
+        .join(WorkLog, WorkItem.work_log_id == WorkLog.id)
+        .filter(
+            WorkLog.user_id == current_user.id,
+            WorkLog.is_deleted == False,  # noqa: E712
+            WorkItem.status.in_(["in_progress", "planned", "blocked"]),
+            WorkItem.work_date >= since,
+        )
+        .order_by(WorkItem.work_date.desc())
+        .limit(20)
+        .all()
+    )
+
+    # Run extraction (passes open tasks for continuation detection when present)
     result, extraction_status, model_name = run_extraction(
         raw_message=payload.raw_message,
         work_date=work_date,
+        open_tasks=open_tasks or None,
     )
 
     if result is None:
@@ -219,17 +237,7 @@ def resubmit_update(
 
     work_date = payload.work_date or old_log.work_date
 
-    # Soft-delete the old log (raw_message stays immutable on the old record)
-    old_log.is_deleted = True
-    db.commit()
-
-    # Remove old items from ChromaDB if it was confirmed
-    try:
-        delete_work_log(work_log_id)
-    except Exception as exc:
-        logging.getLogger(__name__).error("ChromaDB delete on resubmit failed: %s", exc)
-
-    # Create a new pending WorkLog
+    # Create a new pending WorkLog first so we have the new id for superseded_by
     new_log = WorkLog(
         id=str(uuid.uuid4()),
         user_id=current_user.id,
@@ -238,8 +246,18 @@ def resubmit_update(
         extraction_status="pending",
     )
     db.add(new_log)
+
+    # Soft-delete the old log and record which log superseded it
+    old_log.is_deleted = True
+    old_log.superseded_by = new_log.id
     db.commit()
     db.refresh(new_log)
+
+    # Remove old items from ChromaDB if it was confirmed
+    try:
+        delete_work_log(work_log_id)
+    except Exception as exc:
+        logging.getLogger(__name__).error("ChromaDB delete on resubmit failed: %s", exc)
 
     # Run extraction
     result, extraction_status, model_name = run_extraction(

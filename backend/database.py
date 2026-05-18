@@ -45,3 +45,30 @@ def create_tables() -> None:
     from backend.models import assistant_note, chat_history, user, work_item, work_log  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
+
+
+def run_migrations() -> None:
+    """Apply additive schema migrations for SQLite (ALTER TABLE ADD COLUMN).
+
+    SQLite has no IF NOT EXISTS for columns, so we check PRAGMA table_info first.
+    Safe to run on every startup — skips columns that already exist.
+    """
+    _MIGRATIONS = [
+        ("work_items", "logical_task_id", "VARCHAR(36)"),
+        ("work_items", "continuation_of", "VARCHAR(36)"),
+    ]
+    with engine.connect() as conn:
+        for table, column, col_type in _MIGRATIONS:
+            existing = [
+                row[1]
+                for row in conn.execute(
+                    __import__("sqlalchemy").text(f"PRAGMA table_info({table})")
+                ).fetchall()
+            ]
+            if column not in existing:
+                conn.execute(
+                    __import__("sqlalchemy").text(
+                        f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"
+                    )
+                )
+                conn.commit()

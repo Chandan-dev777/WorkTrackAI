@@ -31,7 +31,9 @@ Return ONLY valid JSON matching this schema — no explanation, no markdown fenc
       "ticket_id": "string or null",
       "confidence_score": float 0.0-1.0,
       "clarification_needed": true or false,
-      "clarification_reason": "string or null"
+      "clarification_reason": "string or null",
+      "continuation_of": "work_item_id string or null",
+      "is_continuation": true or false
     }}
   ],
   "total_hours_warning": false
@@ -74,11 +76,31 @@ Return ONLY valid JSON matching this schema — no explanation, no markdown fenc
    (0.0 = uncertain, 1.0 = certain).
 8. Ignore non-work noise (e.g. "power cut affected half the day") — \
    do not create a work item for it.
+9. If active_tasks context is provided below, check whether each extracted item \
+   clearly continues one of those tasks (same project, same ticket_id, or very \
+   similar description). If yes, set "continuation_of" to that task's id and \
+   "is_continuation" to true. Only link when confidence is high — prefer null \
+   over a wrong link. If no active_tasks context is provided, always set both \
+   to null / false.
+"""
+
+ACTIVE_TASKS_ADDENDUM = """
+## Active Open Tasks
+The user has the following unfinished tasks from recent days. Use these ONLY to
+detect continuations — do NOT create duplicate items for them unless the user
+is clearly logging new work on them today.
+
+{active_tasks_json}
 """
 
 HUMAN_PROMPT = "{raw_message}"
 
 EXTRACTION_PROMPT = ChatPromptTemplate.from_messages([
     ("system", SYSTEM_PROMPT),
+    ("human", HUMAN_PROMPT),
+])
+
+EXTRACTION_PROMPT_WITH_CONTEXT = ChatPromptTemplate.from_messages([
+    ("system", SYSTEM_PROMPT + ACTIVE_TASKS_ADDENDUM),
     ("human", HUMAN_PROMPT),
 ])

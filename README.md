@@ -32,6 +32,7 @@ cp .env.example .env
 **Option A — Single server (production-like)**
 
 ```bash
+cd "/home/x288712/WorkTrack AI/worktrack-ai" && source .venv/bin/activate && uvicorn backend.main:app --reload --port 8000
 cd frontend-react && npm run build && cd ..
 source .venv/bin/activate
 uvicorn backend.main:app --reload --port 8000

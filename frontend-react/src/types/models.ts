@@ -64,6 +64,8 @@ export interface WorkItem {
   clarification_needed: boolean
   clarification_reason: string | null
   is_user_corrected: boolean
+  logical_task_id: string | null
+  continuation_of: string | null
   created_at: string
   updated_at: string
   employee_name?: string

@@ -16,6 +16,7 @@ import { BarChart } from '@/components/charts/BarChart'
 import { DonutChart } from '@/components/charts/DonutChart'
 import { ProductivityHeatmap } from '@/components/charts/ProductivityHeatmap'
 import { AskAiButton } from '@/components/ai/AskAiButton'
+import { OpenTasksPanel } from '@/components/common/OpenTasksPanel'
 import { formatDateShort } from '@/utils/formatDate'
 import { cn } from '@/utils/cn'
 import type { WorkItem } from '@/types/models'
@@ -196,6 +197,9 @@ export default function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* Open Tasks Quick-Action Panel */}
+      <OpenTasksPanel />
 
       {/* Zone 2 — Date Range Filter */}
       <div className="flex flex-wrap items-center gap-2">
