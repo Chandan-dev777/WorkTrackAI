@@ -50,6 +50,7 @@ def run_extraction(
     work_date: date | None = None,
     model: str | None = None,
     open_tasks: list | None = None,
+    existing_projects: list[str] | None = None,
 ) -> tuple[ExtractionResult | None, str, str]:
     """
     Run extraction chain on a raw message.
@@ -72,7 +73,11 @@ def run_extraction(
         use_context = bool(open_tasks)
         chain, llm = build_extraction_chain(model=model_name, with_context=use_context)
 
-        invoke_kwargs: dict = {"today": today.isoformat(), "raw_message": raw_message}
+        invoke_kwargs: dict = {
+            "today": today.isoformat(),
+            "raw_message": raw_message,
+            "existing_projects": "\n".join(f"- {p}" for p in existing_projects) if existing_projects else "(none yet)",
+        }
         if use_context:
             compact = [
                 {

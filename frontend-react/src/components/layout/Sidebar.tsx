@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, PlusCircle, BarChart3, Users,
   MessageSquare, Shield, Settings, ChevronLeft, ChevronRight,
-  ListTodo, FolderKanban,
+  ListTodo,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
@@ -18,15 +18,14 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard',      path: '/dashboard',    icon: LayoutDashboard, minRole: 'employee' },
-  { label: 'Submit Update',  path: '/submit',       icon: PlusCircle,      minRole: 'employee' },
-  { label: 'Tasks',          path: '/tasks',        icon: ListTodo,        minRole: 'employee' },
-  { label: 'Projects',       path: '/projects',     icon: FolderKanban,    minRole: 'employee' },
-  { label: 'My Analytics',   path: '/my-dashboard', icon: BarChart3,       minRole: 'employee' },
-  { label: 'Team Dashboard', path: '/team',         icon: Users,           minRole: 'manager'  },
-  { label: 'Chat Assistant', path: '/chat',         icon: MessageSquare,   minRole: 'employee' },
-  { label: 'Admin',          path: '/admin',        icon: Shield,          minRole: 'admin'    },
-  { label: 'Settings',       path: '/settings',     icon: Settings,        minRole: 'employee' },
+  { label: 'Dashboard',        path: '/dashboard',    icon: LayoutDashboard, minRole: 'employee' },
+  { label: 'Submit Update',    path: '/submit',       icon: PlusCircle,      minRole: 'employee' },
+  { label: 'Tasks & Projects', path: '/tasks',        icon: ListTodo,        minRole: 'employee' },
+  { label: 'My Analytics',     path: '/my-dashboard', icon: BarChart3,       minRole: 'employee' },
+  { label: 'Team Dashboard',   path: '/team',         icon: Users,           minRole: 'manager'  },
+  { label: 'Chat Assistant',   path: '/chat',         icon: MessageSquare,   minRole: 'employee' },
+  { label: 'Admin',            path: '/admin',        icon: Shield,          minRole: 'admin'    },
+  { label: 'Settings',         path: '/settings',     icon: Settings,        minRole: 'employee' },
 ]
 
 export function Sidebar() {

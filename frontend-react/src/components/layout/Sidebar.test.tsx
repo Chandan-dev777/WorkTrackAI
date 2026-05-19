@@ -47,14 +47,9 @@ describe('Sidebar — employee role', () => {
     expect(screen.getByRole('link', { name: 'Submit Update' })).toBeInTheDocument()
   })
 
-  it('renders Tasks nav item', () => {
+  it('renders Tasks & Projects nav item', () => {
     renderSidebar()
-    expect(screen.getByRole('link', { name: 'Tasks' })).toBeInTheDocument()
-  })
-
-  it('renders Projects nav item', () => {
-    renderSidebar()
-    expect(screen.getByRole('link', { name: 'Projects' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Tasks & Projects' })).toBeInTheDocument()
   })
 
   it('renders My Analytics nav item (renamed from My Dashboard)', () => {

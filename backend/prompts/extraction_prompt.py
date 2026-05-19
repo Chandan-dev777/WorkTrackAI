@@ -82,6 +82,21 @@ Return ONLY valid JSON matching this schema — no explanation, no markdown fenc
    "is_continuation" to true. Only link when confidence is high — prefer null \
    over a wrong link. If no active_tasks context is provided, always set both \
    to null / false.
+10. **Project name normalization:** If a list of existing project names is provided \
+   below, ALWAYS reuse the EXACT spelling from that list when the user clearly \
+   refers to the same project (even if they misspell it, use different casing, \
+   or omit/add spaces). For example if the existing list contains "PatientVoice" \
+   and the user writes "patient voice work", set project_name to "PatientVoice". \
+   Only create a genuinely NEW project name if the user's text does not match \
+   any existing project.
+"""
+
+EXISTING_PROJECTS_ADDENDUM = """
+## Existing Project Names
+The user has previously logged work under these project names. ALWAYS reuse the
+exact spelling from this list when the user refers to one of these projects:
+
+{existing_projects}
 """
 
 ACTIVE_TASKS_ADDENDUM = """
@@ -96,11 +111,11 @@ is clearly logging new work on them today.
 HUMAN_PROMPT = "{raw_message}"
 
 EXTRACTION_PROMPT = ChatPromptTemplate.from_messages([
-    ("system", SYSTEM_PROMPT),
+    ("system", SYSTEM_PROMPT + EXISTING_PROJECTS_ADDENDUM),
     ("human", HUMAN_PROMPT),
 ])
 
 EXTRACTION_PROMPT_WITH_CONTEXT = ChatPromptTemplate.from_messages([
-    ("system", SYSTEM_PROMPT + ACTIVE_TASKS_ADDENDUM),
+    ("system", SYSTEM_PROMPT + EXISTING_PROJECTS_ADDENDUM + ACTIVE_TASKS_ADDENDUM),
     ("human", HUMAN_PROMPT),
 ])

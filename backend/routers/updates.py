@@ -75,11 +75,28 @@ def submit_update(
         .all()
     )
 
+    # Fetch distinct project names so the LLM reuses canonical spelling
+    existing_projects = [
+        row[0] for row in (
+            db.query(WorkItem.project_name)
+            .join(WorkLog, WorkItem.work_log_id == WorkLog.id)
+            .filter(
+                WorkLog.user_id == current_user.id,
+                WorkLog.is_deleted == False,  # noqa: E712
+                WorkItem.project_name.isnot(None),
+                WorkItem.project_name != "",
+            )
+            .distinct()
+            .all()
+        )
+    ]
+
     # Run extraction (passes open tasks for continuation detection when present)
     result, extraction_status, model_name = run_extraction(
         raw_message=payload.raw_message,
         work_date=work_date,
         open_tasks=open_tasks or None,
+        existing_projects=existing_projects or None,
     )
 
     if result is None:
