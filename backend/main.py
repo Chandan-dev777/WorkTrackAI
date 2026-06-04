@@ -29,6 +29,16 @@ async def lifespan(app: FastAPI):
     logger.info("Creating database tables...")
     create_tables()
     run_migrations()
+
+    # Auto-seed if database is empty (first deploy or fresh DB)
+    from backend.database import SessionLocal
+    from backend.models.user import User
+    from backend.seed_data import seed
+    with SessionLocal() as db:
+        if db.query(User).count() == 0:
+            logger.info("Empty database detected — running seed...")
+            seed(db)
+
     logger.info("DailyOps AI backend started.")
     yield
 

@@ -11,7 +11,8 @@
 __pycache__
 *.pyc
 
-# data/ is committed to git and baked into the image (seeded DB + ChromaDB)
+# Runtime data (DB is on Uptimize DBaaS, ChromaDB created at runtime)
+data/
 
 # Non-deployment files
 _archive/

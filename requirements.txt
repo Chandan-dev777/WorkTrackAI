@@ -5,6 +5,8 @@ python-multipart>=0.0.9
 
 # Database
 sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0
+boto3>=1.34.0
 
 # Settings / Validation
 pydantic[email]>=2.0.0

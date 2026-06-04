@@ -45,6 +45,13 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "sqlite:///./data/dailyops.db"
 
+    # Uptimize DBaaS (PostgreSQL with IAM auth) — only needed when DATABASE_URL is postgresql://
+    DBAAS_HOST: str = ""
+    DBAAS_PORT: int = 5432
+    DBAAS_USER: str = ""
+    DBAAS_IAM_ROLE: str = ""  # If set, enables IAM token rotation for DB password
+    DBAAS_REGION: str = "eu-central-1"
+
     # JWT
     SECRET_KEY: str = "change-me-to-a-long-random-string"
     ALGORITHM: str = "HS256"
