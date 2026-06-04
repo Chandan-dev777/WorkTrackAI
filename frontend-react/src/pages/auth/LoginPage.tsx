@@ -105,7 +105,7 @@ export default function LoginPage() {
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
           }}>
-            WorkTrack AI
+            DailyOps AI
           </h1>
 
           <p style={{

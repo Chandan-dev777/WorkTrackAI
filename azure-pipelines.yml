@@ -1,4 +1,4 @@
-# WorkTrack AI — Uptimize Deployment Pipeline
+# DailyOps AI — Uptimize Deployment Pipeline
 
 trigger:
   branches:
@@ -26,24 +26,24 @@ stages:
         steps:
           - template: pipeline-templates/aws-login.yml@templates
             parameters:
-              AppDestinationId: "YOUR-APP-DESTINATION-ID-HERE"  # ← Replace with your App ID from Uptimize
+              AppDestinationId: "app-4bf3rraulo4umzs8"
 
           - template: pipeline-templates/docker-login.yml@templates
 
           - bash: |
               docker build \
                 --pull \
-                --cache-from $(AWS_ACCOUNT_ID).dkr.ecr.eu-central-1.amazonaws.com/$(APP_ID):main \
-                -t $(AWS_ACCOUNT_ID).dkr.ecr.eu-central-1.amazonaws.com/$(APP_ID):main \
+                --cache-from $(AWS_ACCOUNT_ID).dkr.ecr.eu-central-1.amazonaws.com/$(APP_DESTINATION_ID):main \
+                -t $(AWS_ACCOUNT_ID).dkr.ecr.eu-central-1.amazonaws.com/$(APP_DESTINATION_ID):main \
                 -t docker-image:snapshot \
                 .
             displayName: "Build Docker Image"
+            timeoutInMinutes: 15
             env:
               DOCKER_BUILDKIT: "1"
               BUILDKIT_PROGRESS: "plain"
 
           - bash: |
-              docker tag docker-image:snapshot $(AWS_ACCOUNT_ID).dkr.ecr.eu-central-1.amazonaws.com/$(APP_DESTINATION_ID):main
               docker push $(AWS_ACCOUNT_ID).dkr.ecr.eu-central-1.amazonaws.com/$(APP_DESTINATION_ID):main
             displayName: "Push to ECR"
             condition: and(succeeded(), eq(variables.isMain, 'true'))

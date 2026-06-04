@@ -2,14 +2,16 @@
 
 ## What Are We Doing?
 
-We're putting our WorkTrack AI application on the **Uptimize cloud platform** so that ~20 team members can access it via a URL (like `https://worktrack-ai.app.uptimize.merckgroup.com`) without installing anything locally.
+We're putting our DailyOps AI application on the **Uptimize cloud platform** so that ~20 team members can access it via:
+
+**https://dailyops-ai.apps.p.uptimize.merckgroup.com/**
 
 ---
 
 ## How Does It Work? (Big Picture)
 
 ```
-Your Code (GitHub)
+Your Code (Azure DevOps Git)
        │
        ▼  push to main
 Azure DevOps Pipeline (CI/CD)
@@ -51,7 +53,7 @@ Users access via browser URL
 
 ## Our Application in Docker
 
-WorkTrack AI has two parts that need to be packaged:
+DailyOps AI has two parts that need to be packaged:
 
 | Part | What it does | How it's packaged |
 |------|-------------|-------------------|

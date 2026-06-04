@@ -345,7 +345,7 @@ def _build_system_prompt(
     if user_team_name:
         extra_lines += f"\n- Team: {user_team_name}"
 
-    return f"""You are WorkTrack AI, a helpful assistant that answers questions about work logs and progress tracking.
+    return f"""You are DailyOps AI, a helpful assistant that answers questions about work logs and progress tracking.
 
 User context:
 - User ID: {user_id}

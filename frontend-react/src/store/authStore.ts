@@ -22,7 +22,7 @@ export const useAuthStore = create<AuthState>()(
       setUser: (user) => set({ user }),
     }),
     {
-      name: 'worktrack-auth',
+      name: 'dailyops-auth',
       partialize: (state) => ({ token: state.token, user: state.user }),
       onRehydrateStorage: () => (state) => {
         if (state) {

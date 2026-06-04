@@ -1,4 +1,4 @@
-# WorkTrack AI — Backend Documentation
+# DailyOps AI — Backend Documentation
 
 ## Table of Contents
 
@@ -21,7 +21,7 @@
 
 ## Overview
 
-WorkTrack AI is a Python/FastAPI backend that receives free-text daily work updates from employees, runs them through an LLM extraction pipeline, stores structured records in SQLite, maintains a semantic vector index in ChromaDB, and exposes role-aware REST endpoints consumed by a Streamlit frontend.
+DailyOps AI is a Python/FastAPI backend that receives free-text daily work updates from employees, runs them through an LLM extraction pipeline, stores structured records in SQLite, maintains a semantic vector index in ChromaDB, and exposes role-aware REST endpoints consumed by a Streamlit frontend.
 
 **Core data flow:**
 
@@ -55,7 +55,7 @@ Dashboard & Chat endpoints
 | Web framework | FastAPI 0.115+ |
 | ASGI server | Uvicorn |
 | Database ORM | SQLAlchemy 2.0 |
-| Database | SQLite (file: `data/worktrack.db`) |
+| Database | SQLite (file: `data/dailyops.db`) |
 | Vector store | ChromaDB 0.5+ (persistent, cosine similarity) |
 | LLM framework | LangChain 0.3+ / LangGraph 0.2+ |
 | LLM provider | Azure OpenAI proxy (Claude via AWS Bedrock, GPT via NLP API) |
@@ -127,7 +127,7 @@ Central configuration module. Responsibilities:
 
 | Setting | Default | Description |
 |---|---|---|
-| `DATABASE_URL` | `sqlite:///./data/worktrack.db` | SQLite file path |
+| `DATABASE_URL` | `sqlite:///./data/dailyops.db` | SQLite file path |
 | `SECRET_KEY` | `change-me-…` | JWT signing key |
 | `ALGORITHM` | `HS256` | JWT algorithm |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | `480` (8 hours) | Token TTL |
@@ -157,7 +157,7 @@ Central configuration module. Responsibilities:
 
 ```env
 # Database
-DATABASE_URL=sqlite:///./data/worktrack.db
+DATABASE_URL=sqlite:///./data/dailyops.db
 
 # JWT
 SECRET_KEY=<random 32+ char string>
@@ -950,7 +950,7 @@ Creates a realistic dataset for development and demos.
 
 | Role | Count | Details |
 |---|---|---|
-| Admin | 1 | `ADMIN-001 / admin@worktrack.ai` |
+| Admin | 1 | `ADMIN-001 / admin@dailyops.ai` |
 | Manager | 3 | One per team (Engineering, Data, Support) |
 | Employee | 12 | 4 per team |
 
@@ -960,7 +960,7 @@ Creates a realistic dataset for development and demos.
 - 1–3 tasks per day chosen from team-specific task templates
 - ~10% edge case entries (missing hours, vague descriptions, `needs_review` flag)
 
-**Default password:** `WorkTrack2026!`
+**Default password:** `DailyOps2026!`
 
 **Idempotent:** skips if users already exist. Called by `POST /admin/seed-dummy-data`.
 

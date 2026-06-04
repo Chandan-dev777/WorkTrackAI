@@ -50,9 +50,9 @@ beforeEach(() => {
 })
 
 describe('TopNavbar', () => {
-  it('renders the WorkTrack AI logo/brand text', () => {
+  it('renders the DailyOps AI logo/brand text', () => {
     renderNavbar()
-    expect(screen.getByText(/worktrack/i)).toBeInTheDocument()
+    expect(screen.getByText(/dailyops/i)).toBeInTheDocument()
   })
 
   it('renders the user initials avatar', () => {

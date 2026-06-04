@@ -18,7 +18,7 @@ function getInitials(fullName: string): string {
 interface Notification { id: string; icon: string; message: string; type: 'info' | 'warning' | 'success' }
 
 function useNotifications() {
-  const DISMISSED_KEY = 'worktrack_dismissed_notifs'
+  const DISMISSED_KEY = 'dailyops_dismissed_notifs'
   const [dismissed, setDismissed] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem(DISMISSED_KEY) ?? '[]') } catch { return [] }
   })
@@ -41,7 +41,7 @@ function useNotifications() {
   if (blocked > 0) notifications.push({ id: 'blocked', icon: '🚫', message: `${blocked} item${blocked !== 1 ? 's' : ''} blocked this week`, type: 'warning' })
 
   const totalHours = summaryQ.data?.total_hours ?? 0
-  const goal = (() => { const v = localStorage.getItem('worktrack_weekly_goal'); return v ? Number(v) : 40 })()
+  const goal = (() => { const v = localStorage.getItem('dailyops_weekly_goal'); return v ? Number(v) : 40 })()
   if (totalHours >= goal && goal > 0) notifications.push({ id: 'goal-reached', icon: '🎯', message: `Weekly goal reached — ${totalHours.toFixed(1)}h logged!`, type: 'success' })
 
   const streak = (() => {
@@ -92,7 +92,7 @@ export function TopNavbar() {
     <header style={{ height: 56, backgroundColor: 'var(--color-bg-surface)', borderBottom: '1px solid var(--color-border-subtle)', display: 'flex', alignItems: 'center', padding: '0 24px', gap: 16, position: 'sticky', top: 0, zIndex: 50, flexShrink: 0 }}>
       {/* Brand */}
       <span style={{ fontWeight: 700, fontSize: 18, background: 'var(--gradient-brand)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', userSelect: 'none', minWidth: 140 }}>
-        WorkTrack AI
+        DailyOps AI
       </span>
 
       <div style={{ flex: 1 }} />

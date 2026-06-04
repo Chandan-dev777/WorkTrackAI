@@ -130,7 +130,7 @@ export default function ChatPage() {
   // Load history on mount
   useEffect(() => {
     if (historyQ.data !== undefined && !historyLoaded) {
-      const clearedAt = localStorage.getItem('worktrack_chat_cleared_at')
+      const clearedAt = localStorage.getItem('dailyops_chat_cleared_at')
       const visible   = clearedAt
         ? historyQ.data.filter(item => new Date(item.created_at) > new Date(clearedAt))
         : historyQ.data
@@ -200,7 +200,7 @@ export default function ChatPage() {
   }
 
   function confirmClear() {
-    localStorage.setItem('worktrack_chat_cleared_at', new Date().toISOString())
+    localStorage.setItem('dailyops_chat_cleared_at', new Date().toISOString())
     setMessages([])
     setSessionId(undefined)
     setStreamingId(null)
@@ -244,7 +244,7 @@ export default function ChatPage() {
                 style={{ background: '#10B981', borderColor: 'var(--color-bg-base)', animation: 'pulse 2s cubic-bezier(0.4,0,0.6,1) infinite' }} />
             </div>
             <div>
-              <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>WorkTrack AI</p>
+              <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>DailyOps AI</p>
               <span className="text-xs" style={{ color: '#10B981' }}>Online</span>
             </div>
           </div>

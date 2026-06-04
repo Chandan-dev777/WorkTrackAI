@@ -28,48 +28,48 @@ TEAMS = [
         "manager": {
             "employee_id": "MGR-ENG-001",
             "full_name": "Sarah Connor",
-            "email": "sarah.connor@worktrack.ai",
+            "email": "sarah.connor@dailyops.ai",
             "role": "manager",
             "team_name": "Engineering",
             "department": "Technology",
         },
         "members": [
-            {"employee_id": "EMP-ENG-001", "full_name": "John Reese",      "email": "john.reese@worktrack.ai"},
-            {"employee_id": "EMP-ENG-002", "full_name": "Kate Brewster",   "email": "kate.brewster@worktrack.ai"},
-            {"employee_id": "EMP-ENG-003", "full_name": "Miles Dyson",     "email": "miles.dyson@worktrack.ai"},
-            {"employee_id": "EMP-ENG-004", "full_name": "Tarissa Dyson",   "email": "tarissa.dyson@worktrack.ai"},
+            {"employee_id": "EMP-ENG-001", "full_name": "John Reese",      "email": "john.reese@dailyops.ai"},
+            {"employee_id": "EMP-ENG-002", "full_name": "Kate Brewster",   "email": "kate.brewster@dailyops.ai"},
+            {"employee_id": "EMP-ENG-003", "full_name": "Miles Dyson",     "email": "miles.dyson@dailyops.ai"},
+            {"employee_id": "EMP-ENG-004", "full_name": "Tarissa Dyson",   "email": "tarissa.dyson@dailyops.ai"},
         ],
     },
     {
         "manager": {
             "employee_id": "MGR-DAT-001",
             "full_name": "Grace Hopper",
-            "email": "grace.hopper@worktrack.ai",
+            "email": "grace.hopper@dailyops.ai",
             "role": "manager",
             "team_name": "Data",
             "department": "Technology",
         },
         "members": [
-            {"employee_id": "EMP-DAT-001", "full_name": "Alan Turing",     "email": "alan.turing@worktrack.ai"},
-            {"employee_id": "EMP-DAT-002", "full_name": "Ada Lovelace",    "email": "ada.lovelace@worktrack.ai"},
-            {"employee_id": "EMP-DAT-003", "full_name": "Claude Shannon",  "email": "claude.shannon@worktrack.ai"},
-            {"employee_id": "EMP-DAT-004", "full_name": "Norbert Wiener",  "email": "norbert.wiener@worktrack.ai"},
+            {"employee_id": "EMP-DAT-001", "full_name": "Alan Turing",     "email": "alan.turing@dailyops.ai"},
+            {"employee_id": "EMP-DAT-002", "full_name": "Ada Lovelace",    "email": "ada.lovelace@dailyops.ai"},
+            {"employee_id": "EMP-DAT-003", "full_name": "Claude Shannon",  "email": "claude.shannon@dailyops.ai"},
+            {"employee_id": "EMP-DAT-004", "full_name": "Norbert Wiener",  "email": "norbert.wiener@dailyops.ai"},
         ],
     },
     {
         "manager": {
             "employee_id": "MGR-SUP-001",
             "full_name": "Linus Torvalds",
-            "email": "linus.torvalds@worktrack.ai",
+            "email": "linus.torvalds@dailyops.ai",
             "role": "manager",
             "team_name": "Support",
             "department": "Operations",
         },
         "members": [
-            {"employee_id": "EMP-SUP-001", "full_name": "Guido van Rossum", "email": "guido.vanrossum@worktrack.ai"},
-            {"employee_id": "EMP-SUP-002", "full_name": "Bjarne Stroustrup","email": "bjarne.stroustrup@worktrack.ai"},
-            {"employee_id": "EMP-SUP-003", "full_name": "Dennis Ritchie",   "email": "dennis.ritchie@worktrack.ai"},
-            {"employee_id": "EMP-SUP-004", "full_name": "Ken Thompson",     "email": "ken.thompson@worktrack.ai"},
+            {"employee_id": "EMP-SUP-001", "full_name": "Guido van Rossum", "email": "guido.vanrossum@dailyops.ai"},
+            {"employee_id": "EMP-SUP-002", "full_name": "Bjarne Stroustrup","email": "bjarne.stroustrup@dailyops.ai"},
+            {"employee_id": "EMP-SUP-003", "full_name": "Dennis Ritchie",   "email": "dennis.ritchie@dailyops.ai"},
+            {"employee_id": "EMP-SUP-004", "full_name": "Ken Thompson",     "email": "ken.thompson@dailyops.ai"},
         ],
     },
 ]
@@ -77,13 +77,13 @@ TEAMS = [
 ADMIN_USER = {
     "employee_id": "ADMIN-001",
     "full_name": "System Admin",
-    "email": "admin@worktrack.ai",
+    "email": "admin@dailyops.ai",
     "role": "admin",
     "team_name": None,
     "department": None,
 }
 
-DEFAULT_PASSWORD = "WorkTrack2026!"
+DEFAULT_PASSWORD = "DailyOps2026!"
 
 # ── Work item templates per team ──────────────────────────────────────────────
 

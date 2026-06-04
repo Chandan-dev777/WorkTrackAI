@@ -14,7 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from backend.database import create_tables, run_migrations
 from backend.routers import admin, assistant, auth, chat, dashboard, templates, updates, worklogs
 
-# Path to the built React frontend (worktrack-ai/frontend-react/dist/)
+# Path to the built React frontend (dailyops-ai/frontend-react/dist/)
 _FRONTEND_DIST = Path(__file__).parent.parent / "frontend-react" / "dist"
 
 logging.basicConfig(
@@ -29,12 +29,12 @@ async def lifespan(app: FastAPI):
     logger.info("Creating database tables...")
     create_tables()
     run_migrations()
-    logger.info("WorkTrack AI backend started.")
+    logger.info("DailyOps AI backend started.")
     yield
 
 
 app = FastAPI(
-    title="WorkTrack AI",
+    title="DailyOps AI",
     description="AI-powered employee work progress tracker",
     version="0.1.0",
     lifespan=lifespan,
@@ -87,7 +87,7 @@ else:
 
 # ── CLI entry point ───────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="WorkTrack AI Backend")
+    parser = argparse.ArgumentParser(description="DailyOps AI Backend")
     parser.add_argument(
         "--reindex",
         action="store_true",

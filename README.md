@@ -1,4 +1,4 @@
-# WorkTrack AI
+# DailyOps AI
 
 Employees submit daily work updates in natural language. An LLM pipeline extracts structured records, stores them in SQLite + ChromaDB, and exposes them via a React dashboard and a conversational RAG assistant.
 
@@ -32,7 +32,7 @@ cp .env.example .env
 **Option A — Single server (production-like)**
 
 ```bash
-cd "/home/x288712/WorkTrack AI/worktrack-ai" && source .venv/bin/activate && uvicorn backend.main:app --reload --port 8000
+cd "/home/x288712/DailyOps AI/dailyops-ai" && source .venv/bin/activate && uvicorn backend.main:app --reload --port 8000
 cd frontend-react && npm run build && cd ..
 source .venv/bin/activate
 uvicorn backend.main:app --reload --port 8000
@@ -57,9 +57,9 @@ cd frontend-react && npm run dev
 curl -X POST http://localhost:8000/admin/seed-dummy-data
 ```
 
-All seeded users use password: `WorkTrack2026!` — see `docs/TEST_CREDENTIALS.md` for the full list.
+All seeded users use password: `DailyOps2026!` — see `docs/TEST_CREDENTIALS.md` for the full list.
 
-Quick logins: `admin@worktrack.ai` (admin), `sarah.connor@worktrack.ai` (manager), `john.reese@worktrack.ai` (employee).
+Quick logins: `admin@dailyops.ai` (admin), `sarah.connor@dailyops.ai` (manager), `john.reese@dailyops.ai` (employee).
 
 ## Tests
 

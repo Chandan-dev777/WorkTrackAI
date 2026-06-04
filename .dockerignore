@@ -1,16 +1,32 @@
+# Version control
 .git
+
+# Local environment & secrets
 .venv
 .env
+.foundry_dev_tools.toml
 .claude
+.worktrees
 .pytest_cache
 __pycache__
+*.pyc
+
+# Runtime data (created fresh in container)
 data/
-frontend-react/node_modules
-frontend-react/dist
+
+# Non-deployment files
+_archive/
 docs/
 tests/
-*.pyc
+
+# Frontend (built in Stage 1 from source; dist excluded since Stage 2 uses COPY --from)
+frontend-react/node_modules
+frontend-react/dist
+
+# Config files not needed in image
 *.md
 .gitignore
 .dockerignore
 azure-pipelines.yml
+pyproject.toml
+requirements-dev.txt

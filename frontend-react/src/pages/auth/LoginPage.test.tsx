@@ -56,7 +56,7 @@ describe('LoginPage — layout', () => {
 
   it('renders brand name on the left panel', () => {
     renderLogin()
-    expect(screen.getAllByText(/worktrack/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/dailyops/i).length).toBeGreaterThan(0)
   })
 })
 

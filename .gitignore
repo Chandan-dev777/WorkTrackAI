@@ -18,7 +18,7 @@ venv/
 env/
 
 # Data (runtime-generated)
-data/worktrack.db
+data/*.db
 data/chroma/
 
 # Testing
@@ -42,6 +42,9 @@ frontend-react/*.timestamp-*
 
 # Claude Code
 .claude/
+
+# Archive (non-deployment files kept locally)
+_archive/
 
 # Temp scripts
 test_llm.py

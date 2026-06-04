@@ -75,7 +75,7 @@ async def _collect(gen) -> tuple[str, list[str]]:
 # ── App knowledge quality tests ───────────────────────────────────────────────
 
 class TestAppKnowledgeQuality:
-    """Verify the LLM gives correct, relevant answers about WorkTrack AI features."""
+    """Verify the LLM gives correct, relevant answers about DailyOps AI features."""
 
     async def test_submission_flow_explanation(self, db):
         """Asking how to submit a work update should describe the NL→preview→confirm flow."""
@@ -122,7 +122,7 @@ class TestAppKnowledgeQuality:
         user = _make_user(db)
         text, _ = await _collect(
             stream_assistant_response(
-                message="What work categories are available in WorkTrack AI?",
+                message="What work categories are available in DailyOps AI?",
                 session_id="int-cats",
                 page_context="Submit Work Update",
                 user=user,
@@ -272,7 +272,7 @@ class TestScopeEnforcement:
         assert "paris" not in lower, \
             f"LLM answered off-topic geography question: {text}"
         # Should decline or redirect
-        assert any(w in lower for w in ["only", "worktrack", "can't", "cannot", "help with", "scope"]), \
+        assert any(w in lower for w in ["only", "dailyops", "can't", "cannot", "help with", "scope"]), \
             f"LLM didn't decline off-topic question: {text}"
 
     async def test_coding_question_declined(self, db):

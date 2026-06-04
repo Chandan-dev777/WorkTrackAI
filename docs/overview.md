@@ -1,8 +1,8 @@
-# WorkTrack AI — Overview
+# DailyOps AI — Overview
 
 ## What It Is
 
-WorkTrack AI is an AI-powered employee work progress tracker. Employees submit daily updates in plain English, and an LLM pipeline extracts structured work records from those updates. The result is a searchable, aggregated view of work activity across teams — with role-aware dashboards, a conversational assistant, and manager-level reporting.
+DailyOps AI is an AI-powered employee work progress tracker. Employees submit daily updates in plain English, and an LLM pipeline extracts structured work records from those updates. The result is a searchable, aggregated view of work activity across teams — with role-aware dashboards, a conversational assistant, and manager-level reporting.
 
 ---
 
@@ -64,7 +64,7 @@ Identity is always derived from the JWT — the LLM output never determines who 
 ## Application Structure
 
 ```
-worktrack-ai/
+dailyops-ai/
 ├── backend/
 │   ├── main.py                  # FastAPI app entry point; serves React SPA
 │   ├── config.py                # Settings + LLM factory; reads .env
@@ -93,7 +93,7 @@ worktrack-ai/
 │   └── pages/
 │
 ├── data/
-│   ├── worktrack.db             # SQLite database
+│   ├── dailyops.db             # SQLite database
 │   └── chroma/                  # ChromaDB vector index
 │
 ├── tests/                       # pytest unit + integration tests (197+)
@@ -172,8 +172,8 @@ streamlit run frontend/app.py
 **5. Seed demo data (optional)**
 ```bash
 python -m backend.seed_data
-# Creates 16 users with password: WorkTrack2026!
-# admin@worktrack.ai (Admin), sarah.connor@worktrack.ai (Manager), etc.
+# Creates 16 users with password: DailyOps2026!
+# admin@dailyops.ai (Admin), sarah.connor@dailyops.ai (Manager), etc.
 ```
 
 ---
@@ -188,7 +188,7 @@ python -m backend.seed_data
 | `JWT_SECRET` | Secret for signing JWT tokens |
 | `LLM_PROVIDER` | `claude` or `openai` |
 | `LLM_MODEL` | Display name, e.g. `Claude Sonnet 4.6` |
-| `DATABASE_URL` | SQLite path, default `sqlite:///./data/worktrack.db` |
+| `DATABASE_URL` | SQLite path, default `sqlite:///./data/dailyops.db` |
 | `CHROMA_PATH` | ChromaDB persistence path, default `./data/chroma` |
 
 ---

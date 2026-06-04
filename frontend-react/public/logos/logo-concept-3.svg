@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 120" fill="none">
+  <!-- Concept 3: "D" Lettermark with Data Stream
+       A bold geometric "D" made of flowing data lines that represent
+       daily operations being processed. Minimal, modern, enterprise-ready. -->
+
+  <!-- Outer D shape (bold geometric) -->
+  <path d="M20 20 L20 100 L55 100 C82 100 95 82 95 60 C95 38 82 20 55 20 Z"
+        fill="url(#grad3)" />
+
+  <!-- Inner cutout for the D -->
+  <path d="M36 36 L36 84 L52 84 C68 84 76 74 76 60 C76 46 68 36 52 36 Z"
+        fill="white" />
+
+  <!-- Data stream lines inside the D (flowing operations) -->
+  <line x1="42" y1="50" x2="62" y2="50" stroke="url(#grad3)" stroke-width="3" stroke-linecap="round"/>
+  <line x1="42" y1="60" x2="70" y2="60" stroke="url(#grad3)" stroke-width="3" stroke-linecap="round"/>
+  <line x1="42" y1="70" x2="58" y2="70" stroke="url(#grad3)" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- AI spark at top-right of D -->
+  <circle cx="85" cy="28" r="10" fill="#10b981" opacity="0.15"/>
+  <circle cx="85" cy="28" r="6" fill="#10b981"/>
+  <path d="M85 24 L85 32 M81 28 L89 28 M82.2 25.2 L87.8 30.8 M87.8 25.2 L82.2 30.8"
+        stroke="white" stroke-width="1.2" stroke-linecap="round"/>
+
+  <!-- Wordmark -->
+  <text x="112" y="55" font-family="Inter, -apple-system, sans-serif" font-size="38" font-weight="900" fill="#0f172a" letter-spacing="-1.5">
+    DAILY
+  </text>
+  <text x="112" y="88" font-family="Inter, -apple-system, sans-serif" font-size="38" font-weight="900" fill="url(#grad3)" letter-spacing="-1.5">
+    OPS
+  </text>
+
+  <!-- "AI" pill badge -->
+  <rect x="210" y="68" width="36" height="22" rx="11" fill="#0f172a"/>
+  <text x="218" y="84" font-family="Inter, -apple-system, sans-serif" font-size="13" font-weight="600" fill="url(#grad3)" letter-spacing="1">
+    AI
+  </text>
+
+  <!-- Subtle dots pattern (data/operations feel) -->
+  <circle cx="320" cy="35" r="2" fill="#e2e8f0"/>
+  <circle cx="335" cy="35" r="2" fill="#cbd5e1"/>
+  <circle cx="350" cy="35" r="2" fill="#94a3b8"/>
+  <circle cx="365" cy="35" r="2" fill="#64748b"/>
+  <circle cx="380" cy="35" r="2" fill="url(#grad3)"/>
+
+  <circle cx="320" cy="50" r="2" fill="#e2e8f0"/>
+  <circle cx="335" cy="50" r="2" fill="#cbd5e1"/>
+  <circle cx="350" cy="50" r="2" fill="#94a3b8"/>
+  <circle cx="365" cy="50" r="2" fill="url(#grad3)"/>
+
+  <circle cx="320" cy="65" r="2" fill="#e2e8f0"/>
+  <circle cx="335" cy="65" r="2" fill="#cbd5e1"/>
+  <circle cx="350" cy="65" r="2" fill="url(#grad3)"/>
+
+  <!-- Tagline -->
+  <text x="314" y="92" font-family="Inter, -apple-system, sans-serif" font-size="9.5" fill="#94a3b8" letter-spacing="1.5" text-transform="uppercase">
+    WORK SMARTER
+  </text>
+
+  <defs>
+    <linearGradient id="grad3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0ea5e9"/>
+      <stop offset="50%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+  </defs>
+</svg>

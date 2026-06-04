@@ -13,11 +13,11 @@ Before you can deploy, you need to request access to several systems. Here's exa
 **How to get it:**
 - Go to the Uptimize portal (or ask your platform team)
 - Request a new "App Service" for your project
-- Specify: app name (`worktrack-ai`), team, environment (dev for now)
+- Specify: app name (`dailyops-ai`), team, environment (dev for now)
 
 **What you'll receive:**
 - `AppDestinationId` — something like `app-cbh1a76flzz9bvjj`
-- App URL — something like `https://worktrack-ai.app.uptimize.merckgroup.com`
+- App URL — something like `https://dailyops-ai.app.uptimize.merckgroup.com`
 
 ---
 
@@ -58,7 +58,7 @@ Before you can deploy, you need to request access to several systems. Here's exa
 **How to set up:**
 - In Azure DevOps → Project Settings → Service Connections
 - Create a "GitHub" service connection (or use an existing one)
-- Authorize it to access `Chandan-dev777/WorkTrackAI`
+- Authorize it to access `Chandan-dev777/DailyOpsAI`
 
 ---
 
@@ -97,4 +97,4 @@ The person who deployed the other app on Uptimize is your best resource. They al
 - The template repo connected
 - Knowledge of how to request app slots
 
-Ask them: "Can you show me how you requested your app slot and set up the pipeline? I need the same for WorkTrack AI."
+Ask them: "Can you show me how you requested your app slot and set up the pipeline? I need the same for DailyOps AI."

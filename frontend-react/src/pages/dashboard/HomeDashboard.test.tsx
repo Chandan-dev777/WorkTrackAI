@@ -176,34 +176,34 @@ describe('HomeDashboard — onboarding rail', () => {
     server.use(http.get('/worklogs/my', () => HttpResponse.json([])))
     renderPage()
     await waitFor(() => {
-      expect(screen.getByText(/get started with worktrack ai/i)).toBeInTheDocument()
+      expect(screen.getByText(/get started with dailyops ai/i)).toBeInTheDocument()
     })
   })
 
   it('onboarding rail shows all 4 steps', async () => {
     server.use(http.get('/worklogs/my', () => HttpResponse.json([])))
     renderPage()
-    await waitFor(() => screen.getByText(/get started with worktrack ai/i))
+    await waitFor(() => screen.getByText(/get started with dailyops ai/i))
     expect(screen.getByText(/submit your first work update/i)).toBeInTheDocument()
     expect(screen.getByText(/review the extracted items/i)).toBeInTheDocument()
-    expect(screen.getByText(/ask worktrack ai a question/i)).toBeInTheDocument()
+    expect(screen.getByText(/ask dailyops ai a question/i)).toBeInTheDocument()
     expect(screen.getByText(/explore your dashboard/i)).toBeInTheDocument()
   })
 
   it('onboarding rail shows progress bar', async () => {
     server.use(http.get('/worklogs/my', () => HttpResponse.json([])))
     renderPage()
-    await waitFor(() => screen.getByText(/get started with worktrack ai/i))
+    await waitFor(() => screen.getByText(/get started with dailyops ai/i))
     expect(screen.getByText(/0 of 4 complete/i)).toBeInTheDocument()
   })
 
   it('dismissing onboarding shows minimal empty state', async () => {
     server.use(http.get('/worklogs/my', () => HttpResponse.json([])))
     renderPage()
-    await waitFor(() => screen.getByText(/get started with worktrack ai/i))
+    await waitFor(() => screen.getByText(/get started with dailyops ai/i))
     fireEvent.click(screen.getByRole('button', { name: /dismiss onboarding/i }))
     await waitFor(() => {
-      expect(screen.queryByText(/get started with worktrack ai/i)).not.toBeInTheDocument()
+      expect(screen.queryByText(/get started with dailyops ai/i)).not.toBeInTheDocument()
     })
   })
 })

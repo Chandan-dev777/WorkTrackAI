@@ -65,7 +65,7 @@ export const handlers = [
       {
         id: 'wl-hist-002', user_id: 'uuid-alice-001',
         work_date: '2026-04-19', submitted_at: '2026-04-19T17:30:00',
-        raw_message: 'Worked on dashboard charts feature for 4 hours, project: WorkTrack UI. Status: in_progress. Reviewed 2 PRs for 1 hour.',
+        raw_message: 'Worked on dashboard charts feature for 4 hours, project: DailyOps UI. Status: in_progress. Reviewed 2 PRs for 1 hour.',
         extraction_status: 'success', model_name: 'claude-sonnet', is_deleted: false,
         work_items: [{ id: 'wi-h3', work_log_id: 'wl-hist-002' }],
       },

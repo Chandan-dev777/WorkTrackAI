@@ -75,27 +75,27 @@ resources:
 - bash: |
     docker build \
       --pull \
-      --cache-from $(AWS_ACCOUNT_ID).dkr.ecr.eu-central-1.amazonaws.com/$(APP_ID):main \
-      -t $(AWS_ACCOUNT_ID).dkr.ecr.eu-central-1.amazonaws.com/$(APP_ID):main \
+      --cache-from $(AWS_ACCOUNT_ID).dkr.ecr.eu-central-1.amazonaws.com/$(APP_DESTINATION_ID):main \
+      -t $(AWS_ACCOUNT_ID).dkr.ecr.eu-central-1.amazonaws.com/$(APP_DESTINATION_ID):main \
       -t docker-image:snapshot \
       .
   displayName: "Build Docker Image"
+  timeoutInMinutes: 15
 ```
-**What:** Build the Docker image from your Dockerfile.
-**Why:** This creates the "box" containing your app. The `--cache-from` flag speeds up builds by reusing layers from the previous build.
+**What:** Build the Docker image from your multi-stage Dockerfile.
+**Why:** This creates the "box" containing your app. The `--cache-from` flag speeds up builds by reusing layers from the previous build. The 15-minute timeout prevents runaway builds.
 
-The variables like `$(AWS_ACCOUNT_ID)` and `$(APP_ID)` are automatically set by the template steps above.
+The variables like `$(AWS_ACCOUNT_ID)` and `$(APP_DESTINATION_ID)` are automatically set by the template steps above.
 
 ---
 
 ```yaml
 - bash: |
-    docker tag docker-image:snapshot $(AWS_ACCOUNT_ID).dkr.ecr.eu-central-1.amazonaws.com/$(APP_DESTINATION_ID):main
     docker push $(AWS_ACCOUNT_ID).dkr.ecr.eu-central-1.amazonaws.com/$(APP_DESTINATION_ID):main
   displayName: "Push to ECR"
   condition: and(succeeded(), eq(variables.isMain, 'true'))
 ```
-**What:** Tag the image with the ECR URL and push it.
+**What:** Push the built image to ECR.
 **Why:** This uploads your built image to Amazon's container registry. Uptimize then pulls it from there. The `condition` ensures this only happens on the `main` branch (not feature branches).
 
 ---
@@ -119,7 +119,7 @@ Dev (auto-deploy on push)
 1. Go to Azure DevOps → your project
 2. Click **Pipelines** → **New Pipeline**
 3. Select **GitHub** as the source
-4. Select your repo (`Chandan-dev777/WorkTrackAI`)
+4. Select your repo (`Chandan-dev777/DailyOpsAI`)
 5. It will detect `azure-pipelines.yml` in your repo
 6. Click **Run** to trigger the first build
 

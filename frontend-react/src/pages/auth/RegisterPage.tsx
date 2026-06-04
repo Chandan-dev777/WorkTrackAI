@@ -116,7 +116,7 @@ export default function RegisterPage() {
             background: 'var(--gradient-brand)',
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
           }}>
-            WorkTrack AI
+            DailyOps AI
           </h1>
           <p style={{ fontSize: 16, color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
             AI-powered work intelligence for modern teams.
@@ -140,7 +140,7 @@ export default function RegisterPage() {
             Create an account
           </h2>
           <p style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginBottom: 28 }}>
-            Set up your WorkTrack AI profile
+            Set up your DailyOps AI profile
           </p>
 
           <form onSubmit={handleSubmit(onSubmit)} noValidate>

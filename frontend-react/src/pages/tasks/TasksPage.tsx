@@ -775,6 +775,59 @@ export default function TasksPage() {
           )}
         </div>
       )}
+
+      {/* ── Task Update Modal ──────────────────────────────────────────────── */}
+      {modalTask && (
+        <div onClick={() => setModalTask(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ background: 'var(--color-bg-elevated)', borderRadius: 12, border: '1px solid var(--color-border-default)', padding: 24, width: 480, maxWidth: '95vw' }}>
+            <h3 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 600, color: 'var(--color-text-primary)' }}>Update Task</h3>
+            <p style={{ margin: '0 0 18px', fontSize: 13, color: 'var(--color-text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {modalTask.task_description}
+            </p>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--color-text-secondary)' }}>Work Date</span>
+                <input type="date" value={modalDate} max={TODAY} onChange={e => setModalDate(e.target.value)}
+                  style={{ padding: '8px 10px', borderRadius: 6, border: '1px solid var(--color-border-default)', background: 'var(--color-bg-default)', color: 'var(--color-text-primary)', fontSize: 14 }} />
+              </label>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--color-text-secondary)' }}>Hours Today</span>
+                <input type="number" min={0} step={0.5} value={modalHours} onChange={e => setModalHours(parseFloat(e.target.value) || 0)}
+                  style={{ padding: '8px 10px', borderRadius: 6, border: '1px solid var(--color-border-default)', background: 'var(--color-bg-default)', color: 'var(--color-text-primary)', fontSize: 14 }} />
+              </label>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--color-text-secondary)' }}>Status</span>
+                <select value={modalStatus} onChange={e => setModalStatus(e.target.value)}
+                  style={{ padding: '8px 10px', borderRadius: 6, border: '1px solid var(--color-border-default)', background: 'var(--color-bg-default)', color: 'var(--color-text-primary)', fontSize: 14 }}>
+                  <option value="in_progress">In Progress</option>
+                  <option value="planned">Planned</option>
+                  <option value="blocked">Blocked</option>
+                  <option value="done">Done</option>
+                </select>
+              </label>
+            </div>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 20 }}>
+              <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--color-text-secondary)' }}>Note (optional)</span>
+              <input type="text" placeholder="e.g. Deployed to staging" value={modalNote} onChange={e => setModalNote(e.target.value)}
+                style={{ padding: '8px 10px', borderRadius: 6, border: '1px solid var(--color-border-default)', background: 'var(--color-bg-default)', color: 'var(--color-text-primary)', fontSize: 14 }} />
+            </label>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={saveTaskModal} disabled={modalSaving}
+                style={{ flex: 1, padding: '10px 0', borderRadius: 8, border: 'none', background: '#6366F1', color: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer', opacity: modalSaving ? 0.7 : 1 }}>
+                {modalSaving ? 'Saving…' : 'Save Update'}
+              </button>
+              <button onClick={() => setModalTask(null)}
+                style={{ padding: '10px 18px', borderRadius: 8, border: '1px solid var(--color-border-default)', background: 'none', color: 'var(--color-text-primary)', fontWeight: 500, fontSize: 14, cursor: 'pointer' }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -828,70 +881,6 @@ function UnassignedSection({ group, onFilterByProject }: { group: ProjectGroup; 
               <WorkStatusBadge status={item.status} />
             </div>
           ))}
-        </div>
-      )}
-
-      {/* ── Task Update Modal ────────────────────────────────────────────── */}
-      {modalTask && (
-        <div
-          onClick={() => setModalTask(null)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
-        >
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--color-bg-elevated)', borderRadius: 12, border: '1px solid var(--color-border-default)', padding: 24, width: 480, maxWidth: '95vw' }}>
-            <h3 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 600, color: 'var(--color-text-primary)' }}>Update Task</h3>
-            <p style={{ margin: '0 0 18px', fontSize: 13, color: 'var(--color-text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {modalTask.task_description}
-            </p>
-
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--color-text-secondary)' }}>Work Date</span>
-                <input type="date" value={modalDate} max={TODAY}
-                  onChange={e => setModalDate(e.target.value)}
-                  style={{ padding: '8px 10px', borderRadius: 6, border: '1px solid var(--color-border-default)', background: 'var(--color-bg-default)', color: 'var(--color-text-primary)', fontSize: 14 }}
-                />
-              </label>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-              <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--color-text-secondary)' }}>Hours Today</span>
-                <input type="number" min={0} step={0.5} value={modalHours}
-                  onChange={e => setModalHours(parseFloat(e.target.value) || 0)}
-                  style={{ padding: '8px 10px', borderRadius: 6, border: '1px solid var(--color-border-default)', background: 'var(--color-bg-default)', color: 'var(--color-text-primary)', fontSize: 14 }}
-                />
-              </label>
-              <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--color-text-secondary)' }}>Status</span>
-                <select value={modalStatus} onChange={e => setModalStatus(e.target.value)}
-                  style={{ padding: '8px 10px', borderRadius: 6, border: '1px solid var(--color-border-default)', background: 'var(--color-bg-default)', color: 'var(--color-text-primary)', fontSize: 14 }}>
-                  <option value="in_progress">In Progress</option>
-                  <option value="planned">Planned</option>
-                  <option value="blocked">Blocked</option>
-                  <option value="done">Done</option>
-                </select>
-              </label>
-            </div>
-
-            <label style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 20 }}>
-              <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--color-text-secondary)' }}>Note (optional)</span>
-              <input type="text" placeholder="e.g. Deployed to staging" value={modalNote}
-                onChange={e => setModalNote(e.target.value)}
-                style={{ padding: '8px 10px', borderRadius: 6, border: '1px solid var(--color-border-default)', background: 'var(--color-bg-default)', color: 'var(--color-text-primary)', fontSize: 14 }}
-              />
-            </label>
-
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={saveTaskModal} disabled={modalSaving}
-                style={{ flex: 1, padding: '10px 0', borderRadius: 8, border: 'none', background: '#6366F1', color: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer', opacity: modalSaving ? 0.7 : 1 }}>
-                {modalSaving ? 'Saving…' : 'Save Update'}
-              </button>
-              <button onClick={() => setModalTask(null)}
-                style={{ padding: '10px 18px', borderRadius: 8, border: '1px solid var(--color-border-default)', background: 'none', color: 'var(--color-text-primary)', fontWeight: 500, fontSize: 14, cursor: 'pointer' }}>
-                Cancel
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </div>

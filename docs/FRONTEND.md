@@ -1,4 +1,4 @@
-# WorkTrack AI — Frontend Documentation
+# DailyOps AI — Frontend Documentation
 
 ## Table of Contents
 
@@ -19,7 +19,7 @@
 
 ## Overview
 
-The WorkTrack AI frontend is a multi-page Streamlit application. It communicates exclusively with the FastAPI backend over HTTP using `httpx`. All state (JWT token, user profile, chat history) is held in `st.session_state` — there is no local database or persistent storage in the frontend.
+The DailyOps AI frontend is a multi-page Streamlit application. It communicates exclusively with the FastAPI backend over HTTP using `httpx`. All state (JWT token, user profile, chat history) is held in `st.session_state` — there is no local database or persistent storage in the frontend.
 
 **Page routing by role:**
 
@@ -717,9 +717,9 @@ API_BASE_URL=http://my-backend:8000 streamlit run frontend/app.py
 ### First-time Setup
 
 1. Register an account via the Register tab (or log in with seeded credentials after running seed data).
-2. Seeded admin account: `admin@worktrack.ai` / `WorkTrack2026!`
-3. Seeded employee example: `john.reese@worktrack.ai` / `WorkTrack2026!`
-4. Seeded manager example: `sarah.connor@worktrack.ai` / `WorkTrack2026!`
+2. Seeded admin account: `admin@dailyops.ai` / `DailyOps2026!`
+3. Seeded employee example: `john.reese@dailyops.ai` / `DailyOps2026!`
+4. Seeded manager example: `sarah.connor@dailyops.ai` / `DailyOps2026!`
 
 ### Environment Variable
 

@@ -14,7 +14,7 @@ const WELCOME: HelpMessage = {
   id: 'welcome',
   role: 'assistant',
   content:
-    "Hi! I'm your WorkTrack AI helper. I can explain features, walk you through workflows, " +
+    "Hi! I'm your DailyOps AI helper. I can explain features, walk you through workflows, " +
     'and save bug reports or requirements for you.\n\n' +
     'For questions about **your logged work or hours**, use the **Chat Assistant** page instead.',
 }
@@ -108,7 +108,7 @@ export function HelpWidget() {
             >
               <div className="flex items-center gap-2">
                 <MessageCircle size={16} color="rgba(255,255,255,0.9)" />
-                <span className="text-sm font-semibold text-white">WorkTrack AI Help</span>
+                <span className="text-sm font-semibold text-white">DailyOps AI Help</span>
               </div>
 
               <div className="flex items-center gap-2">

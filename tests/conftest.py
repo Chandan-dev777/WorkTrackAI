@@ -1,4 +1,4 @@
-"""Shared pytest fixtures for WorkTrack AI tests."""
+"""Shared pytest fixtures for DailyOps AI tests."""
 
 import pytest
 from fastapi.testclient import TestClient

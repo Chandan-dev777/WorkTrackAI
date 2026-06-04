@@ -8,7 +8,7 @@ import { GoalRing } from '@/components/charts/GoalRing'
 import { adminApi } from '@/api/admin'
 import { cn } from '@/utils/cn'
 
-const WEEKLY_GOAL_KEY = 'worktrack_weekly_goal'
+const WEEKLY_GOAL_KEY = 'dailyops_weekly_goal'
 function loadGoal(): number {
   const v = localStorage.getItem(WEEKLY_GOAL_KEY)
   return v ? Math.max(10, Math.min(80, Number(v))) : 40
@@ -32,8 +32,8 @@ const NAV: NavItem[] = [
 
 // ── Notification + timezone helpers ───────────────────────────────────────────
 
-const NOTIF_KEY = 'worktrack_notif_prefs'
-const TZ_KEY    = 'worktrack_timezone'
+const NOTIF_KEY = 'dailyops_notif_prefs'
+const TZ_KEY    = 'dailyops_timezone'
 
 function loadNotifPrefs() {
   try { return JSON.parse(localStorage.getItem(NOTIF_KEY) ?? '{}') } catch { return {} }
@@ -196,7 +196,7 @@ export default function SettingsPage() {
                   Profile
                 </h2>
                 <p className="text-xs mb-5" style={{ color: 'var(--color-text-secondary)' }}>
-                  Your account information as registered in WorkTrack AI.
+                  Your account information as registered in DailyOps AI.
                 </p>
 
                 {user && (
@@ -228,7 +228,7 @@ export default function SettingsPage() {
                 Appearance
               </h2>
               <p className="text-xs mb-6" style={{ color: 'var(--color-text-secondary)' }}>
-                Choose how WorkTrack AI looks for you.
+                Choose how DailyOps AI looks for you.
               </p>
 
               {/* Theme selector */}
@@ -324,7 +324,7 @@ export default function SettingsPage() {
             <div style={sectionCard}>
               <h2 className="text-base font-semibold mb-1" style={{ color: 'var(--color-text-primary)' }}>Notifications</h2>
               <p className="text-xs mb-6" style={{ color: 'var(--color-text-secondary)' }}>
-                Control how and when WorkTrack AI notifies you about your work activity.
+                Control how and when DailyOps AI notifies you about your work activity.
               </p>
 
               {/* Email digest */}
@@ -393,7 +393,7 @@ export default function SettingsPage() {
             <div style={sectionCard}>
               <h2 className="text-base font-semibold mb-1" style={{ color: 'var(--color-text-primary)' }}>Preferences</h2>
               <p className="text-xs mb-6" style={{ color: 'var(--color-text-secondary)' }}>
-                Regional and display preferences for your WorkTrack AI workspace.
+                Regional and display preferences for your DailyOps AI workspace.
               </p>
 
               {/* Timezone */}
@@ -491,7 +491,7 @@ export default function SettingsPage() {
                   { label: 'Employee ID', value: user?.employee_id ?? '—' },
                   { label: 'Role',        value: user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : '—' },
                   { label: 'Team',        value: user?.team_name ?? '—' },
-                  { label: 'Connected via', value: 'WorkTrack AI' },
+                  { label: 'Connected via', value: 'DailyOps AI' },
                 ].map(r => (
                   <div key={r.label} style={{ display: 'flex', padding: '10px 0', borderBottom: '1px solid var(--color-border-subtle)' }}
                     className="last:border-b-0">

@@ -43,7 +43,7 @@ CERT_PATH = _resolve_cert()
 
 class Settings(BaseSettings):
     # Database
-    DATABASE_URL: str = "sqlite:///./data/worktrack.db"
+    DATABASE_URL: str = "sqlite:///./data/dailyops.db"
 
     # JWT
     SECRET_KEY: str = "change-me-to-a-long-random-string"

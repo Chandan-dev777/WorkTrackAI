@@ -1,53 +1,57 @@
 # Understanding the Dockerfile
 
-The Dockerfile is a recipe that tells Docker how to package your application. Think of it like a cooking recipe — each line is a step.
+The Dockerfile is a recipe that tells Docker how to package your application. We use a **multi-stage build** — one stage builds the frontend, another runs the app. This keeps the final image small.
 
 ---
 
 ## Our Dockerfile (line by line)
 
+### Stage 1: Build the React Frontend
+
 ```dockerfile
-FROM --platform=linux/amd64 python:3.12-slim
+FROM --platform=linux/amd64 node:20-slim AS frontend-build
 ```
-**What:** Start with a lightweight Linux machine that has Python 3.12 pre-installed.
-**Why:** `linux/amd64` ensures it runs on Uptimize servers (which are Intel/AMD, not ARM). `slim` means a smaller image (fewer MB to transfer).
+**What:** Use Node.js 20 to build the frontend.
+**Why:** Vite 5 requires Node 18+. This stage is temporary — it only exists during the build process, not in the final image.
 
 ---
 
 ```dockerfile
-RUN apt-get update && \
-    apt-get install -y nodejs npm curl && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+WORKDIR /build
+COPY frontend-react/package.json frontend-react/package-lock.json ./
+RUN npm ci
 ```
-**What:** Install Node.js and npm (JavaScript tools).
-**Why:** We need these to build the React frontend (`npm run build`). The cleanup at the end keeps the image small.
+**What:** Copy the lockfile and install JS dependencies using `npm ci`.
+**Why:** `npm ci` is faster and more reliable than `npm install` — it uses the exact versions from `package-lock.json`. Copying just these files first allows Docker to cache this step.
+
+---
+
+```dockerfile
+COPY frontend-react/ .
+RUN npm run build
+```
+**What:** Copy all frontend source code and build it.
+**Why:** `npm run build` produces static HTML/JS/CSS in a `dist/` folder. This is all we need for production.
+
+---
+
+### Stage 2: Production Image
+
+```dockerfile
+FROM --platform=linux/amd64 python:3.12-slim
+```
+**What:** Start the final image with Python 3.12 (no Node.js!).
+**Why:** `linux/amd64` ensures it runs on Uptimize servers. `slim` means a smaller image. Node is gone — we only need the built static files.
 
 ---
 
 ```dockerfile
 WORKDIR /app
-```
-**What:** Set `/app` as the working directory inside the container.
-**Why:** All subsequent commands run from this folder. Like doing `cd /app`.
-
----
-
-```dockerfile
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 ```
-**What:** Copy the Python dependencies list and install them.
-**Why:** We copy just `requirements.txt` first (before the rest of the code) so Docker can cache this step. If your code changes but dependencies don't, Docker skips re-installing — makes builds faster.
-
----
-
-```dockerfile
-COPY frontend-react/ frontend-react/
-RUN cd frontend-react && npm install && npm run build && rm -rf node_modules
-```
-**What:** Copy the React frontend, install JS dependencies, build it, then delete `node_modules`.
-**Why:** `npm run build` produces static HTML/JS/CSS in `frontend-react/dist/`. After building, we don't need the 200MB+ `node_modules` folder anymore — deleting it saves space.
+**What:** Install Python dependencies.
+**Why:** Copied separately for Docker layer caching — if `requirements.txt` doesn't change, Docker skips this step on rebuilds.
 
 ---
 
@@ -57,6 +61,14 @@ COPY .env.example .env
 ```
 **What:** Copy the backend Python code and a template `.env` file.
 **Why:** The backend is what actually runs. The `.env.example` provides defaults — real secrets are injected via environment variables at runtime (not baked in).
+
+---
+
+```dockerfile
+COPY --from=frontend-build /build/dist frontend-react/dist
+```
+**What:** Copy the built frontend files from Stage 1 into the final image.
+**Why:** We only need the output (`dist/` folder with HTML/JS/CSS), not the source code or `node_modules`. This makes the final image ~500MB smaller.
 
 ---
 
@@ -72,7 +84,7 @@ RUN mkdir -p data
 EXPOSE 8080
 ```
 **What:** Document that the container listens on port 8080.
-**Why:** Uptimize convention. This doesn't actually open the port — it's informational. The `CMD` below is what actually starts the server on 8080.
+**Why:** Uptimize convention. This is informational — the `CMD` below actually starts the server on 8080.
 
 ---
 
@@ -90,10 +102,10 @@ Before pushing to the pipeline, test the Docker image on your machine:
 
 ```bash
 # Build the image (takes 2-5 minutes first time)
-docker build -t worktrack-ai .
+docker build -t dailyops-ai .
 
 # Run it (pass your .env file for secrets)
-docker run -p 8080:8080 --env-file .env worktrack-ai
+docker run -p 8080:8080 --env-file .env dailyops-ai
 
 # Visit http://localhost:8080 in your browser
 ```
@@ -117,7 +129,7 @@ To keep the image small and avoid accidentally including secrets, we have a `.do
 
 | Problem | Cause | Fix |
 |---------|-------|-----|
-| Build fails at `npm install` | `package-lock.json` out of sync | Run `cd frontend-react && npm install` locally first, commit the updated lockfile |
+| Build fails at `npm ci` | `package-lock.json` out of sync | Run `cd frontend-react && npm install` locally first, commit the updated lockfile |
 | App starts but LLM calls fail | Missing API keys | Set environment variables in Uptimize config (not in Dockerfile) |
 | Container exits immediately | Python error on startup | Run `docker logs <container-id>` to see the error |
-| Image too large (>2GB) | `node_modules` not cleaned | Make sure `rm -rf node_modules` is in the Dockerfile after build |
+| Image too large (>1.5GB) | Something wrong with multi-stage | Verify `COPY --from=frontend-build` only copies `dist/`, not full source |

@@ -52,7 +52,7 @@ function computeBadges(streak: number, totalHours: number, weekGoal: number, tot
     { id: 'goal',        emoji: '🎯', label: 'Goal Crusher',   desc: 'Hit your weekly hours target',      unlocked: goalReached },
     { id: 'century',     emoji: '🏆', label: 'Century',        desc: '100 work items confirmed',          unlocked: totalItems >= 100 },
     { id: 'consistent',  emoji: '📅', label: 'Consistent',     desc: '30-day submission streak',          unlocked: streak >= 30 },
-    { id: 'ai-curious',  emoji: '🤖', label: 'AI Curious',     desc: 'Ask the AI assistant a question',   unlocked: !!localStorage.getItem('worktrack_chat_cleared_at') || false },
+    { id: 'ai-curious',  emoji: '🤖', label: 'AI Curious',     desc: 'Ask the AI assistant a question',   unlocked: !!localStorage.getItem('dailyops_chat_cleared_at') || false },
   ]
 }
 
@@ -60,7 +60,7 @@ function computeBadges(streak: number, totalHours: number, weekGoal: number, tot
 
 const DEFAULT_WEEKLY_GOAL = 40
 function getWeeklyGoal(): number {
-  const saved = localStorage.getItem('worktrack_weekly_goal')
+  const saved = localStorage.getItem('dailyops_weekly_goal')
   return saved ? Number(saved) : DEFAULT_WEEKLY_GOAL
 }
 
@@ -153,7 +153,7 @@ const ACTIONS: ActionItem[] = [
 const ONBOARD_STEPS = [
   { id: 'submit',  emoji: '✏️', label: 'Submit your first work update', desc: 'Log what you worked on today',           to: '/submit'       },
   { id: 'review',  emoji: '🔍', label: 'Review the extracted items',    desc: 'Check the AI extraction was accurate',  to: '/submit'       },
-  { id: 'ask-ai',  emoji: '🤖', label: 'Ask WorkTrack AI a question',   desc: 'Try the conversational assistant',       to: '/chat'         },
+  { id: 'ask-ai',  emoji: '🤖', label: 'Ask DailyOps AI a question',   desc: 'Try the conversational assistant',       to: '/chat'         },
   { id: 'explore', emoji: '📊', label: 'Explore your dashboard',        desc: 'See your analytics once you have data',  to: '/my-dashboard' },
 ] as const
 
@@ -242,7 +242,7 @@ export default function HomeDashboard() {
   // AI Weekly Brief
   const [brief, setBrief] = useState<{ text: string; ts: string } | null>(() => {
     try {
-      const v = localStorage.getItem(`worktrack_brief_${new Date().toISOString().split('T')[0]}`)
+      const v = localStorage.getItem(`dailyops_brief_${new Date().toISOString().split('T')[0]}`)
       return v ? JSON.parse(v) : null
     } catch { return null }
   })
@@ -250,9 +250,9 @@ export default function HomeDashboard() {
   const [briefExpanded, setBriefExpanded] = useState(false)
 
   // Onboarding checklist
-  const [onboardDismissed, setOnboardDismissed] = useState(() => !!localStorage.getItem('worktrack_onboard_dismissed'))
+  const [onboardDismissed, setOnboardDismissed] = useState(() => !!localStorage.getItem('dailyops_onboard_dismissed'))
   const [completedSteps, setCompletedSteps] = useState<string[]>(() => {
-    try { return JSON.parse(localStorage.getItem('worktrack_onboard_completed') ?? '[]') } catch { return [] }
+    try { return JSON.parse(localStorage.getItem('dailyops_onboard_completed') ?? '[]') } catch { return [] }
   })
 
   async function generateBrief() {
@@ -262,7 +262,7 @@ export default function HomeDashboard() {
         question: 'Summarize my work this week in 3–5 bullet points: hours logged, key tasks completed, any blockers, and what to focus on next. Be concise.',
       })
       const result = { text: res.answer, ts: new Date().toISOString() }
-      localStorage.setItem(`worktrack_brief_${new Date().toISOString().split('T')[0]}`, JSON.stringify(result))
+      localStorage.setItem(`dailyops_brief_${new Date().toISOString().split('T')[0]}`, JSON.stringify(result))
       setBrief(result)
       setBriefExpanded(true)
     } catch { /* silent */ }
@@ -270,13 +270,13 @@ export default function HomeDashboard() {
   }
 
   function dismissOnboard() {
-    localStorage.setItem('worktrack_onboard_dismissed', '1')
+    localStorage.setItem('dailyops_onboard_dismissed', '1')
     setOnboardDismissed(true)
   }
 
   function markStepDone(id: string) {
     const updated = [...completedSteps.filter(s => s !== id), id]
-    localStorage.setItem('worktrack_onboard_completed', JSON.stringify(updated))
+    localStorage.setItem('dailyops_onboard_completed', JSON.stringify(updated))
     setCompletedSteps(updated)
   }
 
@@ -566,7 +566,7 @@ export default function HomeDashboard() {
             <div className="flex items-start justify-between mb-4">
               <div>
                 <p className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-                  🚀 Get started with WorkTrack AI
+                  🚀 Get started with DailyOps AI
                 </p>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
                   Complete these steps to unlock the full experience
@@ -728,7 +728,7 @@ export default function HomeDashboard() {
             </div>
             <p className="text-xs mt-3 pt-3 flex items-center gap-1"
               style={{ color: 'var(--color-text-muted)', borderTop: '1px solid var(--color-border-subtle)' }}>
-              <Sparkles size={10} /> Generated by WorkTrack AI
+              <Sparkles size={10} /> Generated by DailyOps AI
             </p>
           </div>
         )}

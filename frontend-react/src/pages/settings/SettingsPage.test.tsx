@@ -165,7 +165,7 @@ describe('SettingsPage — Preferences section', () => {
     fireEvent.click(screen.getByRole('button', { name: /preferences/i }))
     const select = screen.getByRole('combobox', { name: /timezone/i })
     fireEvent.change(select, { target: { value: 'Europe/London' } })
-    expect(localStorage.getItem('worktrack_timezone')).toBe('Europe/London')
+    expect(localStorage.getItem('dailyops_timezone')).toBe('Europe/London')
   })
 })
 

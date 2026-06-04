@@ -30,19 +30,19 @@ function renderPage() {
 
 beforeEach(() => {
   useAuthStore.getState().login('mock-token', employeeUser)
-  localStorage.removeItem('worktrack_chat_cleared_at')
+  localStorage.removeItem('dailyops_chat_cleared_at')
 })
 
 afterEach(() => {
-  localStorage.removeItem('worktrack_chat_cleared_at')
+  localStorage.removeItem('dailyops_chat_cleared_at')
 })
 
 // ── LAYOUT ────────────────────────────────────────────────────────────────────
 
 describe('ChatPage — layout', () => {
-  it('renders WorkTrack AI header title', async () => {
+  it('renders DailyOps AI header title', async () => {
     renderPage()
-    expect(await screen.findByText('WorkTrack AI')).toBeInTheDocument()
+    expect(await screen.findByText('DailyOps AI')).toBeInTheDocument()
   })
 
   it('renders Online badge in header', async () => {
@@ -246,19 +246,19 @@ describe('ChatPage — clear history', () => {
   })
 
   it('history cleared at timestamp is written to localStorage on clear', async () => {
-    localStorage.removeItem('worktrack_chat_cleared_at')
+    localStorage.removeItem('dailyops_chat_cleared_at')
     renderPage()
     await screen.findByText('How many hours did I log last week?')
     fireEvent.click(screen.getByRole('button', { name: /clear history/i }))
     fireEvent.click(await screen.findByRole('button', { name: /^clear$/i }))
     await waitFor(() => {
-      expect(localStorage.getItem('worktrack_chat_cleared_at')).not.toBeNull()
+      expect(localStorage.getItem('dailyops_chat_cleared_at')).not.toBeNull()
     })
   })
 
   it('history items older than cleared_at are filtered out on page load (survives refresh)', async () => {
     // Simulate a previous clear: set cleared_at to NOW (all existing history is older)
-    localStorage.setItem('worktrack_chat_cleared_at', new Date().toISOString())
+    localStorage.setItem('dailyops_chat_cleared_at', new Date().toISOString())
     renderPage()
     // History from MSW has created_at='2026-04-13T09:00:00' which is before cleared_at
     await waitFor(() => {
@@ -268,7 +268,7 @@ describe('ChatPage — clear history', () => {
 
   it('new messages sent after clearing are still visible', async () => {
     // Clear happened in the past — existing history is filtered
-    localStorage.setItem('worktrack_chat_cleared_at', new Date().toISOString())
+    localStorage.setItem('dailyops_chat_cleared_at', new Date().toISOString())
     renderPage()
     await screen.findByRole('textbox', { name: /ask|message/i })
     const input = screen.getByRole('textbox', { name: /ask|message/i })

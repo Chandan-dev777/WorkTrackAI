@@ -9,13 +9,13 @@ Follow these steps in order. Each step must succeed before moving to the next.
 **Goal:** Make sure the Docker image builds and runs correctly on your machine.
 
 ```bash
-cd worktrack-ai
+cd dailyops-ai
 
 # Build the Docker image
-docker build -t worktrack-ai .
+docker build -t dailyops-ai .
 
 # Run it with your local .env
-docker run -p 8080:8080 --env-file .env worktrack-ai
+docker run -p 8080:8080 --env-file .env dailyops-ai
 
 # Open http://localhost:8080 in your browser
 # → You should see the login page
@@ -31,59 +31,34 @@ docker run -p 8080:8080 --env-file .env worktrack-ai
 
 ---
 
-## Step 2: Request Uptimize App Slot
+## Step 2: Request Uptimize App Slot ✅ DONE
 
-**Goal:** Get your `AppDestinationId` and app URL.
-
-1. Contact the platform team or use the Uptimize portal
-2. Request: "I need a new App Service slot for `worktrack-ai` (dev environment)"
-3. Specify:
-   - App name: `worktrack-ai`
-   - Port: `8080`
-   - Team: your team name
-   - Environment: `dev` (internal testing only)
-
-**What you get back:**
-- `AppDestinationId`: e.g., `app-abc123xyz456`
-- URL: e.g., `https://worktrack-ai-dev.app.uptimize.merckgroup.com`
-
-**Time:** Could be instant (self-service portal) or 1-2 days (if ticket-based).
+**AppDestinationId:** `app-4bf3rraulo4umzs8`
 
 ---
 
-## Step 3: Update the Pipeline YAML
+## Step 3: Update the Pipeline YAML ✅ DONE
 
-**Goal:** Put your real `AppDestinationId` into the pipeline file.
-
-Open `azure-pipelines.yml` and replace the placeholder:
+`azure-pipelines.yml` already contains the real App ID:
 
 ```yaml
-# Change this:
-AppDestinationId: "YOUR-APP-DESTINATION-ID-HERE"
-
-# To your real ID:
-AppDestinationId: "app-abc123xyz456"
-```
-
-Commit and push:
-
-```bash
-git add azure-pipelines.yml
-git commit -m "chore: add real AppDestinationId for deployment"
-git push
+AppDestinationId: "app-4bf3rraulo4umzs8"
 ```
 
 ---
 
 ## Step 4: Set Up Azure DevOps Pipeline
 
-**Goal:** Connect Azure DevOps to your GitHub repo so it builds automatically.
+**Goal:** Connect the pipeline to the Azure DevOps Git repo so it builds automatically on push.
 
-1. Go to your Azure DevOps project (ask team for the URL)
+**Repo:** `https://dev.azure.com/Uptimize/factory-appservice-apps-p-nreg-ec1/_git/dailyops-ai-app-4bf3rraulo4umzs8`
+**App URL:** `https://dailyops-ai.apps.p.uptimize.merckgroup.com/`
+
+1. Go to `https://dev.azure.com/Uptimize/factory-appservice-apps-p-nreg-ec1`
 2. Click **Pipelines** in the left sidebar
 3. Click **New Pipeline**
-4. Choose **GitHub** as the code source
-5. Authenticate and select `Chandan-dev777/WorkTrackAI`
+4. Choose **Azure Repos Git** as the code source
+5. Select `dailyops-ai-app-4bf3rraulo4umzs8`
 6. Azure DevOps will find `azure-pipelines.yml` in your repo
 7. Review and click **Run**
 
@@ -105,7 +80,7 @@ In the Uptimize app console for your app:
 | `AWS_BEDROCK_KEY` | (your real key) |
 | `APP_SERVICE_NLP_API_KEY` | (your real key) |
 | `SECRET_KEY` | (run `openssl rand -hex 32` to generate) |
-| `DATABASE_URL` | `sqlite:///./data/worktrack.db` |
+| `DATABASE_URL` | `sqlite:///./data/dailyops.db` |
 | `CHROMA_PATH` | `./data/chroma` |
 
 3. Save and trigger a restart/redeploy
@@ -116,7 +91,7 @@ In the Uptimize app console for your app:
 
 **Goal:** Confirm the app works on the real URL.
 
-1. Open your app URL (e.g., `https://worktrack-ai-dev.app.uptimize.merckgroup.com`)
+1. Open your app URL (e.g., `https://dailyops-ai-dev.app.uptimize.merckgroup.com`)
 2. You should see the login page
 3. Since the database is empty, seed it:
    - Register an admin account, OR

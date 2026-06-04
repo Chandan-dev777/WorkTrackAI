@@ -34,7 +34,7 @@ describe('Shell', () => {
 
   it('renders TopNavbar', () => {
     render(withProviders(<Shell><div /></Shell>))
-    expect(screen.getByText(/worktrack/i)).toBeInTheDocument()
+    expect(screen.getByText(/dailyops/i)).toBeInTheDocument()
   })
 
   it('renders Sidebar', () => {

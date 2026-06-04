@@ -31,7 +31,7 @@ Set these in your Uptimize app configuration (usually: App Console → Configura
 | `AWS_BEDROCK_KEY` | Your Bedrock API key | Authenticates calls to Claude models |
 | `APP_SERVICE_NLP_API_KEY` | Your NLP API key | Authenticates calls to GPT models |
 | `SECRET_KEY` | A random string (64+ chars) | Signs JWT tokens for user authentication |
-| `DATABASE_URL` | `sqlite:///./data/worktrack.db` | Where SQLite stores data |
+| `DATABASE_URL` | `sqlite:///./data/dailyops.db` | Where SQLite stores data |
 | `CHROMA_PATH` | `./data/chroma` | Where ChromaDB stores vectors |
 
 ### Optional (have sensible defaults)
@@ -61,7 +61,7 @@ Set these in your Uptimize app configuration (usually: App Console → Configura
 This varies by how your Uptimize app is configured, but typically:
 
 1. Log into the Uptimize console
-2. Find your app (`worktrack-ai`)
+2. Find your app (`dailyops-ai`)
 3. Go to **Configuration** or **Environment** tab
 4. Add each variable as a key-value pair
 5. Mark sensitive ones (API keys) as **Secret** so they're not visible in logs
@@ -81,7 +81,7 @@ cp .env.example .env
 # Edit .env with real values
 
 # Run Docker with that env file
-docker run -p 8080:8080 --env-file .env worktrack-ai
+docker run -p 8080:8080 --env-file .env dailyops-ai
 ```
 
 ---

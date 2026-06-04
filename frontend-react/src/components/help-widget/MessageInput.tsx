@@ -38,7 +38,7 @@ export function MessageInput({ value, onChange, onSend, disabled, placeholder }:
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
         disabled={disabled}
-        placeholder={placeholder ?? 'Ask anything about WorkTrack AI…'}
+        placeholder={placeholder ?? 'Ask anything about DailyOps AI…'}
         rows={1}
         className="flex-1 resize-none rounded-lg px-3 py-2 text-xs leading-relaxed outline-none transition-colors"
         style={{
