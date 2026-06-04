@@ -17,9 +17,8 @@ build/
 venv/
 env/
 
-# Data (runtime-generated)
-data/*.db
-data/chroma/
+# Data (committed to repo — baked into Docker image for deployment)
+# data/*.db and data/chroma are intentionally tracked
 
 # Testing
 .pytest_cache/

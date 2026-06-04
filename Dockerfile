@@ -24,8 +24,8 @@ COPY .env.example .env
 # Copy built frontend from stage 1
 COPY --from=frontend-build /build/dist frontend-react/dist
 
-# Create data directory for SQLite + ChromaDB
-RUN mkdir -p data
+# Copy seeded database and ChromaDB (baked into image for deployment)
+COPY data/ data/
 
 # Uptimize expects port 8080
 EXPOSE 8080

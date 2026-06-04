@@ -11,8 +11,7 @@
 __pycache__
 *.pyc
 
-# Runtime data (created fresh in container)
-data/
+# data/ is committed to git and baked into the image (seeded DB + ChromaDB)
 
 # Non-deployment files
 _archive/
