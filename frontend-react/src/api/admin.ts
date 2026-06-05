@@ -73,7 +73,7 @@ export const adminApi = {
     apiClient.get<ActivityLogEntry[]>('/admin/activity-log', { params: { limit } }).then(r => r.data),
 
   changePassword: (currentPassword: string, newPassword: string) =>
-    apiClient.post<{ message: string }>('/auth/change-password', {
+    apiClient.post<{ message: string }>('/api/auth/change-password', {
       current_password: currentPassword,
       new_password: newPassword,
     }).then(r => r.data),

@@ -86,10 +86,10 @@ describe('RegisterPage — validation', () => {
 // ── SUCCESSFUL REGISTRATION ───────────────────────────────────────────────────
 
 describe('RegisterPage — successful registration', () => {
-  it('calls POST /auth/register with form data', async () => {
+  it('calls POST /api/auth/register with form data', async () => {
     let sentPayload: unknown
     server.use(
-      http.post('/auth/register', async ({ request }) => {
+      http.post('/api/auth/register', async ({ request }) => {
         sentPayload = await request.json()
         return HttpResponse.json({ access_token: 'mock-token-new', token_type: 'bearer' }, { status: 201 })
       })
@@ -149,7 +149,7 @@ describe('RegisterPage — role security', () => {
 describe('RegisterPage — error state', () => {
   it('shows server error when registration fails (409 conflict)', async () => {
     server.use(
-      http.post('/auth/register', () =>
+      http.post('/api/auth/register', () =>
         HttpResponse.json({ detail: 'Email already registered' }, { status: 409 })
       )
     )

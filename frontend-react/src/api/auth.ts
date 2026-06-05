@@ -13,8 +13,8 @@ export interface LoginResult {
 
 /** Login then immediately fetch the user profile. */
 export async function login(email: string, password: string): Promise<LoginResult> {
-  const { data } = await apiClient.post<TokenResponse>('/auth/login', { email, password })
-  // Store token temporarily so the /auth/me request is authenticated
+  const { data } = await apiClient.post<TokenResponse>('/api/auth/login', { email, password })
+  // Store token temporarily so the /api/auth/me request is authenticated
   apiClient.defaults.headers.common['Authorization'] = `Bearer ${data.access_token}`
   const user = await getMe()
   return { token: data.access_token, user }
@@ -29,13 +29,13 @@ export async function register(payload: {
   team_name?: string
   department?: string
 }): Promise<LoginResult> {
-  const { data } = await apiClient.post<TokenResponse>('/auth/register', payload)
+  const { data } = await apiClient.post<TokenResponse>('/api/auth/register', payload)
   apiClient.defaults.headers.common['Authorization'] = `Bearer ${data.access_token}`
   const user = await getMe()
   return { token: data.access_token, user }
 }
 
 export async function getMe(): Promise<User> {
-  const { data } = await apiClient.get<User>('/auth/me')
+  const { data } = await apiClient.get<User>('/api/auth/me')
   return data
 }
