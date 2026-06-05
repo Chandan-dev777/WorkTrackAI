@@ -32,7 +32,16 @@ def _resolve_db_url(url: str) -> str:
 
 
 def _generate_iam_token() -> str:
-    """Generate a fresh IAM auth token for Uptimize DBaaS PostgreSQL."""
+    """Generate a fresh IAM auth token for Uptimize DBaaS PostgreSQL.
+
+    Local dev: uses DBAAS_AUTH_TOKEN directly (from "Get Credentials" button).
+    App Service: uses ECS task role → STS assume_role → RDS generate_db_auth_token.
+    """
+    direct_token = os.getenv("DBAAS_AUTH_TOKEN")
+    if direct_token:
+        logger.debug("Using direct DBAAS_AUTH_TOKEN")
+        return direct_token
+
     import boto3
 
     iam_role = settings.DBAAS_IAM_ROLE
@@ -62,7 +71,7 @@ def _generate_iam_token() -> str:
         DBUsername=db_user,
         Region=region,
     )
-    logger.info("Generated fresh IAM auth token for DBaaS (valid 15 min)")
+    logger.debug("Generated fresh IAM auth token for DBaaS")
     return token
 
 
@@ -70,6 +79,11 @@ def _build_engine():
     """Build the SQLAlchemy engine based on DATABASE_URL."""
     if _is_postgres():
         url = _resolve_db_url(settings.DATABASE_URL)
+        if "sslmode" not in url:
+            sep = "&" if "?" in url else "?"
+            url = f"{url}{sep}sslmode=require"
+        _auth_mode = "direct token (DBAAS_AUTH_TOKEN)" if os.getenv("DBAAS_AUTH_TOKEN") else "IAM role (STS→RDS)"
+        logger.info("PostgreSQL mode — host=%s, auth=%s", settings.DBAAS_HOST or "(from URL)", _auth_mode)
         eng = create_engine(
             url,
             pool_size=5,
@@ -87,6 +101,7 @@ def _build_engine():
         return eng
     else:
         url = _resolve_db_url(settings.DATABASE_URL)
+        logger.info("SQLite mode — %s", url)
         return create_engine(
             url,
             connect_args={"check_same_thread": False},

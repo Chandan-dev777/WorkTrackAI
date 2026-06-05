@@ -20,9 +20,29 @@ from pydantic_settings import BaseSettings
 
 logger = logging.getLogger(__name__)
 
-# Load .env into os.environ so get_api_key() can read from it via os.getenv()
+# ── Load configuration ────────────────────────────────────────────────────────
+# Priority order (highest wins):
+#   1. APP_SERVICE_CONFIG JSON values (runtime config from Uptimize portal)
+#   2. .env file values (baked into Docker image via .env.example)
+#   3. Defaults in Settings class
+#
+# Step 1: Load .env file (provides defaults for all settings)
 _env_path = Path(__file__).parent.parent / ".env"
-load_dotenv(_env_path, override=False)  # override=False: OS env takes priority
+load_dotenv(_env_path, override=False)
+
+# Step 2: Parse APP_SERVICE_CONFIG and OVERRIDE .env defaults with its values.
+# On App Service: platform injects APP_SERVICE_CONFIG as OS env var.
+# Locally: APP_SERVICE_CONFIG comes from .env (loaded above).
+_app_service_config_raw = os.getenv("APP_SERVICE_CONFIG")
+if _app_service_config_raw:
+    try:
+        _parsed_config = json.loads(_app_service_config_raw)
+        for _k, _v in _parsed_config.items():
+            if _k != "APP_SERVICE_CONFIG":
+                os.environ[_k] = str(_v)
+        logger.info("Loaded %d keys from APP_SERVICE_CONFIG into env", len(_parsed_config))
+    except json.JSONDecodeError:
+        logger.warning("APP_SERVICE_CONFIG is not valid JSON — ignoring")
 
 # ── SSL cert ──────────────────────────────────────────────────────────────────
 # Lookup order: local cacert.pem → ~/.ssh/cacert.pem → SSL_CERT_FILE env var → True (default)

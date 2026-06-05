@@ -5,23 +5,25 @@ import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-import uvicorn
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
-
-from backend.database import create_tables, run_migrations
-from backend.routers import admin, assistant, auth, chat, dashboard, templates, updates, worklogs
-
-# Path to the built React frontend (dailyops-ai/frontend-react/dist/)
-_FRONTEND_DIST = Path(__file__).parent.parent / "frontend-react" / "dist"
-
+# Configure logging BEFORE any app imports so config.py and database.py
+# messages are captured (they run at import time).
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s — %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+import uvicorn  # noqa: E402
+from fastapi import FastAPI  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from fastapi.responses import FileResponse  # noqa: E402
+from fastapi.staticfiles import StaticFiles  # noqa: E402
+
+from backend.database import create_tables, run_migrations  # noqa: E402
+from backend.routers import admin, assistant, auth, chat, dashboard, templates, updates, worklogs  # noqa: E402
+
+# Path to the built React frontend (dailyops-ai/frontend-react/dist/)
+_FRONTEND_DIST = Path(__file__).parent.parent / "frontend-react" / "dist"
 
 
 @asynccontextmanager
