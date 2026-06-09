@@ -8,6 +8,9 @@ import type { Role } from '@/utils/roleGuard'
 // ── Lazy page imports ─────────────────────────────────────────────────────────
 const LoginPage         = lazy(() => import('@/pages/auth/LoginPage'))
 const RegisterPage      = lazy(() => import('@/pages/auth/RegisterPage'))
+const SetPasswordPage   = lazy(() => import('@/pages/auth/SetPasswordPage'))
+const OnboardingPage    = lazy(() => import('@/pages/auth/OnboardingPage'))
+const OrgChartPage      = lazy(() => import('@/pages/org/OrgChartPage'))
 const HomeDashboard     = lazy(() => import('@/pages/dashboard/HomeDashboard'))
 const SubmitUpdatePage  = lazy(() => import('@/pages/submit/SubmitUpdatePage'))
 const TasksPage         = lazy(() => import('@/pages/tasks/TasksPage'))
@@ -56,8 +59,15 @@ export function AppRouter() {
     <Suspense fallback={<PageLoader />}>
       <Routes>
         {/* Public — redirect authenticated users to dashboard */}
-        <Route path="/login"    element={<RequireGuest><LoginPage /></RequireGuest>} />
-        <Route path="/register" element={<RequireGuest><RegisterPage /></RequireGuest>} />
+        <Route path="/login"        element={<RequireGuest><LoginPage /></RequireGuest>} />
+        <Route path="/register"     element={<RequireGuest><RegisterPage /></RequireGuest>} />
+        {/* Set password — requires auth, shown after first SSO login */}
+        <Route path="/set-password" element={<RequireAuth><SetPasswordPage /></RequireAuth>} />
+        {/* Onboarding — requires auth, shown after first SSO login */}
+        <Route path="/onboarding"   element={<RequireAuth><OnboardingPage /></RequireAuth>} />
+
+        {/* Org chart — requires auth */}
+        <Route path="/org" element={<RequireAuth><Shell><OrgChartPage /></Shell></RequireAuth>} />
 
         {/* Authenticated — wrapped in Shell */}
         <Route

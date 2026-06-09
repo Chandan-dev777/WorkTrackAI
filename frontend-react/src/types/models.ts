@@ -9,6 +9,9 @@ export interface User {
   team_name: string | null
   department: string | null
   is_active: boolean
+  has_password: boolean
+  onboarding_complete: boolean
+  manager_id: string | null
 }
 
 export type WorkCategory =

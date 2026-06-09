@@ -18,13 +18,13 @@ vi.mock('recharts', () => ({
 const employeeUser: User = {
   id: 'uuid-alice', employee_id: 'EMP-001', full_name: 'Alice Smith',
   email: 'alice@example.com', role: 'employee',
-  team_name: 'Engineering', department: 'Technology', is_active: true,
+  team_name: 'Engineering', department: 'Technology', is_active: true, has_password: true, onboarding_complete: true, manager_id: null,
 }
 
 const managerUser: User = {
   id: 'uuid-mgr', employee_id: 'EMP-MGR', full_name: 'Bob Manager',
   email: 'bob@example.com', role: 'manager',
-  team_name: 'Engineering', department: 'Technology', is_active: true,
+  team_name: 'Engineering', department: 'Technology', is_active: true, has_password: true, onboarding_complete: true, manager_id: null,
 }
 
 function makeClient() {

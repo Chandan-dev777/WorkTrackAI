@@ -32,7 +32,7 @@ function renderNavbarWithRouter(initialPath = '/dashboard') {
 const user: User = {
   id: 'uuid-alice-001', employee_id: 'EMP-001', email: 'alice@test.com',
   role: 'employee', full_name: 'Alice Smith',
-  team_name: null, department: null, is_active: true,
+  team_name: null, department: null, is_active: true, has_password: true, onboarding_complete: true, manager_id: null,
 }
 
 function renderNavbar() {

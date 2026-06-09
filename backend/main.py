@@ -20,7 +20,7 @@ from fastapi.responses import FileResponse  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 
 from backend.database import create_tables, run_migrations  # noqa: E402
-from backend.routers import admin, assistant, auth, chat, dashboard, templates, updates, worklogs  # noqa: E402
+from backend.routers import admin, assistant, auth, chat, dashboard, org, templates, updates, worklogs  # noqa: E402
 
 # Path to the built React frontend (dailyops-ai/frontend-react/dist/)
 _FRONTEND_DIST = Path(__file__).parent.parent / "frontend-react" / "dist"
@@ -62,6 +62,7 @@ app.add_middleware(
 
 # ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(auth.router)
+app.include_router(org.router)
 app.include_router(updates.router)
 app.include_router(worklogs.router)
 app.include_router(dashboard.router)

@@ -9,17 +9,17 @@ import type { User } from '@/types/models'
 const employeeUser: User = {
   id: 'uuid-emp-001', employee_id: 'EMP-001', email: 'emp@test.com',
   role: 'employee', full_name: 'Alice Employee',
-  team_name: null, department: null, is_active: true,
+  team_name: null, department: null, is_active: true, has_password: true, onboarding_complete: true, manager_id: null,
 }
 const managerUser: User = {
   id: 'uuid-mgr-001', employee_id: 'EMP-002', email: 'mgr@test.com',
   role: 'manager', full_name: 'Bob Manager',
-  team_name: null, department: null, is_active: true,
+  team_name: null, department: null, is_active: true, has_password: true, onboarding_complete: true, manager_id: null,
 }
 const adminUser: User = {
   id: 'uuid-adm-001', employee_id: 'EMP-003', email: 'adm@test.com',
   role: 'admin', full_name: 'Carol Admin',
-  team_name: null, department: null, is_active: true,
+  team_name: null, department: null, is_active: true, has_password: true, onboarding_complete: true, manager_id: null,
 }
 
 function renderSidebar() {

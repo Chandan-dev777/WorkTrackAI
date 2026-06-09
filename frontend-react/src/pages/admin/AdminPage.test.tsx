@@ -11,7 +11,7 @@ import type { User } from '@/types/models'
 const adminUser: User = {
   id: 'uuid-adm', employee_id: 'EMP-ADM', full_name: 'Carol Admin',
   email: 'carol@example.com', role: 'admin',
-  team_name: null, department: null, is_active: true,
+  team_name: null, department: null, is_active: true, has_password: true, onboarding_complete: true, manager_id: null,
 }
 
 function makeClient() {

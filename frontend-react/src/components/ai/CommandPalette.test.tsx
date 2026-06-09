@@ -9,7 +9,7 @@ import type { User } from '@/types/models'
 const employeeUser: User = {
   id: 'uuid-alice', employee_id: 'EMP-001', full_name: 'Alice Smith',
   email: 'alice@example.com', role: 'employee',
-  team_name: 'Engineering', department: 'Technology', is_active: true,
+  team_name: 'Engineering', department: 'Technology', is_active: true, has_password: true, onboarding_complete: true, manager_id: null,
 }
 
 function renderPalette() {

@@ -1,9 +1,12 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'sonner'
 import { useThemeStore } from '@/store/themeStore'
 import { AppRouter } from './router'
+import ConsentPage from '@/pages/ConsentPage'
+
+const CONSENT_KEY = 'dailyops-consent-v1'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -13,10 +16,22 @@ const queryClient = new QueryClient({
 
 function App() {
   const theme = useThemeStore((s) => s.theme)
+  const [consented, setConsented] = useState<boolean>(
+    () => localStorage.getItem(CONSENT_KEY) === 'accepted'
+  )
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
   }, [theme])
+
+  function handleAccept() {
+    localStorage.setItem(CONSENT_KEY, 'accepted')
+    setConsented(true)
+  }
+
+  if (!consented) {
+    return <ConsentPage onAccept={handleAccept} />
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
