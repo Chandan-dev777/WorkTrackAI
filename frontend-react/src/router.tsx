@@ -75,12 +75,12 @@ export function AppRouter() {
         {/* Org chart — requires auth */}
         <Route path="/org" element={<RequireAuth><Shell><OrgChartPage /></Shell></RequireAuth>} />
 
-        {/* Authenticated — wrapped in Shell */}
+        {/* Root redirect */}
         <Route
           path="/"
           element={
             <RequireAuth>
-              <Shell><PageLoader /></Shell>
+              <Navigate to="/dashboard" replace />
             </RequireAuth>
           }
         />

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -507,6 +508,7 @@ function SortableItemCard({ row, onUpdate, onDelete }: CardProps) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function SubmitUpdatePage() {
+  const navigate = useNavigate()
   const today  = new Date().toISOString().split('T')[0]
   const keyRef = useRef(0)
 
@@ -594,11 +596,7 @@ export default function SubmitUpdatePage() {
         }).catch(() => { /* silently skip */ })
       }
 
-      setRawText('')
-      setWorkDate(today)
-      setExtraction(null)
-      setRows([])
-      setAiStage(-1)
+      navigate('/my-dashboard')
     } catch {
       toast.error('Failed to save. Please try again.')
       setConfirmError('Failed to save. Please try again.')

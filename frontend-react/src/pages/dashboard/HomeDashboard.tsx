@@ -12,6 +12,16 @@ import remarkGfm from 'remark-gfm'
 import { useAuthStore } from '@/store/authStore'
 import { dashboardApi } from '@/api/dashboard'
 import { worklogsApi } from '@/api/worklogs'
+
+function getSixMonthParams() {
+  const today = new Date()
+  const start = new Date(today)
+  start.setMonth(today.getMonth() - 6)
+  return {
+    start_date: start.toISOString().split('T')[0],
+    end_date:   today.toISOString().split('T')[0],
+  }
+}
 import { chatApi } from '@/api/chat'
 import { GoalRing } from '@/components/charts/GoalRing'
 import { ProductivityHeatmap } from '@/components/charts/ProductivityHeatmap'
@@ -192,14 +202,17 @@ export default function HomeDashboard() {
   const firstName = user?.full_name.split(' ')[0] ?? 'there'
   const weekGoal  = getWeeklyGoal()
 
-  const weekParams = useMemo(() => getThisWeekParams(), [])
+  const weekParams      = useMemo(() => getThisWeekParams(), [])
+  const sixMonthParams  = useMemo(() => getSixMonthParams(), [])
 
-  const summaryQ    = useQuery({ queryKey: ['home-summary',    weekParams.start_date], queryFn: () => dashboardApi.getSummary(weekParams),    placeholderData: keepPreviousData })
-  const categoriesQ = useQuery({ queryKey: ['home-categories', weekParams.start_date], queryFn: () => dashboardApi.getCategories(weekParams), placeholderData: keepPreviousData })
-  // Week items — used for heatmap, streak, needs-review (scoped to this week)
-  const itemsQ      = useQuery({ queryKey: ['home-week-items', weekParams.start_date], queryFn: () => worklogsApi.getMy(weekParams),           placeholderData: keepPreviousData })
+  const summaryQ    = useQuery({ queryKey: ['home-summary',    weekParams.start_date],      queryFn: () => dashboardApi.getSummary(weekParams),       placeholderData: keepPreviousData })
+  const categoriesQ = useQuery({ queryKey: ['home-categories', weekParams.start_date],      queryFn: () => dashboardApi.getCategories(weekParams),    placeholderData: keepPreviousData })
+  // 6-month trend — used only for the productivity heatmap
+  const heatmapTrendQ = useQuery({ queryKey: ['home-heatmap', sixMonthParams.start_date],  queryFn: () => dashboardApi.getTrend(sixMonthParams),     placeholderData: keepPreviousData })
+  // Week items — used for streak and needs-review (scoped to this week)
+  const itemsQ      = useQuery({ queryKey: ['home-week-items', weekParams.start_date],      queryFn: () => worklogsApi.getMy(weekParams),             placeholderData: keepPreviousData })
   // Recent items — unfiltered so the activity feed always shows the latest work
-  const recentQ     = useQuery({ queryKey: ['home-recent-items'],                      queryFn: () => worklogsApi.getMy(),                      placeholderData: keepPreviousData })
+  const recentQ     = useQuery({ queryKey: ['home-recent-items'],                           queryFn: () => worklogsApi.getMy(),                       placeholderData: keepPreviousData })
 
   const totalHours   = summaryQ.data?.total_hours   ?? 0
   const doneCount    = summaryQ.data?.done_count    ?? 0
@@ -212,12 +225,11 @@ export default function HomeDashboard() {
   // Activity feed: most recent 5 items, no date restriction
   const recentItems = (recentQ.data ?? []).slice(0, 5)
 
-  // Derived: heatmap data
-  const heatmapData = useMemo(() => {
-    const map: Record<string, number> = {}
-    allItems.forEach(i => { map[i.work_date] = (map[i.work_date] ?? 0) + (i.hours_spent ?? 1) })
-    return Object.entries(map).map(([date, count]) => ({ date, count }))
-  }, [allItems])
+  // Derived: heatmap data from 6-month trend (date → hours)
+  const heatmapData = useMemo(
+    () => (heatmapTrendQ.data ?? []).map(d => ({ date: d.date, count: d.hours })),
+    [heatmapTrendQ.data],
+  )
 
   // Derived: focus split from categories
   const { focusPct, meetingPct, adminPct } = useMemo(() => {
