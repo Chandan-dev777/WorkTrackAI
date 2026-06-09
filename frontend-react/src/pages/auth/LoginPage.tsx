@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -349,12 +349,44 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Footer note */}
-          <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--color-text-muted)', marginTop: 32 }}>
-            Don't have an account?{' '}
-            <Link to="/register" style={{ color: 'var(--color-brand-primary)', textDecoration: 'none', fontWeight: 500 }}>
-              Sign up
-            </Link>
+          {/* SSO sign-in option (shown after manual logout on App Service) */}
+          <div style={{ marginTop: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+              <div style={{ flex: 1, height: 1, background: 'var(--color-border-subtle)' }} />
+              <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>or</span>
+              <div style={{ flex: 1, height: 1, background: 'var(--color-border-subtle)' }} />
+            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                sessionStorage.removeItem('sso-suppressed')
+                const result = await ssoLogin()
+                if (result) {
+                  authLogin(result.token, result.user)
+                  if (!result.user.onboarding_complete) navigate('/onboarding', { replace: true })
+                  else navigate('/dashboard', { replace: true })
+                } else {
+                  setServerErr('SSO is not available in this environment. Use email and password.')
+                }
+              }}
+              style={{
+                width: '100%', height: 42,
+                background: 'var(--color-bg-elevated)',
+                border: '1px solid var(--color-border-default)',
+                borderRadius: 8, color: 'var(--color-text-primary)',
+                fontSize: 14, fontWeight: 500, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
+              </svg>
+              Sign in with Merck SSO
+            </button>
+          </div>
+
+          <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--color-text-muted)', marginTop: 20 }}>
+            Admin or local dev?{' '}Use email and password above.
           </p>
         </div>
       </div>
