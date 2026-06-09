@@ -16,8 +16,9 @@ const queryClient = new QueryClient({
 
 function App() {
   const theme = useThemeStore((s) => s.theme)
+  // sessionStorage: consent shown every new browser session/tab, not on refresh
   const [consented, setConsented] = useState<boolean>(
-    () => localStorage.getItem(CONSENT_KEY) === 'accepted'
+    () => sessionStorage.getItem(CONSENT_KEY) === 'accepted'
   )
 
   useEffect(() => {
@@ -25,7 +26,7 @@ function App() {
   }, [theme])
 
   function handleAccept() {
-    localStorage.setItem(CONSENT_KEY, 'accepted')
+    sessionStorage.setItem(CONSENT_KEY, 'accepted')
     setConsented(true)
   }
 

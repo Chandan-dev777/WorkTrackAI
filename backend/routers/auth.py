@@ -93,7 +93,17 @@ def sso_login(request: Request, db: Session = Depends(get_db)) -> TokenResponse:
     Headers are injected by VouchProxy after SSO — cannot be spoofed by clients.
     Auto-creates the user on first visit.
     """
+    # Log everything useful for debugging SSO
+    logger.info(
+        "SSO attempt — IS_APP_SERVICE=%s | X-Appservice-Email=%s | X-Appservice-Muid=%s | X-Appservice-Firstname=%s",
+        IS_APP_SERVICE,
+        request.headers.get("X-Appservice-Email", "<not present>"),
+        request.headers.get("X-Appservice-Muid", "<not present>"),
+        request.headers.get("X-Appservice-Firstname", "<not present>"),
+    )
+
     if not IS_APP_SERVICE:
+        logger.info("SSO rejected: APP_SERVICE_TS env var not set (local dev mode)")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="SSO is only available on Uptimize App Service",
@@ -101,6 +111,7 @@ def sso_login(request: Request, db: Session = Depends(get_db)) -> TokenResponse:
 
     email = request.headers.get("X-Appservice-Email")
     if not email:
+        logger.warning("SSO rejected: IS_APP_SERVICE=True but X-Appservice-Email header missing — VouchProxy may not be injecting headers")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="SSO identity headers not present",
@@ -115,6 +126,7 @@ def sso_login(request: Request, db: Session = Depends(get_db)) -> TokenResponse:
 
     user = get_user_by_email(db, email)
     if user is None:
+        logger.info("SSO: new user — auto-creating account for %s (muid=%s)", email, muid)
         user = User(
             id=str(uuid.uuid4()),
             employee_id=employee_id,
@@ -127,7 +139,10 @@ def sso_login(request: Request, db: Session = Depends(get_db)) -> TokenResponse:
         db.add(user)
         db.commit()
         db.refresh(user)
+    else:
+        logger.info("SSO: existing user found — %s (role=%s)", email, user.role)
 
+    logger.info("SSO: login successful for %s", email)
     return _token_response(user)
 
 
