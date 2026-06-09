@@ -1,9 +1,12 @@
 """Auth router: register, login, SSO, /me, set-password, change-password."""
 
+import logging
 import uuid
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+
+logger = logging.getLogger(__name__)
 from pydantic import BaseModel
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
