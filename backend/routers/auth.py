@@ -234,6 +234,10 @@ def complete_onboarding(
     current_user.onboarding_complete = True
     db.commit()
     db.refresh(current_user)
+    logger.info(
+        "Onboarding complete for %s — role=%s manager_id=%s",
+        current_user.email, current_user.role, current_user.manager_id,
+    )
     return {
         "message": "Onboarding complete",
         "role": current_user.role,

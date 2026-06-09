@@ -23,9 +23,15 @@ const SettingsPage      = lazy(() => import('@/pages/settings/SettingsPage'))
 // ── Guards ────────────────────────────────────────────────────────────────────
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  const location = useLocation()
+  const user            = useAuthStore((s) => s.user)
+  const location        = useLocation()
+
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />
+  }
+  // Force onboarding if not yet completed — catches users who skipped it via stored JWT
+  if (user && !user.onboarding_complete && location.pathname !== '/onboarding') {
+    return <Navigate to="/onboarding" replace />
   }
   return <>{children}</>
 }
