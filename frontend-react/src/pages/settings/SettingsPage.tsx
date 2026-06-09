@@ -177,6 +177,7 @@ export default function SettingsPage() {
   }
 
   function handleSignOut() {
+    sessionStorage.setItem('sso-suppressed', 'true')
     logout()
     navigate('/login', { replace: true })
   }

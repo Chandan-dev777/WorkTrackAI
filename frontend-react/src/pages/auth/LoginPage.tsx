@@ -30,8 +30,14 @@ export default function LoginPage() {
   const [serverErr, setServerErr] = useState<string | null>(null)
   const [ssoChecking, setSsoChecking] = useState(true)
 
-  // Try SSO auto-login on mount — transparent on App Service, instant 401 locally
+  // Try SSO auto-login on mount — skipped if user explicitly signed out
   useEffect(() => {
+    const suppressed = sessionStorage.getItem('sso-suppressed') === 'true'
+    if (suppressed) {
+      // User signed out deliberately — show the login form, don't auto-SSO
+      setSsoChecking(false)
+      return
+    }
     ssoLogin().then((result) => {
       if (result) {
         authLogin(result.token, result.user)
@@ -58,6 +64,7 @@ export default function LoginPage() {
     setServerErr(null)
     try {
       const result = await login(data.email, data.password)
+      sessionStorage.removeItem('sso-suppressed')
       authLogin(result.token, result.user)
       navigate('/dashboard', { replace: true })
     } catch {

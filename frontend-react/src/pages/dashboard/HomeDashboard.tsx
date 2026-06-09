@@ -500,7 +500,7 @@ export default function HomeDashboard() {
                     <p className="text-xs font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>{item.task_description}</p>
                     <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{item.work_date} · {item.work_category}</p>
                   </div>
-                  <Link to="/submit" style={{ fontSize: 10, color: 'var(--color-brand-primary)', textDecoration: 'none', flexShrink: 0 }}>Review →</Link>
+                  <Link to={`/my-dashboard?review=${item.work_log_id}`} style={{ fontSize: 10, color: 'var(--color-brand-primary)', textDecoration: 'none', flexShrink: 0 }}>Review →</Link>
                 </div>
               ))}
               {needsReview.length > 4 && (
