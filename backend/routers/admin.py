@@ -31,6 +31,7 @@ def list_users(
 ) -> list[dict]:
     """Return all registered users (admin only)."""
     users = db.query(User).order_by(User.full_name).all()
+    user_map = {u.id: u.full_name for u in users}
     return [
         {
             "id": u.id,
@@ -41,6 +42,8 @@ def list_users(
             "team_name": u.team_name,
             "department": u.department,
             "is_active": u.is_active,
+            "manager_id": u.manager_id,
+            "manager_name": user_map.get(u.manager_id) if u.manager_id else None,
         }
         for u in users
     ]

@@ -9,7 +9,8 @@ export interface AdminUser {
   team_name: string | null
   department: string | null
   is_active: boolean
-  manager_id?: string | null
+  manager_id: string | null
+  manager_name: string | null
 }
 
 export interface ExtractionError {

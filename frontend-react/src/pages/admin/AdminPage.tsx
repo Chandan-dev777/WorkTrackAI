@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Shield, Database, Users, AlertTriangle, RefreshCw, Sprout, ChevronDown, ChevronRight, Activity, CheckCircle2, XCircle, Clock } from 'lucide-react'
+import { Shield, Database, Users, AlertTriangle, RefreshCw, Sprout, ChevronDown, ChevronRight, Activity, CheckCircle2, XCircle, Clock, Search, X } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { adminApi } from '@/api/admin'
+import { orgApi } from '@/api/org'
+import type { UserSearchResult } from '@/api/org'
 import { SkeletonCard, SkeletonTable } from '@/components/common/Skeleton'
 import { formatDateShort } from '@/utils/formatDate'
 import { cn } from '@/utils/cn'
@@ -73,6 +75,31 @@ export default function AdminPage() {
   const [editDrafts, setEditDrafts]       = useState<Record<string, AdminUser>>({})
   const [savingUser, setSavingUser]       = useState<Record<string, boolean>>({})
   const [userSaveMsg, setUserSaveMsg]     = useState<Record<string, { ok?: string; err?: string }>>({})
+
+  // Manager assignment modal
+  const [mgrModal, setMgrModal]     = useState<{ userId: string; userName: string } | null>(null)
+  const [mgrSearch, setMgrSearch]   = useState('')
+  const [mgrResults, setMgrResults] = useState<UserSearchResult[]>([])
+  const [settingMgr, setSettingMgr] = useState(false)
+
+  useEffect(() => {
+    if (!mgrSearch.trim()) { setMgrResults([]); return }
+    const t = setTimeout(() => orgApi.searchUsers(mgrSearch).then(setMgrResults).catch(() => {}), 300)
+    return () => clearTimeout(t)
+  }, [mgrSearch])
+
+  async function applyManager(userId: string, managerId: string | null, managerName: string | null) {
+    setSettingMgr(true)
+    try {
+      await adminApi.setManager(userId, managerId)
+      queryClient.setQueryData<typeof usersQ.data>(['admin-users'], old =>
+        old?.map(u => u.id === userId ? { ...u, manager_id: managerId, manager_name: managerName } : u)
+      )
+      toast.success(managerName ? `Manager set to ${managerName}` : 'Manager removed')
+      setMgrModal(null); setMgrSearch(''); setMgrResults([])
+    } catch { toast.error('Failed to update manager') }
+    finally { setSettingMgr(false) }
+  }
 
   const usersQ    = useQuery({ queryKey: ['admin-users'],    queryFn: adminApi.getUsers })
   const errorsQ   = useQuery({ queryKey: ['admin-errors'],   queryFn: adminApi.getExtractionErrors })
@@ -170,7 +197,7 @@ export default function AdminPage() {
   const stats = statsQ.data
 
   return (
-    <div className="mx-auto p-6 flex flex-col gap-6" style={{ maxWidth: '1440px' }}>
+    <><div className="mx-auto p-6 flex flex-col gap-6" style={{ maxWidth: '1440px' }}>
 
       {/* Header */}
       <div>
@@ -265,7 +292,7 @@ export default function AdminPage() {
                 <table className="w-full border-collapse">
                   <thead>
                     <tr style={{ background: 'var(--color-bg-elevated)', borderBottom: '1px solid var(--color-border-default)' }}>
-                      {['User', 'Email', 'Role', 'Team', 'Active', 'Actions'].map(h => (
+                      {['User', 'Email', 'Role', 'Team', 'Manager', 'Active', 'Actions'].map(h => (
                         <th key={h} className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide"
                           style={{ color: 'var(--color-text-muted)' }}>{h}</th>
                       ))}
@@ -319,6 +346,19 @@ export default function AdminPage() {
                               onChange={e => updateDraft(user.id, 'team_name', e.target.value || null)}
                               placeholder="—"
                               style={{ ...inputStyle, width: '120px' }} />
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex flex-col gap-1">
+                              <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+                                {user.manager_name ?? <span style={{ color: 'var(--color-text-muted)' }}>—</span>}
+                              </span>
+                              <button
+                                onClick={() => setMgrModal({ userId: user.id, userName: user.full_name })}
+                                className="text-xs rounded px-2 py-0.5 transition-colors"
+                                style={{ background: 'rgba(99,102,241,0.1)', color: 'var(--color-brand-primary)', border: '1px solid rgba(99,102,241,0.2)', cursor: 'pointer', width: 'fit-content' }}>
+                                {user.manager_id ? 'Change' : 'Set Manager'}
+                              </button>
+                            </div>
                           </td>
                           <td className="px-4 py-3">
                             <label className="inline-flex items-center gap-1.5 cursor-pointer">
@@ -623,5 +663,60 @@ export default function AdminPage() {
         </div>
       )}
     </div>
+
+      {/* ── Manager assignment modal ── */}
+
+      {mgrModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)' }}
+          onClick={() => { setMgrModal(null); setMgrSearch(''); setMgrResults([]) }}>
+          <div style={{ background: 'var(--color-bg-surface)', border: '1px solid var(--color-border-subtle)', borderRadius: 14, padding: 24, width: 360, boxShadow: '0 24px 48px rgba(0,0,0,0.3)' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                Set Manager — {mgrModal.userName}
+              </h3>
+              <button onClick={() => { setMgrModal(null); setMgrSearch(''); setMgrResults([]) }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)' }}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <div style={{ position: 'relative', marginBottom: 12 }}>
+              <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)', pointerEvents: 'none' }} />
+              <input
+                autoFocus
+                value={mgrSearch}
+                onChange={e => setMgrSearch(e.target.value)}
+                placeholder="Search by name…"
+                style={{ width: '100%', height: 38, paddingLeft: 32, paddingRight: 12, borderRadius: 8, border: '1px solid var(--color-border-default)', background: 'var(--color-bg-elevated)', color: 'var(--color-text-primary)', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            {mgrResults.length > 0 && (
+              <div style={{ borderRadius: 8, border: '1px solid var(--color-border-default)', overflow: 'hidden', marginBottom: 12 }}>
+                {mgrResults.map(u => (
+                  <button key={u.id}
+                    onClick={() => applyManager(mgrModal.userId, u.id, u.full_name)}
+                    disabled={settingMgr}
+                    style={{ width: '100%', padding: '10px 14px', background: 'none', border: 'none', borderBottom: '1px solid var(--color-border-subtle)', cursor: 'pointer', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 2 }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg-elevated)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text-primary)' }}>{u.full_name}</span>
+                    <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{u.department ?? u.email}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <button
+              onClick={() => applyManager(mgrModal.userId, null, null)}
+              disabled={settingMgr}
+              style={{ width: '100%', padding: '8px', borderRadius: 8, border: '1px solid var(--color-border-default)', background: 'none', color: 'var(--color-status-danger)', fontSize: 13, cursor: 'pointer' }}>
+              Remove manager (set as top-level)
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   )
 }

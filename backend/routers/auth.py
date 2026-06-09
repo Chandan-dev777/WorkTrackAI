@@ -207,6 +207,50 @@ def me(current_user: User = Depends(get_current_user)) -> UserProfile:
     )
 
 
+class UpdateProfileRequest(BaseModel):
+    full_name: Optional[str] = None
+    team_name: Optional[str] = None
+    department: Optional[str] = None
+    manager_id: Optional[str] = None  # explicit None = remove manager
+
+
+@router.put("/profile", response_model=UserProfile)
+def update_profile(
+    payload: UpdateProfileRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> UserProfile:
+    """Update the current user's own profile — name, team, department, manager."""
+    if payload.full_name is not None:
+        current_user.full_name = payload.full_name.strip() or current_user.full_name
+    if payload.team_name is not None:
+        current_user.team_name = payload.team_name.strip() or None
+    if payload.department is not None:
+        current_user.department = payload.department.strip() or None
+    if "manager_id" in payload.model_fields_set:
+        if payload.manager_id is not None:
+            mgr = db.query(User).filter(User.id == payload.manager_id).first()
+            if mgr is None:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Manager not found")
+        current_user.manager_id = payload.manager_id
+    db.commit()
+    db.refresh(current_user)
+    logger.info("Profile updated for %s (team=%s manager=%s)", current_user.email, current_user.team_name, current_user.manager_id)
+    return UserProfile(
+        id=current_user.id,
+        employee_id=current_user.employee_id,
+        full_name=current_user.full_name,
+        email=current_user.email,
+        role=current_user.role,
+        team_name=current_user.team_name,
+        department=current_user.department,
+        is_active=current_user.is_active,
+        has_password=current_user.hashed_password is not None,
+        onboarding_complete=current_user.onboarding_complete,
+        manager_id=current_user.manager_id,
+    )
+
+
 class OnboardingRequest(BaseModel):
     full_name: Optional[str] = None
     role: Optional[str] = None          # "employee" | "manager"

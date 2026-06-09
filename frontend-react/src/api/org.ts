@@ -42,4 +42,7 @@ export const orgApi = {
 
   completeOnboarding: (payload: OnboardingPayload) =>
     apiClient.post('/api/auth/onboarding', payload).then(r => r.data),
+
+  updateProfile: (payload: { full_name?: string; team_name?: string; department?: string; manager_id?: string | null }) =>
+    apiClient.put('/api/auth/profile', payload).then(r => r.data),
 }

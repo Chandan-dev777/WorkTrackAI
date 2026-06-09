@@ -1,11 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { User, Palette, LogOut, Shield, Info, Target, Lock, Bell, Globe } from 'lucide-react'
+import { User, Palette, LogOut, Shield, Target, Lock, Bell, Globe, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/store/authStore'
 import { useThemeStore } from '@/store/themeStore'
 import { GoalRing } from '@/components/charts/GoalRing'
 import { adminApi } from '@/api/admin'
+import { orgApi } from '@/api/org'
+import type { UserSearchResult } from '@/api/org'
 import { cn } from '@/utils/cn'
 
 const WEEKLY_GOAL_KEY = 'dailyops_weekly_goal'
@@ -83,7 +85,44 @@ export default function SettingsPage() {
   const theme      = useThemeStore(s => s.theme)
   const setTheme   = useThemeStore(s => s.setTheme)
 
+  const setUser    = useAuthStore(s => s.setUser)
+
   const [activeSection, setActiveSection] = useState<Section>('profile')
+
+  // Profile editing state
+  const [profName, setProfName]         = useState(user?.full_name ?? '')
+  const [profTeam, setProfTeam]         = useState(user?.team_name ?? '')
+  const [profDept, setProfDept]         = useState(user?.department ?? '')
+  const [profMgrId, setProfMgrId]       = useState<string | null>(user?.manager_id ?? null)
+  const [profMgrName, setProfMgrName]   = useState('')
+  const [mgrSearch, setMgrSearch]       = useState('')
+  const [mgrResults, setMgrResults]     = useState<UserSearchResult[]>([])
+  const [savingProf, setSavingProf]     = useState(false)
+  const mgrDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (mgrDebounce.current) clearTimeout(mgrDebounce.current)
+    if (!mgrSearch.trim()) { setMgrResults([]); return }
+    mgrDebounce.current = setTimeout(() =>
+      orgApi.searchUsers(mgrSearch).then(setMgrResults).catch(() => {}), 300)
+    return () => { if (mgrDebounce.current) clearTimeout(mgrDebounce.current) }
+  }, [mgrSearch])
+
+  async function handleSaveProfile() {
+    setSavingProf(true)
+    try {
+      const updated = await orgApi.updateProfile({
+        full_name: profName.trim() || undefined,
+        team_name: profTeam.trim() || undefined,
+        department: profDept.trim() || undefined,
+        manager_id: profMgrId,
+      })
+      if (user) setUser({ ...user, ...updated })
+      toast.success('Profile updated')
+    } catch { toast.error('Failed to save profile') }
+    finally { setSavingProf(false) }
+  }
+
   const [weeklyGoal, setWeeklyGoal]       = useState(loadGoal)
   const [currentPw, setCurrentPw]         = useState('')
   const [newPw, setNewPw]                 = useState('')
@@ -192,31 +231,83 @@ export default function SettingsPage() {
           {activeSection === 'profile' && (
             <>
               <div style={sectionCard}>
-                <h2 className="text-base font-semibold mb-1" style={{ color: 'var(--color-text-primary)' }}>
-                  Profile
-                </h2>
+                <h2 className="text-base font-semibold mb-1" style={{ color: 'var(--color-text-primary)' }}>Profile</h2>
                 <p className="text-xs mb-5" style={{ color: 'var(--color-text-secondary)' }}>
-                  Your account information as registered in DailyOps AI.
+                  Update your name, team, department and reporting manager.
                 </p>
 
-                {user && (
-                  <div>
-                    <Row label="Full Name"    value={user.full_name} />
-                    <Row label="Email"        value={user.email} />
-                    <Row label="Employee ID"  value={user.employee_id} />
-                    <Row label="Role"         value={user.role.charAt(0).toUpperCase() + user.role.slice(1)} />
-                    <Row label="Team"         value={user.team_name ?? '—'} />
-                    <Row label="Department"   value={user.department ?? '—'} />
-                  </div>
-                )}
-              </div>
+                {/* Read-only fields */}
+                <Row label="Email"       value={user?.email ?? '—'} />
+                <Row label="Employee ID" value={user?.employee_id ?? '—'} />
+                <Row label="Role"        value={user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : '—'} />
 
-              <div className="flex items-start gap-2 px-4 py-3 rounded-lg text-xs"
-                style={{ background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.2)', color: '#38BDF8' }}>
-                <Info size={13} className="mt-0.5 shrink-0" />
-                <span>
-                  Profile details are managed by your administrator. Contact your admin to update your name, email, or team assignment.
-                </span>
+                <div style={{ height: 1, background: 'var(--color-border-subtle)', margin: '16px 0' }} />
+
+                {/* Editable fields */}
+                {[
+                  { label: 'Full Name',   value: profName,  setter: setProfName,  placeholder: 'Your full name' },
+                  { label: 'Team',        value: profTeam,  setter: setProfTeam,  placeholder: 'e.g. GenMi' },
+                  { label: 'Department',  value: profDept,  setter: setProfDept,  placeholder: 'e.g. Data & AI' },
+                ].map(f => (
+                  <div key={f.label} style={{ display: 'flex', padding: '10px 0', borderBottom: '1px solid var(--color-border-subtle)', alignItems: 'center' }}>
+                    <span style={{ width: 160, fontSize: 13, fontWeight: 500, color: 'var(--color-text-secondary)', flexShrink: 0 }}>{f.label}</span>
+                    <input value={f.value} onChange={e => f.setter(e.target.value)} placeholder={f.placeholder}
+                      style={{ flex: 1, background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-default)', borderRadius: 6, padding: '5px 10px', fontSize: 13, color: 'var(--color-text-primary)', outline: 'none' }} />
+                  </div>
+                ))}
+
+                {/* Manager picker */}
+                <div style={{ display: 'flex', padding: '10px 0', borderBottom: '1px solid var(--color-border-subtle)', alignItems: 'flex-start' }}>
+                  <span style={{ width: 160, fontSize: 13, fontWeight: 500, color: 'var(--color-text-secondary)', flexShrink: 0, paddingTop: 6 }}>Manager</span>
+                  <div style={{ flex: 1, position: 'relative' }}>
+                    {profMgrId ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 13, color: 'var(--color-text-primary)', fontWeight: 500 }}>✓ {profMgrName || 'Selected'}</span>
+                        <button onClick={() => { setProfMgrId(null); setProfMgrName(''); setMgrSearch('') }}
+                          style={{ fontSize: 12, color: 'var(--color-text-muted)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>
+                          Change
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ position: 'relative' }}>
+                          <Search size={12} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)', pointerEvents: 'none' }} />
+                          <input value={mgrSearch} onChange={e => setMgrSearch(e.target.value)}
+                            placeholder="Search by name…"
+                            style={{ width: '100%', background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-default)', borderRadius: 6, padding: '5px 10px 5px 28px', fontSize: 13, color: 'var(--color-text-primary)', outline: 'none', boxSizing: 'border-box' }} />
+                        </div>
+                        {mgrResults.length > 0 && (
+                          <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, marginTop: 4, borderRadius: 8, border: '1px solid var(--color-border-default)', background: 'var(--color-bg-surface)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', overflow: 'hidden' }}>
+                            {mgrResults.map(u => (
+                              <button key={u.id}
+                                onClick={() => { setProfMgrId(u.id); setProfMgrName(u.full_name); setMgrSearch(''); setMgrResults([]) }}
+                                style={{ width: '100%', padding: '8px 12px', background: 'none', border: 'none', borderBottom: '1px solid var(--color-border-subtle)', cursor: 'pointer', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 2 }}
+                                onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg-elevated)')}
+                                onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+                                <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text-primary)' }}>{u.full_name}</span>
+                                <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{u.department ?? u.email}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        {user?.manager_id && (
+                          <button onClick={() => { setProfMgrId(null) }}
+                            style={{ marginTop: 4, fontSize: 11, color: 'var(--color-text-muted)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>
+                            Remove manager
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ marginTop: 20, display: 'flex', gap: 10, alignItems: 'center' }}>
+                  <button onClick={handleSaveProfile} disabled={savingProf}
+                    style={{ background: 'var(--gradient-brand)', border: 'none', borderRadius: 8, padding: '8px 20px', color: '#fff', fontSize: 13, fontWeight: 600, cursor: savingProf ? 'not-allowed' : 'pointer', opacity: savingProf ? 0.7 : 1 }}>
+                    {savingProf ? 'Saving…' : 'Save Profile'}
+                  </button>
+                  <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>Email and role can only be changed by an admin.</span>
+                </div>
               </div>
             </>
           )}
