@@ -148,32 +148,42 @@ def run_migrations() -> None:
 
     with engine.connect() as conn:
         for table, column, col_type in _MIGRATIONS:
-            if _is_postgres():
-                result = conn.execute(
-                    __import__("sqlalchemy").text(
-                        "SELECT column_name FROM information_schema.columns "
-                        "WHERE table_name = :table AND column_name = :column"
-                    ),
-                    {"table": table, "column": column},
-                ).fetchone()
-                if result is None:
-                    conn.execute(
+            try:
+                if _is_postgres():
+                    result = conn.execute(
                         __import__("sqlalchemy").text(
-                            f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"
+                            "SELECT column_name FROM information_schema.columns "
+                            "WHERE table_name = :table AND column_name = :column"
+                        ),
+                        {"table": table, "column": column},
+                    ).fetchone()
+                    if result is None:
+                        conn.execute(
+                            __import__("sqlalchemy").text(
+                                f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"
+                            )
                         )
-                    )
-                    conn.commit()
-            else:
-                existing = [
-                    row[1]
-                    for row in conn.execute(
-                        __import__("sqlalchemy").text(f"PRAGMA table_info({table})")
-                    ).fetchall()
-                ]
-                if column not in existing:
-                    conn.execute(
-                        __import__("sqlalchemy").text(
-                            f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"
+                        conn.commit()
+                        logger.info("Migration applied: ALTER TABLE %s ADD COLUMN %s", table, column)
+                    else:
+                        logger.debug("Migration already applied: %s.%s", table, column)
+                else:
+                    existing = [
+                        row[1]
+                        for row in conn.execute(
+                            __import__("sqlalchemy").text(f"PRAGMA table_info({table})")
+                        ).fetchall()
+                    ]
+                    if column not in existing:
+                        conn.execute(
+                            __import__("sqlalchemy").text(
+                                f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"
+                            )
                         )
-                    )
-                    conn.commit()
+                        conn.commit()
+            except Exception as e:
+                logger.warning("Migration skipped %s.%s (run migrate_prod.py with personal credentials): %s", table, column, e)
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass

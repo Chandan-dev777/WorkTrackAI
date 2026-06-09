@@ -28,18 +28,31 @@ _FRONTEND_DIST = Path(__file__).parent.parent / "frontend-react" / "dist"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # create_tables / run_migrations require table ownership (personal DB user).
+    # On App Service the app runs as the IAM app user which can DML but not DDL.
+    # We attempt both and log warnings on failure — the app continues regardless.
     logger.info("Creating database tables...")
-    create_tables()
-    run_migrations()
+    try:
+        create_tables()
+    except Exception as e:
+        logger.warning("create_tables skipped (insufficient privileges — run migrate_prod.py manually): %s", e)
+
+    try:
+        run_migrations()
+    except Exception as e:
+        logger.warning("run_migrations skipped (insufficient privileges — run migrate_prod.py manually): %s", e)
 
     # Auto-seed if database is empty (first deploy or fresh DB)
     from backend.database import SessionLocal
     from backend.models.user import User
     from backend.seed_data import seed
-    with SessionLocal() as db:
-        if db.query(User).count() == 0:
-            logger.info("Empty database detected — running seed...")
-            seed(db)
+    try:
+        with SessionLocal() as db:
+            if db.query(User).count() == 0:
+                logger.info("Empty database detected — running seed...")
+                seed(db)
+    except Exception as e:
+        logger.warning("Auto-seed skipped: %s", e)
 
     logger.info("DailyOps AI backend started.")
     yield
