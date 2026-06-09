@@ -18,7 +18,7 @@ class User(Base):
     employee_id: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     full_name: Mapped[str] = mapped_column(String(200), nullable=False)
     email: Mapped[str] = mapped_column(String(200), unique=True, nullable=False)
-    hashed_password: Mapped[str] = mapped_column(String(200), nullable=False)
+    hashed_password: Mapped[str | None] = mapped_column(String(200), nullable=True)
     role: Mapped[str] = mapped_column(
         Enum("employee", "manager", "admin", name="user_role"),
         nullable=False,
@@ -30,6 +30,7 @@ class User(Base):
     )
     department: Mapped[str | None] = mapped_column(String(100), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    onboarding_complete: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, nullable=False
     )

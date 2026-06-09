@@ -74,6 +74,8 @@ def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
     user = get_user_by_email(db, email)
     if user is None:
         return None
+    if user.hashed_password is None:
+        return None
     if not verify_password(password, user.hashed_password):
         return None
     return user

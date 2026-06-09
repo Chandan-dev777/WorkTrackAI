@@ -108,6 +108,9 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
+# True when running on Uptimize App Service (platform sets this env var)
+IS_APP_SERVICE: bool = "APP_SERVICE_TS" in os.environ
+
 # Set env defaults so AzureChatOpenAI can pick them up (mirrors reference chatbot)
 os.environ.setdefault("AZURE_OPENAI_ENDPOINT", settings.NLP_ENDPOINT)
 os.environ.setdefault("OPENAI_API_VERSION", settings.NLP_API_VERSION)

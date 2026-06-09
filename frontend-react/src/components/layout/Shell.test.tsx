@@ -19,7 +19,7 @@ function withProviders(ui: React.ReactElement) {
 const user: User = {
   id: 'uuid-test-001', employee_id: 'EMP-001', email: 't@t.com',
   role: 'employee', full_name: 'Test User',
-  team_name: null, department: null, is_active: true,
+  team_name: null, department: null, is_active: true, has_password: true, onboarding_complete: true, manager_id: null,
 }
 
 beforeEach(() => {

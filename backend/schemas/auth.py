@@ -36,6 +36,7 @@ class LoginRequest(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    has_password: bool = True
 
 
 class UserProfile(BaseModel):
@@ -47,6 +48,9 @@ class UserProfile(BaseModel):
     team_name: Optional[str]
     department: Optional[str]
     is_active: bool
+    has_password: bool = True
+    onboarding_complete: bool = False
+    manager_id: Optional[str] = None
 
     model_config = {"from_attributes": True}
 

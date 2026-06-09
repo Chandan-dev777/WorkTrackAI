@@ -9,6 +9,7 @@ export interface AdminUser {
   team_name: string | null
   department: string | null
   is_active: boolean
+  manager_id?: string | null
 }
 
 export interface ExtractionError {
@@ -71,6 +72,9 @@ export const adminApi = {
 
   getActivityLog: (limit = 50) =>
     apiClient.get<ActivityLogEntry[]>('/admin/activity-log', { params: { limit } }).then(r => r.data),
+
+  setManager: (userId: string, managerId: string | null) =>
+    apiClient.put(`/api/org/users/${userId}/manager`, { manager_id: managerId }).then(r => r.data),
 
   changePassword: (currentPassword: string, newPassword: string) =>
     apiClient.post<{ message: string }>('/api/auth/change-password', {

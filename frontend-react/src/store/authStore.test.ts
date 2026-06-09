@@ -13,6 +13,9 @@ const mockUser = {
   team_name: 'Engineering',
   department: 'Technology',
   is_active: true,
+  has_password: true,
+  onboarding_complete: true,
+  manager_id: null,
 }
 
 describe('authStore', () => {

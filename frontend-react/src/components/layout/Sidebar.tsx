@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, PlusCircle, BarChart3, Users,
   MessageSquare, Shield, Settings, ChevronLeft, ChevronRight,
-  ListTodo,
+  ListTodo, GitBranch,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
@@ -23,6 +23,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Tasks & Projects', path: '/tasks',        icon: ListTodo,        minRole: 'employee' },
   { label: 'My Analytics',     path: '/my-dashboard', icon: BarChart3,       minRole: 'employee' },
   { label: 'Team Dashboard',   path: '/team',         icon: Users,           minRole: 'manager'  },
+  { label: 'Org Chart',        path: '/org',          icon: GitBranch,       minRole: 'employee' },
   { label: 'Chat Assistant',   path: '/chat',         icon: MessageSquare,   minRole: 'employee' },
   { label: 'Admin',            path: '/admin',        icon: Shield,          minRole: 'admin'    },
   { label: 'Settings',         path: '/settings',     icon: Settings,        minRole: 'employee' },

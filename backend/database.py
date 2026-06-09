@@ -143,6 +143,7 @@ def run_migrations() -> None:
     _MIGRATIONS = [
         ("work_items", "logical_task_id", "VARCHAR(36)"),
         ("work_items", "continuation_of", "VARCHAR(36)"),
+        ("users", "onboarding_complete", "BOOLEAN DEFAULT FALSE NOT NULL"),
     ]
 
     with engine.connect() as conn:

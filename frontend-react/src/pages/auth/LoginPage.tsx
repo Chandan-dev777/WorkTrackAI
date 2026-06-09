@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Eye, EyeOff, BrainCircuit, CheckCircle, Zap, BarChart3, MessageSquare } from 'lucide-react'
-import { login } from '@/api/auth'
+import { login, ssoLogin } from '@/api/auth'
 import { useAuthStore } from '@/store/authStore'
 import { useThemeStore } from '@/store/themeStore'
 import { cn } from '@/utils/cn'
@@ -26,8 +26,27 @@ export default function LoginPage() {
   const navigate     = useNavigate()
   const authLogin    = useAuthStore((s) => s.login)
   const theme        = useThemeStore((s) => s.theme)
-  const [showPwd, setShowPwd]   = useState(false)
+  const [showPwd, setShowPwd]     = useState(false)
   const [serverErr, setServerErr] = useState<string | null>(null)
+  const [ssoChecking, setSsoChecking] = useState(true)
+
+  // Try SSO auto-login on mount — transparent on App Service, instant 401 locally
+  useEffect(() => {
+    ssoLogin().then((result) => {
+      if (result) {
+        authLogin(result.token, result.user)
+        if (!result.user.onboarding_complete) {
+          navigate('/onboarding', { replace: true })
+        } else if (!result.user.has_password) {
+          navigate('/set-password', { replace: true })
+        } else {
+          navigate('/dashboard', { replace: true })
+        }
+      } else {
+        setSsoChecking(false)
+      }
+    })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const {
     register,
@@ -44,6 +63,17 @@ export default function LoginPage() {
     } catch {
       setServerErr('Invalid credentials. Please check your email and password.')
     }
+  }
+
+  if (ssoChecking) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: 'var(--color-bg-base)' }} data-theme={theme}>
+        <div style={{ textAlign: 'center', color: 'var(--color-text-muted)' }}>
+          <div style={{ width: 32, height: 32, border: '3px solid rgba(99,102,241,0.2)', borderTopColor: 'var(--color-brand-primary)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', margin: '0 auto 12px' }} />
+          <p style={{ fontSize: 14 }}>Signing you in…</p>
+        </div>
+      </div>
+    )
   }
 
   return (
