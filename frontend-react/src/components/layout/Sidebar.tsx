@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, PlusCircle, BarChart3, Users,
   MessageSquare, Shield, Settings, ChevronLeft, ChevronRight,
-  ListTodo, GitBranch,
+  ListTodo, GitBranch, MessageSquarePlus,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
@@ -35,6 +35,7 @@ export function Sidebar() {
   const toggle     = useUIStore((s) => s.toggleSidebar)
   const userRole   = (user?.role ?? 'employee') as Role
 
+  const openFeedback = useUIStore((s) => s.openFeedback)
   const visibleItems = NAV_ITEMS.filter((item) => canAccess(userRole, item.minRole))
 
   return (
@@ -86,8 +87,36 @@ export function Sidebar() {
         })}
       </nav>
 
+      {/* Feedback button */}
+      <div style={{ padding: '8px 8px 4px', borderTop: '1px solid var(--color-border-subtle)' }}>
+        <button
+          onClick={() => openFeedback()}
+          aria-label="Give feedback"
+          title="Give feedback"
+          className="flex items-center gap-2.5 rounded-md px-3 py-2.5 text-sm font-medium transition-colors duration-100 w-full"
+          style={{
+            color: 'var(--color-text-secondary)',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'var(--color-bg-elevated)'
+            e.currentTarget.style.color = 'var(--color-text-primary)'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'none'
+            e.currentTarget.style.color = 'var(--color-text-secondary)'
+          }}
+        >
+          <MessageSquarePlus size={20} strokeWidth={1.5} style={{ flexShrink: 0 }} />
+          {open && <span style={{ opacity: 1, transition: 'opacity 150ms' }}>Feedback</span>}
+        </button>
+      </div>
+
       {/* Collapse toggle */}
-      <div style={{ padding: '12px 8px', borderTop: '1px solid var(--color-border-subtle)' }}>
+      <div style={{ padding: '4px 8px 12px' }}>
         <button
           onClick={toggle}
           aria-label={open ? 'Collapse sidebar' : 'Expand sidebar'}

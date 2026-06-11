@@ -5,6 +5,8 @@ import { Shield, Database, Users, AlertTriangle, RefreshCw, Sprout, ChevronDown,
 import { useAuthStore } from '@/store/authStore'
 import { adminApi } from '@/api/admin'
 import { orgApi } from '@/api/org'
+import { assistantApi } from '@/api/assistant'
+import type { NoteStatus } from '@/types/models'
 import type { UserSearchResult } from '@/api/org'
 import { SkeletonCard, SkeletonTable } from '@/components/common/Skeleton'
 import { formatDateShort } from '@/utils/formatDate'
@@ -51,7 +53,7 @@ const inputStyle: React.CSSProperties = {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-type Tab = 'users' | 'system' | 'errors' | 'activity'
+type Tab = 'users' | 'system' | 'errors' | 'activity' | 'feedback'
 type ErrorFilter = 'all' | 'failed' | 'needs_review'
 
 export default function AdminPage() {
@@ -105,6 +107,7 @@ export default function AdminPage() {
   const errorsQ   = useQuery({ queryKey: ['admin-errors'],   queryFn: adminApi.getExtractionErrors })
   const statsQ    = useQuery({ queryKey: ['admin-stats'],    queryFn: adminApi.getStats,        staleTime: 30_000 })
   const activityQ = useQuery({ queryKey: ['admin-activity'], queryFn: () => adminApi.getActivityLog(50), staleTime: 30_000, enabled: activeTab === 'activity' })
+  const feedbackQ = useQuery({ queryKey: ['admin-feedback'], queryFn: () => assistantApi.listNotes(), staleTime: 30_000, enabled: activeTab === 'feedback' })
 
   // Initialise edit drafts when users load
   useEffect(() => {
@@ -187,11 +190,14 @@ export default function AdminPage() {
   const filteredErrors = errorFilter === 'all' ? errors
     : errors.filter(e => e.extraction_status === errorFilter)
 
+  const openFeedbackCount = (feedbackQ.data ?? []).filter(n => n.status === 'open').length
+
   const TABS: { id: Tab; label: string }[] = [
     { id: 'users',    label: 'User Management' },
     { id: 'system',   label: 'System Actions' },
     { id: 'errors',   label: `Extraction Errors${errors.length > 0 ? ` (${errors.length})` : ''}` },
     { id: 'activity', label: 'Activity Log' },
+    { id: 'feedback', label: `Feedback${openFeedbackCount > 0 ? ` (${openFeedbackCount})` : ''}` },
   ]
 
   const stats = statsQ.data
@@ -654,6 +660,81 @@ export default function AdminPage() {
                         style={{ background: `${color}18`, color }}>
                         {entry.action.replace('_', ' ')}
                       </span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </section>
+        </div>
+      )}
+
+      {/* ── TAB: FEEDBACK ── */}
+      {activeTab === 'feedback' && (
+        <div className="flex flex-col gap-4">
+          <section style={sectionStyle}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+                All User Feedback
+              </h2>
+              <button onClick={() => queryClient.invalidateQueries({ queryKey: ['admin-feedback'] })}
+                className="inline-flex items-center gap-1.5 text-xs rounded-md px-3 py-1.5"
+                style={{ border: '1px solid var(--color-border-default)', color: 'var(--color-text-secondary)', background: 'var(--color-bg-elevated)', cursor: 'pointer' }}>
+                <RefreshCw size={11} /> Refresh
+              </button>
+            </div>
+
+            {feedbackQ.isLoading ? (
+              <div className="flex flex-col gap-2">{[...Array(4)].map((_, i) => <div key={i} className="h-16 rounded-lg animate-pulse" style={{ background: 'var(--color-bg-elevated)' }} />)}</div>
+            ) : (feedbackQ.data ?? []).length === 0 ? (
+              <p className="text-sm text-center py-10" style={{ color: 'var(--color-text-muted)' }}>No feedback submitted yet.</p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {(feedbackQ.data ?? []).map(note => {
+                  const TYPE_ICON: Record<string, string> = { bug: '🐛', requirement: '✨', feedback: '💬' }
+                  const PRIORITY_COLOR: Record<string, string> = { critical: '#f43f5e', high: '#f97316', medium: '#eab308', low: '#6b7280' }
+                  const STATUS_OPTIONS: NoteStatus[] = ['open', 'acknowledged', 'in_progress', 'resolved', 'wont_fix']
+                  const STATUS_LABEL: Record<NoteStatus, string> = { open: 'Open', acknowledged: 'Acknowledged', in_progress: 'In Progress', resolved: 'Resolved', wont_fix: "Won't Fix" }
+                  const priorityColor = PRIORITY_COLOR[note.priority] ?? '#6b7280'
+                  const isResolved = note.status === 'resolved' || note.status === 'wont_fix'
+
+                  return (
+                    <div key={note.id} className="rounded-xl p-4"
+                      style={{
+                        background: 'var(--color-bg-elevated)',
+                        border: '1px solid var(--color-border-subtle)',
+                        borderLeft: `3px solid ${priorityColor}`,
+                        opacity: isResolved ? 0.65 : 1,
+                      }}>
+                      <div className="flex items-start gap-3">
+                        <span className="text-lg flex-shrink-0">{TYPE_ICON[note.type] ?? '📝'}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <p className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)', textDecoration: isResolved ? 'line-through' : 'none' }}>
+                              {note.title}
+                            </p>
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: `${priorityColor}20`, color: priorityColor }}>
+                              {note.priority}
+                            </span>
+                          </div>
+                          <p className="text-xs mb-2" style={{ color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>{note.body}</p>
+                          <div className="flex items-center gap-3 flex-wrap text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
+                            {note.user_name && <span>👤 {note.user_name}</span>}
+                            {note.affected_page && <span>📄 {note.affected_page}</span>}
+                            <span>🕐 {formatDateShort(note.created_at)}</span>
+                          </div>
+                        </div>
+                        <select
+                          value={note.status}
+                          onChange={async e => {
+                            await assistantApi.updateNote(note.id, { status: e.target.value as NoteStatus })
+                            queryClient.invalidateQueries({ queryKey: ['admin-feedback'] })
+                          }}
+                          className="text-xs rounded-md px-2 py-1 outline-none flex-shrink-0"
+                          style={{ background: 'var(--color-bg-base)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-secondary)', cursor: 'pointer' }}>
+                          {STATUS_OPTIONS.map(s => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
+                        </select>
+                      </div>
                     </div>
                   )
                 })}

@@ -119,6 +119,7 @@ export type NoteStatus = 'open' | 'acknowledged' | 'in_progress' | 'resolved' | 
 export interface AssistantNote {
   id: string
   user_id: string
+  user_name?: string | null
   type: NoteType
   title: string
   body: string

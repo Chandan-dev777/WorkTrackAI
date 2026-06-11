@@ -87,7 +87,12 @@ def list_notes_endpoint(
         type_filter=type,
         status_filter=status,
     )
-    return [NoteResponse.model_validate(n) for n in notes]
+    result = []
+    for note in notes:
+        r = NoteResponse.model_validate(note)
+        r.user_name = note.user.full_name if note.user else None
+        result.append(r)
+    return result
 
 
 @router.patch("/notes/{note_id}", response_model=NoteResponse)

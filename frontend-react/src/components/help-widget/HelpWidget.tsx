@@ -25,8 +25,9 @@ export function HelpWidget() {
 
   // ── Conversation state lives here so it survives panel open/close ──────────
   const [messages, setMessages] = useState<HelpMessage[]>([WELCOME])
+  const [confirmClear, setConfirmClear] = useState(false)
 
-  const clearChat = () => setMessages([WELCOME])
+  const clearChat = () => { setMessages([WELCOME]); setConfirmClear(false) }
 
   // Count open notes for badge
   const { data: openNotes = [] } = useQuery({
@@ -143,16 +144,38 @@ export function HelpWidget() {
                   ))}
                 </div>
 
-                {/* Clear chat button — only visible on chat tab */}
+                {/* Clear chat button — inline confirm on first click */}
                 {tab === 'chat' && messages.length > 1 && (
-                  <button
-                    onClick={clearChat}
-                    title="Clear conversation"
-                    className="p-1.5 rounded-lg transition-all duration-150 hover:bg-[rgba(255,255,255,0.2)]"
-                    aria-label="Clear conversation"
-                  >
-                    <Trash2 size={13} color="rgba(255,255,255,0.85)" />
-                  </button>
+                  confirmClear ? (
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] font-medium" style={{ color: 'rgba(255,255,255,0.8)' }}>Clear?</span>
+                      <button
+                        onClick={clearChat}
+                        title="Yes, clear"
+                        className="px-2 py-0.5 rounded text-[10px] font-semibold"
+                        style={{ background: '#F43F5E', color: '#fff' }}
+                      >
+                        Yes
+                      </button>
+                      <button
+                        onClick={() => setConfirmClear(false)}
+                        title="Cancel"
+                        className="px-2 py-0.5 rounded text-[10px] font-medium"
+                        style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}
+                      >
+                        No
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmClear(true)}
+                      title="Clear conversation"
+                      className="p-1.5 rounded-lg transition-all duration-150 hover:bg-[rgba(255,255,255,0.2)]"
+                      aria-label="Clear conversation"
+                    >
+                      <Trash2 size={13} color="rgba(255,255,255,0.85)" />
+                    </button>
+                  )
                 )}
               </div>
             </div>
