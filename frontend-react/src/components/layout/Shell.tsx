@@ -10,6 +10,7 @@ import { useUIStore } from '@/store/uiStore'
 import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcuts'
 import { CommandPalette } from '@/components/ai/CommandPalette'
 import { HelpWidget } from '@/components/help-widget/HelpWidget'
+import { FeedbackModal } from '@/components/common/FeedbackModal'
 
 interface ShellProps { children: ReactNode }
 
@@ -30,6 +31,7 @@ const SHORTCUT_GROUPS = [
   {
     title: 'General',
     items: [
+      { keys: ['F'],    desc: 'Open feedback / report an issue' },
       { keys: ['?'],    desc: 'Show / hide this keyboard reference' },
       { keys: ['Esc'],  desc: 'Close overlay / command palette' },
     ],
@@ -86,14 +88,16 @@ const SC_CTRL_K  = { key: 'k', ctrl: true }
 const SC_META_K  = { key: 'k', meta: true }
 const SC_N       = { key: 'n' }
 const SC_QMARK   = { key: '?' }
+const SC_F       = { key: 'f' }
 
 // ── Shell ─────────────────────────────────────────────────────────────────────
 
 export function Shell({ children }: ShellProps) {
-  const theme       = useThemeStore(s => s.theme)
-  const openPalette = useUIStore(s => s.openCommandPalette)
-  const location    = useLocation()
-  const navigate    = useNavigate()
+  const theme        = useThemeStore(s => s.theme)
+  const openPalette  = useUIStore(s => s.openCommandPalette)
+  const openFeedback = useUIStore(s => s.openFeedback)
+  const location     = useLocation()
+  const navigate     = useNavigate()
 
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
 
@@ -103,6 +107,9 @@ export function Shell({ children }: ShellProps) {
 
   // N → submit update (skip when user is typing in an input/textarea)
   useKeyboardShortcut(SC_N, () => navigate('/submit'))
+
+  // F → feedback modal
+  useKeyboardShortcut(SC_F, () => openFeedback())
 
   // ? → keyboard reference overlay
   useKeyboardShortcut(SC_QMARK, () => setShortcutsOpen(o => !o))
@@ -132,6 +139,7 @@ export function Shell({ children }: ShellProps) {
 
       <CommandPalette />
       <HelpWidget />
+      <FeedbackModal />
 
       <AnimatePresence>
         {shortcutsOpen && <ShortcutsOverlay onClose={() => setShortcutsOpen(false)} />}

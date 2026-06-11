@@ -595,7 +595,8 @@ export default function TasksPage() {
             </div>
           ) : (
             <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid var(--color-border-subtle)' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }} aria-label="Work items">
+              <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', minWidth: 640, borderCollapse: 'collapse' }} aria-label="Work items">
                 <thead>
                   <tr style={{ background: 'var(--color-bg-elevated)', borderBottom: '1px solid var(--color-border-default)' }}>
                     {[
@@ -687,6 +688,7 @@ export default function TasksPage() {
                   ))}
                 </StaggerList>
               </table>
+              </div>
               {/* Table footer */}
               <div style={{
                 padding: '10px 16px', borderTop: '1px solid var(--color-border-subtle)',

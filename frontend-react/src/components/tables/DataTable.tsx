@@ -70,130 +70,138 @@ export function DataTable<T extends { id: number | string }>({
 
   if (isLoading) {
     return (
-      <div className={cn('rounded-xl overflow-hidden', className)}
-        style={{ border: '1px solid var(--color-border-subtle)' }}>
-        <table className="w-full border-collapse">
-          <thead>
-            <tr style={{ background: 'var(--color-bg-elevated)' }}>
-              {selectable && <th className="w-10 px-4 py-3" />}
-              {columns.map((col) => (
-                <th key={String(col.key)} className="px-4 py-3 text-left">
-                  <Skeleton className="h-3 w-16" />
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {Array.from({ length: 4 }).map((_, ri) => (
-              <tr key={ri} style={{ borderTop: '1px solid var(--color-border-subtle)' }}>
-                {selectable && <td className="px-4 py-3.5"><Skeleton className="h-4 w-4" /></td>}
+      <div
+        className={cn('rounded-xl overflow-hidden', className)}
+        style={{ border: '1px solid var(--color-border-subtle)' }}
+      >
+        <div style={{ overflowX: 'auto' }}>
+          <table className="border-collapse" style={{ minWidth: 480, width: '100%' }}>
+            <thead>
+              <tr style={{ background: 'var(--color-bg-elevated)' }}>
+                {selectable && <th className="w-10 px-4 py-3" />}
                 {columns.map((col) => (
-                  <td key={String(col.key)} className="px-4 py-3.5">
-                    <Skeleton className="h-3 w-full animate-pulse" />
-                  </td>
+                  <th key={String(col.key)} className="px-4 py-3 text-left">
+                    <Skeleton className="h-3 w-16" />
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {Array.from({ length: 4 }).map((_, ri) => (
+                <tr key={ri} style={{ borderTop: '1px solid var(--color-border-subtle)' }}>
+                  {selectable && <td className="px-4 py-3.5"><Skeleton className="h-4 w-4" /></td>}
+                  {columns.map((col) => (
+                    <td key={String(col.key)} className="px-4 py-3.5">
+                      <Skeleton className="h-3 w-full animate-pulse" />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className={cn('rounded-xl overflow-hidden', className)}
-      style={{ border: '1px solid var(--color-border-subtle)' }}>
-      <table className="w-full border-collapse">
-        <thead>
-          <tr style={{ background: 'var(--color-bg-elevated)', borderBottom: '1px solid var(--color-border-default)' }}>
-            {selectable && (
-              <th className="w-10 px-4">
-                <input
-                  type="checkbox"
-                  aria-label="Select all"
-                  checked={data.length > 0 && data.every((r) => selected.has(r.id))}
-                  onChange={toggleAll}
-                  className="cursor-pointer"
-                />
-              </th>
-            )}
-            {columns.map((col) => (
-              <th
-                key={String(col.key)}
-                role="columnheader"
-                onClick={() => handleSort(col)}
-                className={cn(
-                  'px-4 py-3 text-left text-xs font-medium uppercase tracking-wide',
-                  col.sortable && 'cursor-pointer sortable select-none hover:text-[var(--color-text-primary)]'
-                )}
-                style={{ color: 'var(--color-text-muted)' }}
-              >
-                <span className="inline-flex items-center gap-1">
-                  {col.header}
-                  {col.sortable && (
-                    <span style={{ color: 'var(--color-text-muted)' }}>
-                      {sortKey === col.key && sortDir === 'asc' ? (
-                        <ChevronUp size={12} />
-                      ) : sortKey === col.key && sortDir === 'desc' ? (
-                        <ChevronDown size={12} />
-                      ) : (
-                        <ChevronsUpDown size={12} />
-                      )}
-                    </span>
+    <div
+      className={cn('rounded-xl overflow-hidden', className)}
+      style={{ border: '1px solid var(--color-border-subtle)' }}
+    >
+      <div style={{ overflowX: 'auto' }}>
+        <table className="border-collapse" style={{ minWidth: 480, width: '100%' }}>
+          <thead>
+            <tr style={{ background: 'var(--color-bg-elevated)', borderBottom: '1px solid var(--color-border-default)' }}>
+              {selectable && (
+                <th className="w-10 px-4">
+                  <input
+                    type="checkbox"
+                    aria-label="Select all"
+                    checked={data.length > 0 && data.every((r) => selected.has(r.id))}
+                    onChange={toggleAll}
+                    className="cursor-pointer"
+                  />
+                </th>
+              )}
+              {columns.map((col) => (
+                <th
+                  key={String(col.key)}
+                  role="columnheader"
+                  onClick={() => handleSort(col)}
+                  className={cn(
+                    'px-4 py-3 text-left text-xs font-medium uppercase tracking-wide',
+                    col.sortable && 'cursor-pointer sortable select-none hover:text-[var(--color-text-primary)]'
                   )}
-                </span>
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {sorted.length === 0 ? (
-            <tr>
-              <td
-                colSpan={columns.length + (selectable ? 1 : 0)}
-                className="px-4 py-12 text-center text-sm"
-                style={{ color: 'var(--color-text-muted)' }}
-              >
-                {emptyMessage}
-              </td>
+                  style={{ color: 'var(--color-text-muted)' }}
+                >
+                  <span className="inline-flex items-center gap-1">
+                    {col.header}
+                    {col.sortable && (
+                      <span style={{ color: 'var(--color-text-muted)' }}>
+                        {sortKey === col.key && sortDir === 'asc' ? (
+                          <ChevronUp size={12} />
+                        ) : sortKey === col.key && sortDir === 'desc' ? (
+                          <ChevronDown size={12} />
+                        ) : (
+                          <ChevronsUpDown size={12} />
+                        )}
+                      </span>
+                    )}
+                  </span>
+                </th>
+              ))}
             </tr>
-          ) : (
-            sorted.map((row) => (
-              <tr
-                key={row.id}
-                className="transition-colors hover:bg-[var(--color-bg-elevated)]"
-                style={{
-                  borderTop: '1px solid var(--color-border-subtle)',
-                  background: selected.has(row.id) ? 'rgba(99,102,241,0.08)' : undefined,
-                }}
-              >
-                {selectable && (
-                  <td className="px-4 py-3.5">
-                    <input
-                      type="checkbox"
-                      checked={selected.has(row.id)}
-                      onChange={() => toggleRow(row)}
-                      aria-label={`Select row ${row.id}`}
-                      className="cursor-pointer"
-                    />
-                  </td>
-                )}
-                {columns.map((col) => (
-                  <td
-                    key={String(col.key)}
-                    className="px-4 py-3.5 text-sm"
-                    style={{ color: 'var(--color-text-primary)' }}
-                  >
-                    {col.render
-                      ? col.render(row[col.key], row)
-                      : String(row[col.key] ?? '')}
-                  </td>
-                ))}
+          </thead>
+          <tbody>
+            {sorted.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={columns.length + (selectable ? 1 : 0)}
+                  className="px-4 py-12 text-center text-sm"
+                  style={{ color: 'var(--color-text-muted)' }}
+                >
+                  {emptyMessage}
+                </td>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            ) : (
+              sorted.map((row) => (
+                <tr
+                  key={row.id}
+                  className="transition-colors hover:bg-[var(--color-bg-elevated)]"
+                  style={{
+                    borderTop: '1px solid var(--color-border-subtle)',
+                    background: selected.has(row.id) ? 'rgba(99,102,241,0.08)' : undefined,
+                  }}
+                >
+                  {selectable && (
+                    <td className="px-4 py-3.5">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(row.id)}
+                        onChange={() => toggleRow(row)}
+                        aria-label={`Select row ${row.id}`}
+                        className="cursor-pointer"
+                      />
+                    </td>
+                  )}
+                  {columns.map((col) => (
+                    <td
+                      key={String(col.key)}
+                      className="px-4 py-3.5 text-sm"
+                      style={{ color: 'var(--color-text-primary)' }}
+                    >
+                      {col.render
+                        ? col.render(row[col.key], row)
+                        : String(row[col.key] ?? '')}
+                    </td>
+                  ))}
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

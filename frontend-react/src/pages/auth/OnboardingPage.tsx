@@ -131,7 +131,7 @@ export default function OnboardingPage() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 28 }}>
               {([
-                { value: 'employee' as const, label: 'Individual Contributor', desc: 'I track my own work and report to a manager', icon: User },
+                { value: 'employee' as const, label: 'Individual Contributor', desc: 'I log my own work and report to a manager', icon: User },
                 { value: 'manager'  as const, label: 'Team Manager', desc: 'I manage a team and want to see everyone\'s progress', icon: Users },
               ]).map(({ value, label, desc, icon: Icon }) => (
                 <button key={value} onClick={() => setRole(value)}

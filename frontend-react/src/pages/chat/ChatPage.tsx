@@ -1,12 +1,19 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Send, Sparkles, Trash2, AlertTriangle } from 'lucide-react'
+import { Send, Sparkles, Trash2, AlertTriangle, Bug } from 'lucide-react'
 import { chatApi } from '@/api/chat'
 import { ChatBubble } from '@/components/ai/ChatBubble'
 import { TypingIndicator } from '@/components/ai/TypingIndicator'
 import { useAuthStore } from '@/store/authStore'
+import { useUIStore } from '@/store/uiStore'
 import type { SourceReference } from '@/api/chat'
+
+const BUG_KEYWORDS = /\b(bug|broken|doesn'?t work|not working|error|issue|glitch|crash|wrong|incorrect|failed|can'?t|cannot|problem|disappear)\b/i
+
+function looksLikeBug(text: string): boolean {
+  return BUG_KEYWORDS.test(text)
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -111,6 +118,8 @@ export default function ChatPage() {
 
   const prefill = (location.state as { prefillQuestion?: string } | null)?.prefillQuestion ?? ''
 
+  const openFeedback = useUIStore(s => s.openFeedback)
+
   const [messages, setMessages]           = useState<Message[]>([])
   const [input, setInput]                 = useState(prefill)
   const [sessionId, setSessionId]         = useState<string | undefined>()
@@ -118,6 +127,7 @@ export default function ChatPage() {
   const [historyLoaded, setHistoryLoaded] = useState(false)
   const [showClearDialog, setShowClearDialog] = useState(false)
   const [streamingId, setStreamingId]     = useState<string | null>(null)
+  const [bugChipDismissed, setBugChipDismissed] = useState<Set<string>>(new Set())
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef       = useRef<HTMLTextAreaElement>(null)
@@ -216,14 +226,14 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col items-center px-4 py-6"
-      style={{ minHeight: 'calc(100vh - 56px)', background: 'var(--color-bg-base)' }}>
+      style={{ height: 'calc(100vh - 56px)', overflow: 'hidden', background: 'var(--color-bg-base)' }}>
 
       {showClearDialog && (
         <ConfirmClearDialog onConfirm={confirmClear} onCancel={() => setShowClearDialog(false)} />
       )}
 
       {/* Chat panel */}
-      <div className="w-full flex flex-col" style={{ maxWidth: '800px', height: 'calc(100vh - 100px)' }}>
+      <div className="w-full flex flex-col" style={{ maxWidth: '800px', flex: 1, minHeight: 0 }}>
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 rounded-t-xl flex-shrink-0"
@@ -250,7 +260,7 @@ export default function ChatPage() {
           </div>
           <button onClick={() => setShowClearDialog(true)} aria-label="Clear history"
             className="inline-flex items-center gap-1.5 text-xs rounded-md px-3 py-1.5 transition-colors"
-            style={{ color: 'var(--color-text-secondary)', border: '1px solid var(--color-border-default)' }}>
+            style={{ color: 'var(--color-text-secondary)', border: '1px solid var(--color-border-default)', background: 'var(--color-bg-elevated)', cursor: 'pointer' }}>
             <Trash2 size={12} /> Clear History
           </button>
         </div>
@@ -262,6 +272,7 @@ export default function ChatPage() {
             border: '1px solid rgba(139,92,246,0.15)',
             borderTop: 'none',
             borderBottom: 'none',
+            overscrollBehavior: 'contain',
           }}>
 
           {/* History loading skeleton */}
@@ -364,6 +375,38 @@ export default function ChatPage() {
                         {s}
                       </button>
                     ))}
+                  </div>
+                )}
+
+                {/* Bug detection chip — shown after AI replies to a message that sounds like a bug */}
+                {msg.role === 'assistant' && !msg.isError && isLastAI &&
+                  lastUserMsg && looksLikeBug(lastUserMsg.content) &&
+                  !bugChipDismissed.has(msg.id) && (
+                  <div className="flex items-center gap-2 mb-4 ml-10">
+                    <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                      Sounds like an issue —
+                    </span>
+                    <button
+                      onClick={() => {
+                        openFeedback('bug', lastUserMsg.content)
+                        setBugChipDismissed(prev => new Set(prev).add(msg.id))
+                      }}
+                      className="inline-flex items-center gap-1.5 text-xs rounded-full px-3 py-1 transition-all"
+                      style={{
+                        background: 'rgba(244,63,94,0.08)',
+                        border: '1px solid rgba(244,63,94,0.25)',
+                        color: '#F43F5E', cursor: 'pointer',
+                      }}
+                    >
+                      <Bug size={11} /> Save as bug report
+                    </button>
+                    <button
+                      onClick={() => setBugChipDismissed(prev => new Set(prev).add(msg.id))}
+                      className="text-xs"
+                      style={{ color: 'var(--color-text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}
+                    >
+                      ✕
+                    </button>
                   </div>
                 )}
               </div>

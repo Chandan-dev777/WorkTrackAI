@@ -43,6 +43,7 @@ class NoteUpdate(BaseModel):
 class NoteResponse(BaseModel):
     id: str
     user_id: str
+    user_name: Optional[str] = None
     type: NoteType
     title: str
     body: str

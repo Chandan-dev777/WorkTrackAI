@@ -10,12 +10,14 @@ import type { HelpMessage } from '@/types/models'
 
 const PAGE_NAMES: Record<string, string> = {
   '/dashboard': 'Home Dashboard',
-  '/my-dashboard': 'My Dashboard',
+  '/my-dashboard': 'My Analytics',
   '/submit': 'Submit Work Update',
+  '/tasks': 'Tasks & Projects',
   '/team': 'Team Dashboard',
   '/chat': 'Chat Assistant',
   '/admin': 'Admin Panel',
   '/settings': 'Settings',
+  '/org': 'Org Chart',
 }
 
 function usePageContext(): string {
