@@ -102,7 +102,13 @@ if _FRONTEND_DIST.exists():
 
     @app.get("/{full_path:path}", include_in_schema=False)
     def serve_spa(_full_path: str = "") -> FileResponse:
-        return FileResponse(_FRONTEND_DIST / "index.html")
+        return FileResponse(
+            _FRONTEND_DIST / "index.html",
+            headers={
+                "Cache-Control": "no-store, no-cache, must-revalidate",
+                "Pragma": "no-cache",
+            },
+        )
 else:
     logger.info(
         "React build not found at %s — run 'npm run build' inside frontend-react/ "
