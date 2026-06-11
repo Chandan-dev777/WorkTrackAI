@@ -597,9 +597,25 @@ export default function SubmitUpdatePage() {
       }
 
       navigate('/my-dashboard')
-    } catch {
-      toast.error('Failed to save. Please try again.')
-      setConfirmError('Failed to save. Please try again.')
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { status?: number; data?: { detail?: string } } }
+      const status   = axiosErr?.response?.status
+      const detail   = axiosErr?.response?.data?.detail
+
+      if (status === 409) {
+        // Already confirmed — navigate to dashboard to see the saved log
+        toast.success('Already saved — taking you to your dashboard.')
+        navigate('/my-dashboard')
+        return
+      }
+
+      const msg = detail
+        ? `Save failed: ${detail}`
+        : 'Failed to save. Please try again.'
+
+      toast.error(msg)
+      setConfirmError(msg)
+      console.error('[confirm] save failed', { status, detail, err })
     } finally {
       setConfirming(false)
     }
