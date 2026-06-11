@@ -1,24 +1,43 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, Component, type ReactNode } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { canAccess } from '@/utils/roleGuard'
 import { Shell } from '@/components/layout/Shell'
 import type { Role } from '@/utils/roleGuard'
 
+// ── Chunk-load retry helper ───────────────────────────────────────────────────
+// After a deploy, chunk hashes change. If a stale bundle tries to import() an
+// old chunk name, the 404 is caught here and we reload the page once.
+function lazyRetry(importFn: () => Promise<{ default: React.ComponentType<any> }>) {
+  return lazy(async () => {
+    try {
+      const module = await importFn()
+      sessionStorage.removeItem('chunk-reload')
+      return module
+    } catch {
+      if (!sessionStorage.getItem('chunk-reload')) {
+        sessionStorage.setItem('chunk-reload', '1')
+        window.location.reload()
+      }
+      return { default: () => null }
+    }
+  })
+}
+
 // ── Lazy page imports ─────────────────────────────────────────────────────────
-const LoginPage         = lazy(() => import('@/pages/auth/LoginPage'))
-const RegisterPage      = lazy(() => import('@/pages/auth/RegisterPage'))
-const SetPasswordPage   = lazy(() => import('@/pages/auth/SetPasswordPage'))
-const OnboardingPage    = lazy(() => import('@/pages/auth/OnboardingPage'))
-const OrgChartPage      = lazy(() => import('@/pages/org/OrgChartPage'))
-const HomeDashboard     = lazy(() => import('@/pages/dashboard/HomeDashboard'))
-const SubmitUpdatePage  = lazy(() => import('@/pages/submit/SubmitUpdatePage'))
-const TasksPage         = lazy(() => import('@/pages/tasks/TasksPage'))
-const MyDashboardPage   = lazy(() => import('@/pages/dashboard/MyDashboardPage'))
-const TeamDashboardPage = lazy(() => import('@/pages/team/TeamDashboardPage'))
-const ChatPage          = lazy(() => import('@/pages/chat/ChatPage'))
-const AdminPage         = lazy(() => import('@/pages/admin/AdminPage'))
-const SettingsPage      = lazy(() => import('@/pages/settings/SettingsPage'))
+const LoginPage         = lazyRetry(() => import('@/pages/auth/LoginPage'))
+const RegisterPage      = lazyRetry(() => import('@/pages/auth/RegisterPage'))
+const SetPasswordPage   = lazyRetry(() => import('@/pages/auth/SetPasswordPage'))
+const OnboardingPage    = lazyRetry(() => import('@/pages/auth/OnboardingPage'))
+const OrgChartPage      = lazyRetry(() => import('@/pages/org/OrgChartPage'))
+const HomeDashboard     = lazyRetry(() => import('@/pages/dashboard/HomeDashboard'))
+const SubmitUpdatePage  = lazyRetry(() => import('@/pages/submit/SubmitUpdatePage'))
+const TasksPage         = lazyRetry(() => import('@/pages/tasks/TasksPage'))
+const MyDashboardPage   = lazyRetry(() => import('@/pages/dashboard/MyDashboardPage'))
+const TeamDashboardPage = lazyRetry(() => import('@/pages/team/TeamDashboardPage'))
+const ChatPage          = lazyRetry(() => import('@/pages/chat/ChatPage'))
+const AdminPage         = lazyRetry(() => import('@/pages/admin/AdminPage'))
+const SettingsPage      = lazyRetry(() => import('@/pages/settings/SettingsPage'))
 
 // ── Guards ────────────────────────────────────────────────────────────────────
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -59,9 +78,31 @@ const PageLoader = () => (
   </div>
 )
 
+class ChunkErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false }
+  static getDerivedStateFromError() { return { hasError: true } }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '50vh', gap: 16, color: 'var(--color-text-secondary)' }}>
+          <p style={{ fontSize: 15 }}>A new version was deployed. Please refresh the page.</p>
+          <button
+            onClick={() => { sessionStorage.removeItem('chunk-reload'); window.location.reload() }}
+            style={{ padding: '8px 20px', borderRadius: 8, border: '1px solid var(--color-border-subtle)', background: 'var(--color-bg-surface)', color: 'var(--color-text-primary)', cursor: 'pointer', fontSize: 14 }}
+          >
+            Refresh now
+          </button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
 // ── Router ────────────────────────────────────────────────────────────────────
 export function AppRouter() {
   return (
+    <ChunkErrorBoundary>
     <Suspense fallback={<PageLoader />}>
       <Routes>
         {/* Public — redirect authenticated users to dashboard */}
@@ -167,5 +208,6 @@ export function AppRouter() {
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </Suspense>
+    </ChunkErrorBoundary>
   )
 }
