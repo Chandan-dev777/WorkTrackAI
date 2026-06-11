@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import {
-  PlusCircle, MessageSquare, BarChart3, Users, Shield,
+  PlusCircle,
   Clock, CheckCircle, AlertCircle, Sparkles, Flame,
-  AlertTriangle, ArrowRight, ListTodo, FolderKanban,
+  AlertTriangle,
 } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -29,8 +29,6 @@ import { SkeletonCard } from '@/components/common/Skeleton'
 import { AnimatedNumber } from '@/components/common/AnimatedNumber'
 import { GlassCard } from '@/components/common/GlassCard'
 import { formatRelative } from '@/utils/formatDate'
-import { canAccess } from '@/utils/roleGuard'
-import type { Role } from '@/utils/roleGuard'
 import type { WorkItem } from '@/types/models'
 
 // ── Confetti helper ───────────────────────────────────────────────────────────
@@ -141,23 +139,6 @@ function buildNarrative(
   return `${firstName}, ${parts.join(' · ')}.`
 }
 
-// ── Quick actions ─────────────────────────────────────────────────────────────
-
-interface ActionItem {
-  label: string; to: string; icon: React.ElementType
-  description: string; style: 'primary' | 'ai' | 'secondary'; minRole: Role
-}
-
-const ACTIONS: ActionItem[] = [
-  { label: 'Submit Update',  to: '/submit',       icon: PlusCircle,    description: 'Log what you worked on',        style: 'primary',   minRole: 'employee' },
-  { label: 'Chat Assistant', to: '/chat',         icon: MessageSquare, description: 'Ask about your work data',      style: 'ai',        minRole: 'employee' },
-  { label: 'Tasks',          to: '/tasks',        icon: ListTodo,      description: 'View & update your task list',  style: 'secondary', minRole: 'employee' },
-  { label: 'Projects',       to: '/projects',     icon: FolderKanban,  description: 'Browse work by project',        style: 'secondary', minRole: 'employee' },
-  { label: 'My Analytics',   to: '/my-dashboard', icon: BarChart3,     description: 'Charts, trends & benchmarks',   style: 'secondary', minRole: 'employee' },
-  { label: 'Team Dashboard', to: '/team',         icon: Users,         description: 'Team progress overview',        style: 'secondary', minRole: 'manager'  },
-  { label: 'Admin Panel',    to: '/admin',        icon: Shield,        description: 'Users & system settings',       style: 'secondary', minRole: 'admin'    },
-]
-
 // ── Onboarding steps (shown when user has no work items yet) ─────────────────
 
 const ONBOARD_STEPS = [
@@ -198,7 +179,6 @@ export default function HomeDashboard() {
     return () => obs.disconnect()
   }, [])
 
-  const userRole  = (user?.role ?? 'employee') as Role
   const firstName = user?.full_name.split(' ')[0] ?? 'there'
   const weekGoal  = getWeeklyGoal()
 
@@ -246,7 +226,6 @@ export default function HomeDashboard() {
     }
   }, [categoriesQ.data])
 
-  const visibleActions = ACTIONS.filter(a => canAccess(userRole, a.minRole))
   const totalItems     = summaryQ.data?.total_items ?? 0
   const badges         = useMemo(() => computeBadges(streak, totalHours, weekGoal, totalItems), [streak, totalHours, weekGoal, totalItems])
   const [badgesOpen, setBadgesOpen] = useState(true)
@@ -331,18 +310,28 @@ export default function HomeDashboard() {
     <div className="mx-auto p-6 flex flex-col gap-6" style={{ maxWidth: '1200px' }}>
 
       {/* ── Greeting ── */}
-      <div>
-        <h1 className="text-3xl font-bold" style={{ color: 'var(--color-text-primary)', letterSpacing: '-0.02em' }}>
-          {getGreeting()}, {firstName} 👋
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-          {formatTodayLong()}
-        </p>
-        {summaryQ.data && subMessage && (
-          <p className="mt-0.5 text-xs" style={{ color: 'var(--color-text-muted)' }}>
-            {subMessage}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold" style={{ color: 'var(--color-text-primary)', letterSpacing: '-0.02em' }}>
+            {getGreeting()}, {firstName} 👋
+          </h1>
+          <p className="mt-1 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+            {formatTodayLong()}
           </p>
-        )}
+          {summaryQ.data && subMessage && (
+            <p className="mt-0.5 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+              {subMessage}
+            </p>
+          )}
+        </div>
+        <Link
+          to="/submit"
+          className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold flex-shrink-0"
+          style={{ background: 'var(--color-brand-primary)', color: '#fff', textDecoration: 'none', marginTop: 4 }}
+        >
+          <PlusCircle size={14} />
+          Submit Update
+        </Link>
       </div>
 
       {/* ── AI Narrative strip ── */}
@@ -449,80 +438,38 @@ export default function HomeDashboard() {
         </div>
       </div>
 
-      {/* ── Bento row 3: Quick actions + Needs Review ── */}
-      <div className="grid gap-4" style={{ gridTemplateColumns: '1fr 1fr' }}>
-
-        {/* Quick actions */}
-        <div>
-          <SectionLabel>Quick actions</SectionLabel>
+      {/* ── Needs Review ── */}
+      <div>
+        <SectionLabel>
+          {needsReview.length > 0
+            ? `Needs your review (${needsReview.length})`
+            : 'Needs review'}
+        </SectionLabel>
+        {needsReview.length === 0 ? (
+          <BentoCard className="flex items-center gap-3" style={{ padding: '14px 20px' }}>
+            <CheckCircle size={16} color="#10B981" style={{ flexShrink: 0 }} />
+            <p className="text-sm font-medium" style={{ color: '#10B981' }}>All clear — no items need review</p>
+          </BentoCard>
+        ) : (
           <div className="flex flex-col gap-2">
-            {visibleActions.map(action => {
-              const Icon = action.icon
-              const isPrimary = action.style === 'primary'
-              const isAI      = action.style === 'ai'
-              return (
-                <motion.div key={action.to}
-                  whileHover={{ x: 3 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 25 }}>
-                  <Link to={action.to} aria-label={action.label}
-                    className="flex items-center gap-3 rounded-xl px-4 py-3"
-                    style={{
-                      textDecoration: 'none', display: 'flex',
-                      background: isPrimary ? 'linear-gradient(135deg, var(--color-brand-primary), var(--color-brand-secondary))'
-                        : isAI ? 'linear-gradient(135deg, rgba(139,92,246,0.1), rgba(6,182,212,0.1))'
-                        : 'var(--color-bg-surface)',
-                      border: isPrimary ? 'none' : isAI ? '1px solid rgba(139,92,246,0.25)' : '1px solid var(--color-border-subtle)',
-                    }}>
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                      style={{ background: isPrimary ? 'rgba(255,255,255,0.15)' : isAI ? 'rgba(139,92,246,0.15)' : 'rgba(99,102,241,0.1)' }}>
-                      <Icon size={15} color={isPrimary ? '#fff' : isAI ? '#A78BFA' : 'var(--color-brand-primary)'} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold" style={{ color: isPrimary ? '#fff' : 'var(--color-text-primary)', marginBottom: 1 }}>{action.label}</p>
-                      <p className="text-xs" style={{ color: isPrimary ? 'rgba(255,255,255,0.75)' : 'var(--color-text-secondary)' }}>{action.description}</p>
-                    </div>
-                    <ArrowRight size={13} color={isPrimary ? 'rgba(255,255,255,0.6)' : 'var(--color-text-muted)'} />
-                  </Link>
-                </motion.div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Needs Review queue */}
-        <div>
-          <SectionLabel>
-            {needsReview.length > 0
-              ? `Needs your review (${needsReview.length})`
-              : 'Needs review'}
-          </SectionLabel>
-          {needsReview.length === 0 ? (
-            <BentoCard className="flex flex-col items-center justify-center text-center" style={{ minHeight: 120 }}>
-              <CheckCircle size={20} color="#10B981" style={{ marginBottom: 8 }} />
-              <p className="text-sm font-medium" style={{ color: '#10B981' }}>All clear!</p>
-              <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>No items need review</p>
-            </BentoCard>
-          ) : (
-            <div className="flex flex-col gap-2">
-              {needsReview.slice(0, 4).map(item => (
-                <div key={item.id} className="rounded-xl px-4 py-3 flex items-start gap-3"
-                  style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.25)' }}>
-                  <AlertTriangle size={13} color="#F59E0B" style={{ marginTop: 2, flexShrink: 0 }} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>{item.task_description}</p>
-                    <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{item.work_date} · {item.work_category}</p>
-                  </div>
-                  <Link to={`/my-dashboard?review=${item.work_log_id}`} style={{ fontSize: 10, color: 'var(--color-brand-primary)', textDecoration: 'none', flexShrink: 0 }}>Review →</Link>
+            {needsReview.slice(0, 4).map(item => (
+              <div key={item.id} className="rounded-xl px-4 py-3 flex items-start gap-3"
+                style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.25)' }}>
+                <AlertTriangle size={13} color="#F59E0B" style={{ marginTop: 2, flexShrink: 0 }} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>{item.task_description}</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{item.work_date} · {item.work_category}</p>
                 </div>
-              ))}
-              {needsReview.length > 4 && (
-                <Link to="/my-dashboard" style={{ fontSize: 12, color: 'var(--color-brand-primary)', textDecoration: 'none', textAlign: 'center', padding: '4px 0' }}>
-                  +{needsReview.length - 4} more →
-                </Link>
-              )}
-            </div>
-          )}
-        </div>
+                <Link to={`/my-dashboard?review=${item.work_log_id}`} style={{ fontSize: 10, color: 'var(--color-brand-primary)', textDecoration: 'none', flexShrink: 0 }}>Review →</Link>
+              </div>
+            ))}
+            {needsReview.length > 4 && (
+              <Link to="/my-dashboard" style={{ fontSize: 12, color: 'var(--color-brand-primary)', textDecoration: 'none', textAlign: 'center', padding: '4px 0' }}>
+                +{needsReview.length - 4} more →
+              </Link>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── Achievements ── */}
