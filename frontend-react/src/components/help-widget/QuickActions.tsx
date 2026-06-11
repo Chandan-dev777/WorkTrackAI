@@ -5,12 +5,12 @@ interface QuickAction {
 }
 
 const QUICK_ACTIONS: QuickAction[] = [
-  { label: '🐛 Report a Bug',        message: 'I want to report a bug: ',        prefill: true },
-  { label: '✨ Add Requirement',      message: 'Add a requirement: ',             prefill: true },
-  { label: '📤 How to submit update', message: 'How do I submit a work update?', prefill: false },
-  { label: '👥 Roles & permissions',  message: 'What can managers see that employees cannot?', prefill: false },
-  { label: '📊 What do charts mean',  message: 'What does the confidence score column mean on My Dashboard?', prefill: false },
-  { label: '🔑 When to contact admin', message: 'When should I contact my admin?', prefill: false },
+  { label: '💬 Give Feedback',        message: 'I have some feedback: ',          prefill: true },
+  { label: '🐛 Report a Bug',         message: 'I want to report a bug: ',        prefill: true },
+  { label: '✨ Add Requirement',       message: 'Add a requirement: ',             prefill: true },
+  { label: '📤 How to submit update',  message: 'How do I submit a work update?', prefill: false },
+  { label: '👥 Roles & permissions',   message: 'What can managers see that employees cannot?', prefill: false },
+  { label: '📊 What do charts mean',   message: 'What does the confidence score column mean on My Dashboard?', prefill: false },
 ]
 
 interface QuickActionsProps {

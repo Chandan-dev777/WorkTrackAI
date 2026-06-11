@@ -120,7 +120,7 @@ export default function RegisterPage() {
           </h1>
           <p style={{ fontSize: 16, color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
             AI-powered work intelligence for modern teams.
-            Join your organisation and start tracking your work.
+            Join your organisation and start logging your work.
           </p>
         </div>
       </div>

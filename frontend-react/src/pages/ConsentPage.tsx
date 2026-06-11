@@ -19,8 +19,8 @@ const POINTS = [
     color: '#0EA5E9',
     bg: 'rgba(14,165,233,0.12)',
     border: 'rgba(14,165,233,0.25)',
-    title: 'Visibility to your manager and admins',
-    body: 'Your submitted work logs, tasks, and hours are visible to your direct manager and anyone above them in the org hierarchy, as well as system administrators. This is intentional — it enables team oversight.',
+    title: 'Shared with your manager and admins',
+    body: 'Your submitted work logs, tasks, and hours are visible to your direct manager and anyone above them in the org hierarchy, as well as system administrators. This supports team coordination and operational awareness.',
   },
   {
     icon: Users,
@@ -79,7 +79,7 @@ export default function ConsentPage({ onAccept }: Props) {
             fontSize: 15, color: 'var(--color-text-secondary)',
             lineHeight: 1.7, maxWidth: 480, margin: '0 auto',
           }}>
-            DailyOps AI is an internal tool for tracking and analysing work updates across your team.
+            DailyOps AI is an internal tool for capturing and reviewing work updates across your team.
             Please read the following before using the app.
           </p>
         </div>

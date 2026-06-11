@@ -14,8 +14,7 @@ const WELCOME: HelpMessage = {
   id: 'welcome',
   role: 'assistant',
   content:
-    "Hi! I'm your DailyOps AI helper. I can explain features, walk you through workflows, " +
-    'and save bug reports or requirements for you.\n\n' +
+    "Hi! I'm your DailyOps AI helper. Use the quick actions below to **give feedback**, report a bug, or ask how something works.\n\n" +
     'For questions about **your logged work or hours**, use the **Chat Assistant** page instead.',
 }
 

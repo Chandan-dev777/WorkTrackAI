@@ -216,14 +216,14 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col items-center px-4 py-6"
-      style={{ minHeight: 'calc(100vh - 56px)', background: 'var(--color-bg-base)' }}>
+      style={{ height: 'calc(100vh - 56px)', overflow: 'hidden', background: 'var(--color-bg-base)' }}>
 
       {showClearDialog && (
         <ConfirmClearDialog onConfirm={confirmClear} onCancel={() => setShowClearDialog(false)} />
       )}
 
       {/* Chat panel */}
-      <div className="w-full flex flex-col" style={{ maxWidth: '800px', height: 'calc(100vh - 100px)' }}>
+      <div className="w-full flex flex-col" style={{ maxWidth: '800px', flex: 1, minHeight: 0 }}>
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 rounded-t-xl flex-shrink-0"
@@ -250,7 +250,7 @@ export default function ChatPage() {
           </div>
           <button onClick={() => setShowClearDialog(true)} aria-label="Clear history"
             className="inline-flex items-center gap-1.5 text-xs rounded-md px-3 py-1.5 transition-colors"
-            style={{ color: 'var(--color-text-secondary)', border: '1px solid var(--color-border-default)' }}>
+            style={{ color: 'var(--color-text-secondary)', border: '1px solid var(--color-border-default)', background: 'var(--color-bg-elevated)', cursor: 'pointer' }}>
             <Trash2 size={12} /> Clear History
           </button>
         </div>
@@ -262,6 +262,7 @@ export default function ChatPage() {
             border: '1px solid rgba(139,92,246,0.15)',
             borderTop: 'none',
             borderBottom: 'none',
+            overscrollBehavior: 'contain',
           }}>
 
           {/* History loading skeleton */}
